@@ -4,3 +4,30 @@ sed -i "s|Include = /etc/pacman.d/mirrorlist|Server = https://pacman.markridgwel
 pacman -Syu --noconfirm
 
 pacman -S --noconfirm docker docker-compose docker-buildx git pigz criu
+
+{
+  echo "[Unit]"
+  echo "Description=Run arch-update auto check"
+  echo "After=network-online.target"
+  echo ""
+  echo "[Service]"
+  echo "Type=oneshot"
+  echo "ExecStart=pacman -Syyu --noconfirm"
+} > /etc/systemd/system/auto-update.service
+
+
+{
+echo "[Unit]"
+echo "Description=Run arch-update auto check at boot and then every hour"
+echo ""
+echo "[Timer]"
+echo "OnStartupSec=15"
+echo "OnUnitActiveSec=1h"
+echo ""
+echo "[Install]"
+echo "WantedBy=timers.target"
+} > /etc/systemd/system/auto-update.timer
+
+systemctl daemon-reload
+
+systemctl enable --now auto-update.timer
