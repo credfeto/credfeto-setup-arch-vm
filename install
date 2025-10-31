@@ -1,10 +1,25 @@
 #! /bin/sh
 
-sed -i "s|Include = /etc/pacman.d/mirrorlist|Server = https://pacman.markridgwell.com/repo/archlinux/\$repo/os/\$arch|" /etc/pacman.conf
-pacman -Syu --noconfirm
+die() {
+    echo
+    echo "$@"
+    exit 1
+}
 
-pacman -S --noconfirm docker docker-compose docker-buildx git pigz criu
 
+echo "Updating pacman.conf"
+
+sed -i "s|Include = /etc/pacman.d/mirrorlist|Server = https://pacman.markridgwell.com/repo/archlinux/\$repo/os/\$arch|" /etc/pacman.conf || die "Could not update pacman.conf"
+
+
+echo "Updating Packages"
+pacman -Syu --noconfirm || die "Could not update dist"
+
+echo "Ensuring docker is installed"
+pacman -S --noconfirm --needed docker docker-compose docker-buildx git pigz criu || die "Could not install docker"
+
+
+echo "Installing auto-update service"
 {
   echo "[Unit]"
   echo "Description=Run arch-update auto check"
@@ -28,6 +43,9 @@ echo "[Install]"
 echo "WantedBy=timers.target"
 } > /etc/systemd/system/auto-update.timer
 
-systemctl daemon-reload
+systemctl daemon-reload || die "could not update systemd daemon config"
 
-systemctl enable --now auto-update.timer
+systemctl enable --now auto-update.timer || die "Could not enable service"
+
+
+echo "Done"
