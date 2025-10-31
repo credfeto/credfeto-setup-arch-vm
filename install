@@ -1,0 +1,6 @@
+#! /bin/sh
+
+sed -i "s|Include = /etc/pacman.d/mirrorlist|Server = https://pacman.markridgwell.com/repo/archlinux/\$repo/os/\$arch|" /etc/pacman.conf
+pacman -Syu --noconfrirm
+
+pacman -S --noconfirm docker docker-compose docker-buildx git 
