@@ -23,6 +23,7 @@ systemctl enable --now docker.socket || die "Could not enable docker timer"
 systemctl enable --now docker || die "Could not enable docker.service"
 
 echo "Enabling firewalld"
+systemctl enable --now firewalld
 
 echo "Installing auto-update service"
 {
