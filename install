@@ -38,20 +38,38 @@ echo "Installing auto-update service"
 
 
 {
-echo "[Unit]"
-echo "Description=Run arch-update auto check at boot and then every hour"
-echo ""
-echo "[Timer]"
-echo "OnStartupSec=15"
-echo "OnUnitActiveSec=1h"
-echo ""
-echo "[Install]"
-echo "WantedBy=timers.target"
+  echo "[Unit]"
+  echo "Description=Run arch-update auto check at boot and then every hour"
+  echo ""
+  echo "[Timer]"
+  echo "OnStartupSec=15"
+  echo "OnUnitActiveSec=1h"
+  echo ""
+  echo "[Install]"
+  echo "WantedBy=timers.target"
 } > /etc/systemd/system/auto-update.timer
 
 systemctl daemon-reload || die "could not update systemd daemon config"
 
 systemctl enable --now auto-update.timer || die "Could not enable service"
 
+echo "Configuring network"
+{
+  echo "[Match]"
+  echo "Name=eth0"
+  echo ""
+  echo "[Link]"
+  echo "RequiredForOnline=routable"
+  echo ""
+  echo "[Network]"
+  echo "DHCP=yes"
+  echo "IPv6AcceptRA=yes"
+  echo "IgnoreCarrierLoss=3s"
+  echo "IPv6PrivacyExtensions=prefer-public"
+} > /etc/systemd/network/eth0.conf
+
+systemctl daemon-reload
+
+networkctl reload
 
 echo "Done"
