@@ -66,7 +66,7 @@ echo "Configuring network"
   echo "IPv6AcceptRA=yes"
   echo "IgnoreCarrierLoss=3s"
   echo "IPv6PrivacyExtensions=prefer-public"
-} > /etc/systemd/network/eth0.conf
+} > /etc/systemd/network/eth0.network
 
 systemctl daemon-reload
 
