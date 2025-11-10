@@ -20,13 +20,15 @@ pacman -S --noconfirm --needed docker docker-compose docker-buildx git pigz criu
 
 echo "Configuring Docker Mirror"
 
+RESTART=0
 [ -d /etc/docker ] || mkdir -p /etc/docker
-if [ -f /etc/docker/daemon.json ]; then
+if [ ! -f /etc/docker/daemon.json ]; then
   {
     echo "{"
     echo "   \"registry-mirrors\" : [\"https://docker-cache.markridgwell.com\"]"
     echo "}"
   } > /etc/docker/daemon.json
+  RESTART=1
 fi
 
 echo "Enabling Docker"
@@ -80,6 +82,8 @@ echo "Configuring network"
 } > /etc/systemd/network/eth0.network
 
 systemctl daemon-reload
+
+[ "RESTART" = "1" ] && systemctl restart docker
 
 networkctl reload
 
