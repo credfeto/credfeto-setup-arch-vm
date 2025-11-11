@@ -9,7 +9,7 @@ die() {
 echo "Updating pacman.conf"
 
 sed -i "s|Include = /etc/pacman.d/mirrorlist|Server = https://pacman.markridgwell.com/repo/archlinux/\$repo/os/\$arch|" /etc/pacman.conf || die "Could not update pacman.conf"
-sed -i "s|IgnorePkg   =|IgnorePkg   = runc|" /etc/pacman.conf || die "Could not update pacman.conf"
+sed -i "s|#IgnorePkg   =|IgnorePkg   = runc|" /etc/pacman.conf || die "Could not update pacman.conf"
 
 
 echo "Updating Packages"
@@ -88,5 +88,5 @@ systemctl daemon-reload
 networkctl reload
 
 curl https://archive.archlinux.org/packages/r/runc/runc-1.3.2-1-x86_64.pkg.tar.zst -o runc-1.3.2-1-x86_64.pkg.tar.zst && pacman -U --noconfirm ./runc-1.3.2-1-x86_64.pkg.tar.zst
-
+c
 echo "Done"
