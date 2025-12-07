@@ -39,7 +39,7 @@ systemctl enable --now docker.socket || die "Could not enable docker timer"
 systemctl enable --now docker || die "Could not enable docker.service"
 
 echo "Enabling pkgstats"
-sudo systemctl enable --now pkgstats.timer
+sudo systemctl start pkgstats.timer
 
 echo "Enabling firewalld"
 systemctl enable --now firewalld
