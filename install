@@ -17,7 +17,7 @@ echo "Updating pacman.conf"
 #sed -i "s|Include = /etc/pacman.d/mirrorlist|Server = https://pacman.markridgwell.com/repo/archlinux/\$repo/os/\$arch|" /etc/pacman.conf || die "Could not update pacman.conf"
 
 # when runc was broken
-sed -i "s|#IgnorePkg   =|IgnorePkg   = runc|" /etc/pacman.conf || die "Could not update pacman.conf"
+#sed -i "s|#IgnorePkg   =|IgnorePkg   = runc|" /etc/pacman.conf || die "Could not update pacman.conf"
 
 
 echo "Updating Packages"
