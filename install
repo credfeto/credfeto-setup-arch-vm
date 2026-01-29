@@ -16,13 +16,14 @@ echo "Updating pacman.conf"
 
 #sed -i "s|Include = /etc/pacman.d/mirrorlist|Include = /etc/pacman.d/mirrorlist\nCacheServer = https://pacman.markridgwell.com/repo/archlinux/\$repo/os/\$arch|" /etc/pacman.conf || die "Could not update pacman.conf"
 
-# ChaoticAUR
+# Chaotic AUR install
 # sudo pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
 # sudo pacman-key --lsign-key 3056513887B78AEB
-#sudo pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst'
-#sudo pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
+# sudo pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst'
+# sudo pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
 # [chaotic-aur]
 # Include = /etc/pacman.d/chaotic-mirrorlist
+# CacheServer = https://pacman.markridgwell.com/repo/chaotic-aur/x86_64
 
 # when runc was broken
 #sed -i "s|#IgnorePkg   =|IgnorePkg   = runc|" /etc/pacman.conf || die "Could not update pacman.conf"
