@@ -65,6 +65,9 @@ sudo systemctl start pkgstats.timer
 echo "Enabling firewalld"
 systemctl enable --now firewalld
 
+echo "Enable QEMU Guest Agent"
+systemctl enable --now qemu-ga.service || die "Could not enable qemu-ga.service"
+
 echo "Installing auto-update service"
 {
   echo "[Unit]"
