@@ -10,11 +10,11 @@ die() {
 {
     echo "alias ls='ls -aFh --color=always'"
     echo "alias ll='ls -Fls'"
-} >> ~/.bashrc
+} >> "$HOME/.bashrc"
 
 echo "Updating pacman.conf"
 
-sed -i "s|Include = /etc/pacman.d/mirrorlist|Include = /etc/pacman.d/mirrorlist\nCacheServer = https://pacman.markridgwell.com/repo/archlinux/\$repo/os/\$arch|" /etc/pacman.conf || die "Could not update pacman.conf"
+sed -i "s|^Include = /etc/pacman.d/mirrorlist$|Include = /etc/pacman.d/mirrorlist\nCacheServer = https://pacman.markridgwell.com/repo/archlinux/\$repo/os/\$arch|" /etc/pacman.conf || die "Could not update pacman.conf"
 
 # Chaotic AUR install
 #echo "Y | pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
