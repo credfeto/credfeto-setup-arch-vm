@@ -51,8 +51,8 @@ cat << EOF > /etc/xdg/reflector/reflector.conf
 --sort rate
 EOF
 
-systemctl enable --now reflector.time
-systemctl start reflector.timer
+systemctl enable --now reflector.timer
+systemctl start reflector.service
 
 echo "Configuring Docker Mirror"
 
