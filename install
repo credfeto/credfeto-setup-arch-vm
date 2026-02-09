@@ -44,7 +44,7 @@ pacman -S --noconfirm --needed docker docker-compose docker-buildx git pigz criu
 
 
 echo "Configuring Reflector"
-cat << EOF >> /etc/pacman.confe mirrorlist will be saved (--save).
+cat << EOF > /etc/xdg/reflector/reflector.conf
 --save /etc/pacman.d/mirrorlist
 --protocol https
 --latest 10
