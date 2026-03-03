@@ -1,0 +1,7 @@
+#! /bin/sh
+
+curl -sSL https://raw.githubusercontent.com/credfeto/credfeto-setup-arch-vm/refs/heads/main/etc/resolv.conf "$HOME/resolv.conf"
+
+rm -f /etc/resolv.conf
+
+cp -f "$HOME/resolv.conf" /etc/resolv.conf
