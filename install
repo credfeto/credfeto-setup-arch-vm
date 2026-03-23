@@ -10,6 +10,8 @@ die() {
 {
     echo "alias ls='ls -aFh --color=always'"
     echo "alias ll='ls -Fls'"
+    echo "alias dns='curl -sSL https://raw.githubusercontent.com/credfeto/credfeto-setup-arch-vm/refs/heads/main/dns | sh"
+    echo "alias chaotic-aur='curl -sSL https://raw.githubusercontent.com/credfeto/credfeto-setup-arch-vm/refs/heads/main/chaotic-aur | sh"
 } >> "$HOME/.bashrc"
 
 echo "Updating pacman.conf"
