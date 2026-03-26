@@ -7,16 +7,15 @@ die() {
 }
 
 # Setup .bashrc
-{
-    echo "alias ls='ls -aFh --color=always'"
-    echo "alias ll='ls -Fls'"
-    echo "alias dns='curl -sSL https://raw.githubusercontent.com/credfeto/credfeto-setup-arch-vm/refs/heads/main/dns | sh"
-    echo "alias chaotic-aur='curl -sSL https://raw.githubusercontent.com/credfeto/credfeto-setup-arch-vm/refs/heads/main/chaotic-aur | sh"
-} >> "$HOME/.bashrc"
+grep -qF "alias ls='ls -aFh --color=always'" "$HOME/.bashrc" || echo "alias ls='ls -aFh --color=always'" >> "$HOME/.bashrc"
+grep -qF "alias ll='ls -Fls'" "$HOME/.bashrc" || echo "alias ll='ls -Fls'" >> "$HOME/.bashrc"
+grep -qF "alias dns='curl -sSL https://raw.githubusercontent.com/credfeto/credfeto-setup-arch-vm/refs/heads/main/dns | sh'" "$HOME/.bashrc" || echo "alias dns='curl -sSL https://raw.githubusercontent.com/credfeto/credfeto-setup-arch-vm/refs/heads/main/dns | sh'" >> "$HOME/.bashrc"
+grep -qF "alias chaotic-aur='curl -sSL https://raw.githubusercontent.com/credfeto/credfeto-setup-arch-vm/refs/heads/main/chaotic-aur | sh'" "$HOME/.bashrc" || echo "alias chaotic-aur='curl -sSL https://raw.githubusercontent.com/credfeto/credfeto-setup-arch-vm/refs/heads/main/chaotic-aur | sh'" >> "$HOME/.bashrc"
 
 echo "Updating pacman.conf"
 
-sed -i "s|^Include = /etc/pacman.d/mirrorlist$|Include = /etc/pacman.d/mirrorlist\nCacheServer = https://pacman.markridgwell.com/repo/archlinux/\$repo/os/\$arch|" /etc/pacman.conf || die "Could not update pacman.conf"
+grep -qF "CacheServer = https://pacman.markridgwell.com/repo/archlinux/" /etc/pacman.conf || \
+  sed -i "s|^Include = /etc/pacman.d/mirrorlist$|Include = /etc/pacman.d/mirrorlist\nCacheServer = https://pacman.markridgwell.com/repo/archlinux/\$repo/os/\$arch|" /etc/pacman.conf || die "Could not update pacman.conf"
 
 # Chaotic AUR install
 #echo "Y | pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
@@ -124,7 +123,7 @@ echo "Configuring network"
 
 systemctl daemon-reload
 
-[ "RESTART" = "1" ] && systemctl restart docker
+[ "$RESTART" = "1" ] && systemctl restart docker
 
 networkctl reload
 
