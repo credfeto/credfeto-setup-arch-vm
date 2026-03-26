@@ -133,6 +133,34 @@ systemctl daemon-reload || die "Could not update systemd daemon config"
 
 systemctl enable --now paccache-cleanup.timer || die "Could not enable paccache cleanup timer"
 
+echo "Installing docker-cleanup service"
+{
+  echo "[Unit]"
+  echo "Description=Remove unused docker images"
+  echo "After=docker.service"
+  echo "Requires=docker.service"
+  echo ""
+  echo "[Service]"
+  echo "Type=oneshot"
+  echo "ExecStart=docker image prune --all --force"
+} > /etc/systemd/system/docker-cleanup.service
+
+{
+  echo "[Unit]"
+  echo "Description=Remove unused docker images weekly"
+  echo ""
+  echo "[Timer]"
+  echo "OnCalendar=weekly"
+  echo "Persistent=true"
+  echo ""
+  echo "[Install]"
+  echo "WantedBy=timers.target"
+} > /etc/systemd/system/docker-cleanup.timer
+
+systemctl daemon-reload || die "Could not update systemd daemon config"
+
+systemctl enable --now docker-cleanup.timer || die "Could not enable docker-cleanup timer"
+
 echo "Configuring network"
 {
   echo "[Match]"
