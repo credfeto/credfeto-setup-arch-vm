@@ -197,19 +197,88 @@ systemctl enable --now docker-cleanup.timer || die "Could not enable docker-clea
 # ============================================================
 
 echo "Configuring GRUB kernel command line"
-GRUB_PARAMS="panic=20 lsm=landlock,lockdown,yama,apparmor,bpf apparmor=1 security=apparmor lockdown=confidentiality hardend_usercopy=on ia32_emulation=0"
-if ! grep -q "panic=20" /etc/default/grub; then
-    CURRENT=$(sed -n 's/^GRUB_CMDLINE_LINUX="\(.*\)"$/\1/p' /etc/default/grub)
-    if [ -z "$CURRENT" ]; then
-        NEW_VALUE="$GRUB_PARAMS"
-    else
-        NEW_VALUE="$CURRENT $GRUB_PARAMS"
-    fi
-    sed -i "s|^GRUB_CMDLINE_LINUX=\".*\"$|GRUB_CMDLINE_LINUX=\"${NEW_VALUE}\"|" /etc/default/grub || die "Could not update GRUB_CMDLINE_LINUX"
-    grub-mkconfig -o /boot/grub/grub.cfg || die "Could not regenerate GRUB config"
-else
-    echo "GRUB kernel command line already configured, skipping"
+GRUB_PARAMS="panic=20 slab_nomerge slub_debug=FZ init_on_alloc=1 init_on_free=1 pti=on lsm=landlock,lockdown,yama,apparmor,bpf apparmor=1 security=apparmor lockdown=confidentiality hardened_usercopy=on ia32_emulation=0"
+GRUB_CHANGED=0
+
+# Fix typo from earlier versions
+if grep -q "hardend_usercopy" /etc/default/grub; then
+    sed -i 's/hardend_usercopy/hardened_usercopy/g' /etc/default/grub || die "Could not fix hardened_usercopy typo in GRUB config"
+    GRUB_CHANGED=1
 fi
+
+for PARAM in $GRUB_PARAMS; do
+    PARAM_KEY="${PARAM%%=*}"
+    if ! grep -q "$PARAM_KEY" /etc/default/grub; then
+        sed -i "s|^GRUB_CMDLINE_LINUX=\"\(.*\)\"$|GRUB_CMDLINE_LINUX=\"\1 ${PARAM}\"|" /etc/default/grub || die "Could not add ${PARAM} to GRUB_CMDLINE_LINUX"
+        GRUB_CHANGED=1
+    fi
+done
+
+[ "$GRUB_CHANGED" = "1" ] && { grub-mkconfig -o /boot/grub/grub.cfg || die "Could not regenerate GRUB config"; }
+
+# ============================================================
+# Configure sysctl hardening
+# ============================================================
+
+echo "Configuring sysctl hardening"
+SYSCTL_CHANGED=0
+
+if [ ! -f /etc/sysctl.d/10-dmesg_restrict.conf ]; then
+    cat << 'EOF' > /etc/sysctl.d/10-dmesg_restrict.conf
+kernel.dmesg_restrict=1
+EOF
+    SYSCTL_CHANGED=1
+fi
+
+if [ ! -f /etc/sysctl.d/10-harden_bpf.conf ]; then
+    cat << 'EOF' > /etc/sysctl.d/10-harden_bpf.conf
+kernel.unprivileged_bpf_disabled=1
+net.core.bpf_jit_harden=2
+EOF
+    SYSCTL_CHANGED=1
+fi
+
+if [ ! -f /etc/sysctl.d/10-kexec.conf ]; then
+    cat << 'EOF' > /etc/sysctl.d/10-kexec.conf
+kernel.kexec_load_disabled=1
+EOF
+    SYSCTL_CHANGED=1
+fi
+
+if [ ! -f /etc/sysctl.d/10-kptr_restrict.conf ]; then
+    cat << 'EOF' > /etc/sysctl.d/10-kptr_restrict.conf
+kernel.kptr_restrict=2
+EOF
+    SYSCTL_CHANGED=1
+fi
+
+if [ ! -f /etc/sysctl.d/10-ptrace_scope.conf ]; then
+    cat << 'EOF' > /etc/sysctl.d/10-ptrace_scope.conf
+kernel.yama.ptrace_scope=2
+EOF
+    SYSCTL_CHANGED=1
+fi
+
+if [ ! -f /etc/sysctl.d/10-tcp_hardening.conf ]; then
+    cat << 'EOF' > /etc/sysctl.d/10-tcp_hardening.conf
+net.ipv4.tcp_syncookies=1
+net.ipv4.tcp_rfc1337=1
+net.ipv4.conf.default.rp_filter=1
+net.ipv4.conf.all.rp_filter=1
+net.ipv4.conf.all.accept_redirects=0
+net.ipv4.conf.default.accept_redirects=0
+net.ipv4.conf.all.secure_redirects=0
+net.ipv4.conf.default.secure_redirects=0
+net.ipv6.conf.all.accept_redirects=0
+net.ipv6.conf.default.accept_redirects=0
+net.ipv4.conf.all.send_redirects=0
+net.ipv4.conf.default.send_redirects=0
+net.ipv4.icmp_echo_ignore_all=1
+EOF
+    SYSCTL_CHANGED=1
+fi
+
+[ "$SYSCTL_CHANGED" = "1" ] && { sysctl --system || die "Could not apply sysctl settings"; }
 
 # ============================================================
 # Configure network
