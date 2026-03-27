@@ -196,20 +196,77 @@ systemctl enable --now docker-cleanup.timer || die "Could not enable docker-clea
 # Configure network
 # ============================================================
 
-echo "Configuring network"
-cat << 'EOF' > /etc/systemd/network/eth0.network
+if [ ! -f /etc/systemd/network/eth0.network ]; then
+    echo "Configuring network"
+
+    # Detect the first physical NIC (skip loopback, docker bridges, veth pairs)
+    NIC=$(ip -o link show type ether | awk '!/docker|br-|veth/{sub(/:$/, "", $2); print $2; exit}')
+    [ -n "$NIC" ] || die "Could not detect a physical network interface"
+
+    IPV4=$(ip -o -4 addr show dev "$NIC" scope global | awk 'NR==1{print $4}')
+    [ -n "$IPV4" ] || die "Could not detect IPv4 address on $NIC"
+
+    GW4=$(ip -4 route show default dev "$NIC" | awk 'NR==1{print $3}')
+
+    IPV6=$(ip -o -6 addr show dev "$NIC" scope global | awk 'NR==1{print $4}')
+    GW6=$(ip -6 route show default dev "$NIC" 2>/dev/null | awk 'NR==1{print $3}')
+
+    {
+        cat << EOF
 [Match]
-Name=eth0
+Name=$NIC
 
 [Link]
 RequiredForOnline=routable
 
 [Network]
-DHCP=yes
-IPv6AcceptRA=yes
-IgnoreCarrierLoss=3s
-IPv6PrivacyExtensions=prefer-public
+DNS=192.168.42.251 192.168.42.252 192.168.42.253 192.168.42.254
+DNS=2a02:8010:61d5:42::251 2a02:8010:61d5:42::252 2a02:8010:61d5:42::253 2a02:8010:61d5:42::254
+
+[Address]
+Address=$IPV4
 EOF
+        if [ -n "$GW4" ]; then
+            cat << EOF
+
+[Route]
+Gateway=$GW4
+EOF
+        fi
+        if [ -n "$IPV6" ]; then
+            cat << EOF
+
+[Address]
+Address=$IPV6
+EOF
+        fi
+        if [ -n "$GW6" ]; then
+            cat << EOF
+
+[Route]
+Gateway=$GW6
+EOF
+        fi
+    } > /etc/systemd/network/eth0.network
+
+    cat << 'EOF' > /etc/resolv.conf
+search .
+
+nameserver 192.168.42.251
+nameserver 192.168.42.252
+nameserver 192.168.42.253
+nameserver 192.168.42.254
+
+nameserver 2a02:8010:61d5:42::251
+nameserver 2a02:8010:61d5:42::252
+nameserver 2a02:8010:61d5:42::253
+nameserver 2a02:8010:61d5:42::254
+
+options edns0 trust-ad
+EOF
+else
+    echo "Network already configured, skipping"
+fi
 
 systemctl daemon-reload
 [ "$RESTART" = "1" ] && systemctl restart docker
