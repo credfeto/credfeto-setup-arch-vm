@@ -1,0 +1,15 @@
+# AI Instructions
+
+See `.github/instructions/` for full guidance:
+
+- **[arch-linux.instructions.md](.github/instructions/arch-linux.instructions.md)** — Arch Linux administration, pacman workflows, and rolling-release best practices.
+- **[install.instructons.md](.github/instructions/install.instructons.md)** — Guidelines for updating the `install` script (idempotent changes, keep edits in `install` unless stated otherwise).
+
+## Key Rules
+
+- All changes go in the `install` script unless explicitly requested otherwise.
+- The `install` script must be idempotent — safe to run multiple times without duplicating or breaking configuration.
+- Follow Arch Linux best practices: full upgrades (`pacman -Syu`), systemd for services, config under `/etc`.
+- Provide copy-paste-ready commands with validation and rollback steps.
+- All updates should follow best security practices.
+- All updates should make an arch linux system more secure, stable, and performant.
