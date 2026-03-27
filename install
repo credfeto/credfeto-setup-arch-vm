@@ -6,14 +6,21 @@ die() {
     exit 1
 }
 
-# Setup .bashrc
+# ============================================================
+# Shell environment
+# ============================================================
+
+echo "Configuring shell aliases"
 grep -qF "alias ls='ls -aFh --color=always'" "$HOME/.bashrc" || echo "alias ls='ls -aFh --color=always'" >> "$HOME/.bashrc"
 grep -qF "alias ll='ls -Fls'" "$HOME/.bashrc" || echo "alias ll='ls -Fls'" >> "$HOME/.bashrc"
 grep -qF "alias dns='curl -sSL https://raw.githubusercontent.com/credfeto/credfeto-setup-arch-vm/refs/heads/main/dns | sh'" "$HOME/.bashrc" || echo "alias dns='curl -sSL https://raw.githubusercontent.com/credfeto/credfeto-setup-arch-vm/refs/heads/main/dns | sh'" >> "$HOME/.bashrc"
 grep -qF "alias chaotic-aur='curl -sSL https://raw.githubusercontent.com/credfeto/credfeto-setup-arch-vm/refs/heads/main/chaotic-aur | sh'" "$HOME/.bashrc" || echo "alias chaotic-aur='curl -sSL https://raw.githubusercontent.com/credfeto/credfeto-setup-arch-vm/refs/heads/main/chaotic-aur | sh'" >> "$HOME/.bashrc"
 
-echo "Updating pacman.conf"
+# ============================================================
+# Configure pacman.conf
+# ============================================================
 
+echo "Configuring pacman.conf"
 grep -qF "CacheServer = https://pacman.markridgwell.com/repo/archlinux/" /etc/pacman.conf || \
   sed -i "s|^Include = /etc/pacman.d/mirrorlist$|Include = /etc/pacman.d/mirrorlist\nCacheServer = https://pacman.markridgwell.com/repo/archlinux/\$repo/os/\$arch|" /etc/pacman.conf || die "Could not update pacman.conf"
 
@@ -33,18 +40,24 @@ grep -qF "CacheServer = https://pacman.markridgwell.com/repo/archlinux/" /etc/pa
 # when runc was broken
 #sed -i "s|#IgnorePkg   =|IgnorePkg   = runc|" /etc/pacman.conf || die "Could not update pacman.conf"
 
+# ============================================================
+# Install packages
+# ============================================================
 
-echo "Updating Packages"
+echo "Updating packages"
 pacman -Syu --noconfirm || die "Could not update dist"
 
 #echo "Explicit RUNC version"
 #curl https://archive.archlinux.org/packages/r/runc/runc-1.3.2-1-x86_64.pkg.tar.zst -o runc-1.3.2-1-x86_64.pkg.tar.zst && pacman -U --noconfirm ./runc-1.3.2-1-x86_64.pkg.tar.zst
 
-echo "Ensuring packages is installed"
-pacman -S --noconfirm --needed docker docker-compose docker-buildx git pigz criu firewalld pkgstats reflector pacman-contrib || die "Could not install docker"
+echo "Installing packages"
+pacman -S --noconfirm --needed docker docker-compose docker-buildx git pigz criu firewalld pkgstats reflector pacman-contrib || die "Could not install packages"
 
+# ============================================================
+# Configure reflector
+# ============================================================
 
-echo "Configuring Reflector"
+echo "Configuring reflector"
 cat << EOF > /etc/xdg/reflector/reflector.conf
 --save /etc/pacman.d/mirrorlist
 --protocol https
@@ -55,8 +68,11 @@ EOF
 systemctl enable --now reflector.timer
 systemctl start reflector.service
 
-echo "Configuring Docker Mirror"
+# ============================================================
+# Configure Docker
+# ============================================================
 
+echo "Configuring Docker mirror"
 RESTART=0
 [ -d /etc/docker ] || mkdir -p /etc/docker
 if [ ! -f /etc/docker/daemon.json ]; then
@@ -69,16 +85,28 @@ EOF
 fi
 
 echo "Enabling Docker"
-systemctl enable --now docker.socket || die "Could not enable docker timer"
+systemctl enable --now docker.socket || die "Could not enable docker.socket"
 systemctl enable --now docker || die "Could not enable docker.service"
 
-echo "Enabling pkgstats"
-sudo systemctl start pkgstats.timer
+# ============================================================
+# Configure firewalld
+# ============================================================
 
 echo "Enabling firewalld"
 systemctl enable --now firewalld
 
-echo "Installing auto-update service"
+# ============================================================
+# Configure pkgstats
+# ============================================================
+
+echo "Enabling pkgstats"
+systemctl enable --now pkgstats.timer
+
+# ============================================================
+# Configure auto-update service
+# ============================================================
+
+echo "Configuring auto-update service"
 cat << 'EOF' > /etc/systemd/system/auto-update.service
 [Unit]
 Description=Run arch-update auto check
@@ -101,11 +129,14 @@ OnUnitActiveSec=1h
 WantedBy=timers.target
 EOF
 
-systemctl daemon-reload || die "Could not update systemd daemon config"
+systemctl daemon-reload || die "Could not reload systemd daemon"
+systemctl enable --now auto-update.timer || die "Could not enable auto-update.timer"
 
-systemctl enable --now auto-update.timer || die "Could not enable service"
+# ============================================================
+# Configure paccache cleanup service
+# ============================================================
 
-echo "Installing paccache cleanup service"
+echo "Configuring paccache cleanup service"
 cat << 'EOF' > /etc/systemd/system/paccache-cleanup.service
 [Unit]
 Description=Clean up old pacman cache entries
@@ -127,11 +158,14 @@ Persistent=true
 WantedBy=timers.target
 EOF
 
-systemctl daemon-reload || die "Could not update systemd daemon config"
+systemctl daemon-reload || die "Could not reload systemd daemon"
+systemctl enable --now paccache-cleanup.timer || die "Could not enable paccache-cleanup.timer"
 
-systemctl enable --now paccache-cleanup.timer || die "Could not enable paccache cleanup timer"
+# ============================================================
+# Configure docker-cleanup service
+# ============================================================
 
-echo "Installing docker-cleanup service"
+echo "Configuring docker-cleanup service"
 cat << 'EOF' > /etc/systemd/system/docker-cleanup.service
 [Unit]
 Description=Remove unused docker images
@@ -155,9 +189,12 @@ Persistent=true
 WantedBy=timers.target
 EOF
 
-systemctl daemon-reload || die "Could not update systemd daemon config"
+systemctl daemon-reload || die "Could not reload systemd daemon"
+systemctl enable --now docker-cleanup.timer || die "Could not enable docker-cleanup.timer"
 
-systemctl enable --now docker-cleanup.timer || die "Could not enable docker-cleanup timer"
+# ============================================================
+# Configure network
+# ============================================================
 
 echo "Configuring network"
 cat << 'EOF' > /etc/systemd/network/eth0.network
@@ -175,9 +212,7 @@ IPv6PrivacyExtensions=prefer-public
 EOF
 
 systemctl daemon-reload
-
 [ "$RESTART" = "1" ] && systemctl restart docker
-
 networkctl reload
 
 echo "Done"
