@@ -60,11 +60,11 @@ echo "Configuring Docker Mirror"
 RESTART=0
 [ -d /etc/docker ] || mkdir -p /etc/docker
 if [ ! -f /etc/docker/daemon.json ]; then
-  {
-    echo "{"
-    echo "   \"registry-mirrors\" : [\"https://docker-cache.markridgwell.com\"]"
-    echo "}"
-  } > /etc/docker/daemon.json
+  cat << EOF > /etc/docker/daemon.json
+{
+   "registry-mirrors" : ["https://docker-cache.markridgwell.com"]
+}
+EOF
   RESTART=1
 fi
 
@@ -79,102 +79,100 @@ echo "Enabling firewalld"
 systemctl enable --now firewalld
 
 echo "Installing auto-update service"
-{
-  echo "[Unit]"
-  echo "Description=Run arch-update auto check"
-  echo "After=network-online.target"
-  echo ""
-  echo "[Service]"
-  echo "Type=oneshot"
-  echo "ExecStart=pacman -Syyu --noconfirm"
-} > /etc/systemd/system/auto-update.service
+cat << 'EOF' > /etc/systemd/system/auto-update.service
+[Unit]
+Description=Run arch-update auto check
+After=network-online.target
 
+[Service]
+Type=oneshot
+ExecStart=pacman -Syyu --noconfirm
+EOF
 
-{
-  echo "[Unit]"
-  echo "Description=Run arch-update auto check at boot and then every hour"
-  echo ""
-  echo "[Timer]"
-  echo "OnStartupSec=15"
-  echo "OnUnitActiveSec=1h"
-  echo ""
-  echo "[Install]"
-  echo "WantedBy=timers.target"
-} > /etc/systemd/system/auto-update.timer
+cat << 'EOF' > /etc/systemd/system/auto-update.timer
+[Unit]
+Description=Run arch-update auto check at boot and then every hour
 
-systemctl daemon-reload || die "could not update systemd daemon config"
+[Timer]
+OnStartupSec=15
+OnUnitActiveSec=1h
+
+[Install]
+WantedBy=timers.target
+EOF
+
+systemctl daemon-reload || die "Could not update systemd daemon config"
 
 systemctl enable --now auto-update.timer || die "Could not enable service"
 
 echo "Installing paccache cleanup service"
-{
-  echo "[Unit]"
-  echo "Description=Clean up old pacman cache entries"
-  echo ""
-  echo "[Service]"
-  echo "Type=oneshot"
-  echo "ExecStart=paccache -r"
-} > /etc/systemd/system/paccache-cleanup.service
+cat << 'EOF' > /etc/systemd/system/paccache-cleanup.service
+[Unit]
+Description=Clean up old pacman cache entries
 
+[Service]
+Type=oneshot
+ExecStart=paccache -r
+EOF
 
-{
-  echo "[Unit]"
-  echo "Description=Run paccache cleanup once a week"
-  echo ""
-  echo "[Timer]"
-  echo "OnCalendar=weekly"
-  echo "Persistent=true"
-  echo ""
-  echo "[Install]"
-  echo "WantedBy=timers.target"
-} > /etc/systemd/system/paccache-cleanup.timer
+cat << 'EOF' > /etc/systemd/system/paccache-cleanup.timer
+[Unit]
+Description=Run paccache cleanup once a week
+
+[Timer]
+OnCalendar=weekly
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
 
 systemctl daemon-reload || die "Could not update systemd daemon config"
 
 systemctl enable --now paccache-cleanup.timer || die "Could not enable paccache cleanup timer"
 
 echo "Installing docker-cleanup service"
-{
-  echo "[Unit]"
-  echo "Description=Remove unused docker images"
-  echo "After=docker.service"
-  echo "Requires=docker.service"
-  echo ""
-  echo "[Service]"
-  echo "Type=oneshot"
-  echo "ExecStart=docker image prune --all --force"
-} > /etc/systemd/system/docker-cleanup.service
+cat << 'EOF' > /etc/systemd/system/docker-cleanup.service
+[Unit]
+Description=Remove unused docker images
+After=docker.service
+Requires=docker.service
 
-{
-  echo "[Unit]"
-  echo "Description=Remove unused docker images weekly"
-  echo ""
-  echo "[Timer]"
-  echo "OnCalendar=weekly"
-  echo "Persistent=true"
-  echo ""
-  echo "[Install]"
-  echo "WantedBy=timers.target"
-} > /etc/systemd/system/docker-cleanup.timer
+[Service]
+Type=oneshot
+ExecStart=docker image prune --all --force
+EOF
+
+cat << 'EOF' > /etc/systemd/system/docker-cleanup.timer
+[Unit]
+Description=Remove unused docker images weekly
+
+[Timer]
+OnCalendar=weekly
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
 
 systemctl daemon-reload || die "Could not update systemd daemon config"
 
 systemctl enable --now docker-cleanup.timer || die "Could not enable docker-cleanup timer"
 
 echo "Configuring network"
-{
-  echo "[Match]"
-  echo "Name=eth0"
-  echo ""
-  echo "[Link]"
-  echo "RequiredForOnline=routable"
-  echo ""
-  echo "[Network]"
-  echo "DHCP=yes"
-  echo "IPv6AcceptRA=yes"
-  echo "IgnoreCarrierLoss=3s"
-  echo "IPv6PrivacyExtensions=prefer-public"
-} > /etc/systemd/network/eth0.network
+cat << 'EOF' > /etc/systemd/network/eth0.network
+[Match]
+Name=eth0
+
+[Link]
+RequiredForOnline=routable
+
+[Network]
+DHCP=yes
+IPv6AcceptRA=yes
+IgnoreCarrierLoss=3s
+IPv6PrivacyExtensions=prefer-public
+EOF
 
 systemctl daemon-reload
 
