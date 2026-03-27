@@ -18,6 +18,8 @@ Before starting any work:
 4. Make all commits on that branch
 5. Push the branch and open a PR — do not push to `main` directly
 
+**If asked to fix or extend something already on an open branch, commit to that same branch — do not create a new branch.**
+
 Keep all changes in the 'install' script unless explicitly specified in the request.
 
 Make the install script run in such a way that it can be run many times without breaking or introducing duplicate configuration or unwanted configuration... 
