@@ -13,3 +13,5 @@ See `.github/instructions/` for full guidance:
 - Provide copy-paste-ready commands with validation and rollback steps.
 - All updates should follow best security practices.
 - All updates should make an arch linux system more secure, stable, and performant.
+- This file should be updated whenever a new rule is added.
+- The .github/instructions/ folder should be updated whenever a new rule is added.
