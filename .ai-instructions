@@ -15,3 +15,16 @@ See `.github/instructions/` for full guidance:
 - All updates should make an arch linux system more secure, stable, and performant.
 - This file should be updated whenever a new rule is added.
 - The .github/instructions/ folder should be updated whenever a new rule is added.
+- Use HEREDOC rather than multip1le echo statements.
+- All changes to scripts should be checked with `shellcheck`.
+- All changes to scripts should be checked against checkbashisms to make sure they are sh compatible.
+
+## Making Changes
+- All changes should be made in a new branch and submitted as a pull request.
+- Changes should be made in small commits, each with a descriptive commit message.
+- Commit messages should follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) format.
+- Pull requests should be reviewed by at least one other maintainer before merging.
+- All changes should be tested and verified before merging.
+- All changes should be documented in the `CHANGELOG.md` file.
+- All changes should be documented in the `arch-linux.instructions.md` file if they affect Arch Linux administration, pacman workflows, or rolling-release best practices.
+- The `README.md` file should be updated to detail the features that are configured.
