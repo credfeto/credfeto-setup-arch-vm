@@ -206,13 +206,21 @@ if grep -q "hardend_usercopy" /etc/default/grub; then
     GRUB_CHANGED=1
 fi
 
+# Extract current value and build new value in memory, checking only within GRUB_CMDLINE_LINUX
+CMDLINE=$(sed -n 's/^GRUB_CMDLINE_LINUX="\(.*\)"$/\1/p' /etc/default/grub)
+NEW_CMDLINE="$CMDLINE"
+
 for PARAM in $GRUB_PARAMS; do
     PARAM_KEY="${PARAM%%=*}"
-    if ! grep -q "$PARAM_KEY" /etc/default/grub; then
-        sed -i "s|^GRUB_CMDLINE_LINUX=\"\(.*\)\"$|GRUB_CMDLINE_LINUX=\"\1 ${PARAM}\"|" /etc/default/grub || die "Could not add ${PARAM} to GRUB_CMDLINE_LINUX"
-        GRUB_CHANGED=1
-    fi
+    case " $NEW_CMDLINE " in
+        *" ${PARAM_KEY}"*) ;;
+        *) NEW_CMDLINE="${NEW_CMDLINE:+$NEW_CMDLINE }${PARAM}"; GRUB_CHANGED=1 ;;
+    esac
 done
+
+if [ "$NEW_CMDLINE" != "$CMDLINE" ]; then
+    sed -i "s|^GRUB_CMDLINE_LINUX=\".*\"$|GRUB_CMDLINE_LINUX=\"${NEW_CMDLINE}\"|" /etc/default/grub || die "Could not update GRUB_CMDLINE_LINUX"
+fi
 
 [ "$GRUB_CHANGED" = "1" ] && { grub-mkconfig -o /boot/grub/grub.cfg || die "Could not regenerate GRUB config"; }
 
