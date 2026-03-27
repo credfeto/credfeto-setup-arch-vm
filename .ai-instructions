@@ -7,7 +7,8 @@ See `.github/instructions/` for full guidance:
 
 ## Key Rules
 
-- **Before starting work**: switch to `main`, run `git pull`, then create a feature branch.
+- **Never commit directly to `main`.** Always work on a feature branch and open a PR.
+- **Before starting work**: switch to `main`, run `git pull`, then `git checkout -b <branch-name>`.
 - All changes go in the `install` script unless explicitly requested otherwise.
 - The `install` script must be idempotent — safe to run multiple times without duplicating or breaking configuration.
 - Follow Arch Linux best practices: full upgrades (`pacman -Syu`), systemd for services, config under `/etc`.

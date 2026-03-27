@@ -9,10 +9,14 @@ Use the arch linux instructions as basic guidance.
 
 ## Git Workflow
 
+**Never commit directly to `main`.** All changes must be made on a feature branch.
+
 Before starting any work:
 1. Switch to `main`: `git checkout main`
 2. Pull the latest: `git pull`
-3. Create a feature branch from the updated `main`
+3. Create a feature branch: `git checkout -b <branch-name>`
+4. Make all commits on that branch
+5. Push the branch and open a PR — do not push to `main` directly
 
 Keep all changes in the 'install' script unless explicitly specified in the request.
 
