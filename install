@@ -193,6 +193,25 @@ systemctl daemon-reload || die "Could not reload systemd daemon"
 systemctl enable --now docker-cleanup.timer || die "Could not enable docker-cleanup.timer"
 
 # ============================================================
+# Configure GRUB kernel command line
+# ============================================================
+
+echo "Configuring GRUB kernel command line"
+GRUB_PARAMS="panic=20 lsm=landlock,lockdown,yama,apparmor,bpf apparmor=1 security=apparmor lockdown=confidentiality hardend_usercopy=on ia32_emulation=0"
+if ! grep -q "panic=20" /etc/default/grub; then
+    CURRENT=$(sed -n 's/^GRUB_CMDLINE_LINUX="\(.*\)"$/\1/p' /etc/default/grub)
+    if [ -z "$CURRENT" ]; then
+        NEW_VALUE="$GRUB_PARAMS"
+    else
+        NEW_VALUE="$CURRENT $GRUB_PARAMS"
+    fi
+    sed -i "s|^GRUB_CMDLINE_LINUX=\".*\"$|GRUB_CMDLINE_LINUX=\"${NEW_VALUE}\"|" /etc/default/grub || die "Could not update GRUB_CMDLINE_LINUX"
+    grub-mkconfig -o /boot/grub/grub.cfg || die "Could not regenerate GRUB config"
+else
+    echo "GRUB kernel command line already configured, skipping"
+fi
+
+# ============================================================
 # Configure network
 # ============================================================
 
