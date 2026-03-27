@@ -18,6 +18,8 @@ Use these instructions when writing guidance, scripts, or documentation for Arch
 - Use `pacman -Syu` for full system upgrades; avoid partial upgrades.
 - Inspect packages with `pacman -Qi`, `pacman -Ql`, and `pacman -Ss`.
 - Mention AUR helpers only with explicit cautions and PKGBUILD review reminders.
+- Use `paccache -r` (from `pacman-contrib`) to prune the package cache, keeping the 3 most recent versions per package.
+- Schedule `paccache -r` via a weekly systemd timer to prevent unbounded cache growth.
 
 ## Configuration & Services
 

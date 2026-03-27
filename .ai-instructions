@@ -13,6 +13,7 @@ See `.github/instructions/` for full guidance:
 - Provide copy-paste-ready commands with validation and rollback steps.
 - All updates should follow best security practices.
 - All updates should make an arch linux system more secure, stable, and performant.
+- Install `pacman-contrib` and schedule `paccache -r` via a weekly systemd timer to keep the package cache from growing unbounded.
 - This file should be updated whenever a new rule is added.
 - The .github/instructions/ folder should be updated whenever a new rule is added.
 - Use HEREDOC rather than multip1le echo statements.
