@@ -29,7 +29,7 @@ grep -qF "CacheServer = https://pacman.markridgwell.com/repo/archlinux/" /etc/pa
 # ============================================================
 
 echo "Configuring Chaotic AUR"
-pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com || die "Could not receive Chaotic AUR key"
+pacman-key --recv-key 3056513887B78AEB --keyserver hkps://keyserver.ubuntu.com || die "Could not receive Chaotic AUR key"
 pacman-key --lsign-key 3056513887B78AEB || die "Could not sign Chaotic AUR key"
 pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' --noconfirm || die "Could not install Chaotic AUR keyring"
 pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst' --noconfirm || die "Could not install Chaotic AUR mirrorlist"
