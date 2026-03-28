@@ -251,8 +251,12 @@ SYSCTL_CHANGED=0
 
 sysctl_set() {
     local file="/etc/sysctl.d/10-${1}.conf"
-    if [ ! -f "$file" ]; then
-        printf '%s=%s\n' "$1" "$2" > "$file" || die "Could not write $file"
+    local expected
+    expected=$(printf '%s=%s\n' "$1" "$2")
+    if [ -f "$file" ] && [ "$(cat "$file")" = "$expected" ]; then
+        skip "sysctl: ${1}=${2} already set"
+    else
+        printf '%s\n' "$expected" > "$file" || die "Could not write $file"
         ok "sysctl: ${1}=${2}"
         SYSCTL_CHANGED=1
     fi
