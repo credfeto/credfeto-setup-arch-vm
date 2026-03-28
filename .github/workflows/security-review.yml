@@ -40,6 +40,17 @@ jobs:
           fetch-tags: true
           token: ${{secrets.SOURCE_PUSH_TOKEN}}
 
+      - name: "Install shellcheck and checkbashisms"
+        run: |
+          NEED_INSTALL=""
+          dpkg -s shellcheck >/dev/null 2>&1 || NEED_INSTALL="${NEED_INSTALL} shellcheck"
+          dpkg -s devscripts >/dev/null 2>&1 || NEED_INSTALL="${NEED_INSTALL} devscripts"
+          if [ -n "${NEED_INSTALL}" ]; then
+            sudo apt-get update -qq
+            # shellcheck disable=SC2086
+            sudo apt-get install -y --no-install-recommends ${NEED_INSTALL}
+          fi
+
       - name: "Analyse install script with GitHub Copilot"
         id: analyse
         env:
@@ -93,7 +104,16 @@ jobs:
           4. HARD CONSTRAINTS — never violate these:
              - The script MUST start with the shebang line `#!/bin/sh` as the very first line — no blank lines, no comments, nothing before it.
              - The script MUST remain POSIX sh compatible; no bash-specific syntax.
+             - The script MUST pass `shellcheck --shell=sh` with zero errors or warnings.
+             - The script MUST pass `checkbashisms` with zero errors or warnings.
              - The script MUST remain idempotent; every write must be guarded by a content check.
+             - Do NOT use `local` — it is not defined in POSIX sh (SC3043). Use uniquely-named global variables instead.
+             - Do NOT use `[[` or `]]` — use `[` and `]` only.
+             - Do NOT use `function` keyword — define functions as `name() {`.
+             - Do NOT use bash arrays or associative arrays.
+             - Do NOT use process substitution `<(...)` or `>(...)`.
+             - Do NOT use `source` — use `.` instead.
+             - Do NOT use `echo -e` — use `printf` instead.
              - Do NOT add kernel.unprivileged_userns_clone=0 — this breaks Docker and rootless containers.
              - Do NOT add any sysctl or setting that breaks Docker bridge networking (docker0, br-*).
              - Use ok/skip/die output helpers for all status messages — never plain echo for status.
@@ -158,6 +178,36 @@ jobs:
           if not modified.lstrip().startswith("#!"):
               print("Model response does not start with a shebang (#!); refusing to overwrite install script.", file=sys.stderr)
               sys.exit(1)
+
+          # Pre-validate with shellcheck and checkbashisms before touching the real file.
+          import tempfile
+          with tempfile.NamedTemporaryFile(mode="w", suffix=".sh", delete=False) as tmp:
+              tmp.write(modified)
+              tmp_path = tmp.name
+
+          try:
+              sc = subprocess.run(
+                  ["shellcheck", "--shell=sh", tmp_path],
+                  capture_output=True, text=True
+              )
+              if sc.returncode != 0:
+                  print("shellcheck failed on model output; refusing to overwrite install script.", file=sys.stderr)
+                  print(sc.stdout, file=sys.stderr)
+                  sys.exit(1)
+
+              cb = subprocess.run(
+                  ["checkbashisms", tmp_path],
+                  capture_output=True, text=True
+              )
+              if cb.returncode != 0:
+                  print("checkbashisms failed on model output; refusing to overwrite install script.", file=sys.stderr)
+                  print(cb.stdout, file=sys.stderr)
+                  print(cb.stderr, file=sys.stderr)
+                  sys.exit(1)
+          finally:
+              import os as _os
+              _os.unlink(tmp_path)
+
           with open(SCRIPT_PATH, "w") as f:
               f.write(modified)
 
@@ -177,20 +227,6 @@ jobs:
           else:
               print("No security improvements needed — install script is already up to date.")
           PYEOF
-
-      - name: "Validate modified script with shellcheck"
-        if: steps.analyse.outputs.has_changes == 'true'
-        run: |
-          NEED_INSTALL=""
-          dpkg -s shellcheck >/dev/null 2>&1 || NEED_INSTALL="${NEED_INSTALL} shellcheck"
-          dpkg -s devscripts >/dev/null 2>&1 || NEED_INSTALL="${NEED_INSTALL} devscripts"
-          if [ -n "${NEED_INSTALL}" ]; then
-            sudo apt-get update -qq
-            # shellcheck disable=SC2086
-            sudo apt-get install -y --no-install-recommends ${NEED_INSTALL}
-          fi
-          shellcheck install
-          checkbashisms install
 
       - name: "Set up .NET for changelog tool"
         if: steps.analyse.outputs.has_changes == 'true'
