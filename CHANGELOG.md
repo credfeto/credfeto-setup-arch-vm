@@ -31,6 +31,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - sshd only reloaded if already running; config is written regardless but service is not started if not already active
 - Docker daemon.json hardened: icc=false, no-new-privileges=true, userland-proxy=false, log rotation; idempotency now checks file content
 - firewalld default zone set to drop; SSH added to public zone; docker0 added to trusted zone
+- Harden /tmp via systemd tmp.mount drop-in (noexec) instead of fstab entry, which is the correct approach for Arch Linux
 ### Removed
 ### Deployment Changes
 

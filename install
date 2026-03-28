@@ -541,15 +541,27 @@ else
 fi
 
 # ============================================================
-# Harden /tmp with noexec tmpfs
+# Harden /tmp with noexec via systemd drop-in
 # ============================================================
 
+# Arch Linux mounts /tmp via systemd's tmp.mount (not fstab).
+# The correct way to add noexec is a drop-in that overrides the Options.
 echo "Hardening /tmp..."
-if grep -qE '^tmpfs\s+/tmp\s+' /etc/fstab; then
-    skip "/tmp tmpfs already in fstab"
+TMP_DROPIN_DIR="/etc/systemd/system/tmp.mount.d"
+TMP_DROPIN="${TMP_DROPIN_DIR}/noexec.conf"
+TMP_DROPIN_EXPECTED=$(cat << 'EOF'
+[Mount]
+Options=mode=1777,strictatime,nosuid,nodev,noexec,size=50%,nr_inodes=1m
+EOF
+)
+mkdir -p "${TMP_DROPIN_DIR}"
+if [ -f "${TMP_DROPIN}" ] && [ "$(cat "${TMP_DROPIN}")" = "${TMP_DROPIN_EXPECTED}" ]; then
+    skip "/tmp noexec drop-in already correct"
 else
-    printf 'tmpfs /tmp tmpfs defaults,rw,nosuid,nodev,noexec,relatime,size=2G 0 0\n' >> /etc/fstab || die "Could not update /etc/fstab for /tmp"
-    ok "/tmp tmpfs with noexec added to fstab"
+    printf '%s\n' "${TMP_DROPIN_EXPECTED}" > "${TMP_DROPIN}" || die "Could not write ${TMP_DROPIN}"
+    systemctl daemon-reload || die "Could not reload systemd daemon"
+    systemctl remount /tmp || die "Could not remount /tmp"
+    ok "/tmp hardened with noexec"
 fi
 
 # ============================================================
