@@ -1,34 +1,37 @@
 #! /bin/sh
 
-die() {
-    echo
-    echo "$@"
-    exit 1
-}
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+RESET='\033[0m'
+
+ok()  { printf "${GREEN}✓${RESET} %s\n" "$*"; }
+die() { printf "${RED}✗${RESET} %s\n" "$*" >&2; exit 1; }
 
 # ============================================================
 # Shell environment
 # ============================================================
 
-echo "Configuring shell aliases"
+echo "Configuring shell aliases..."
 grep -qF "alias ls='ls -aFh --color=always'" "$HOME/.bashrc" || echo "alias ls='ls -aFh --color=always'" >> "$HOME/.bashrc"
 grep -qF "alias ll='ls -Fls'" "$HOME/.bashrc" || echo "alias ll='ls -Fls'" >> "$HOME/.bashrc"
 grep -qF "alias dns='curl -sSL https://raw.githubusercontent.com/credfeto/credfeto-setup-arch-vm/refs/heads/main/dns | sh'" "$HOME/.bashrc" || echo "alias dns='curl -sSL https://raw.githubusercontent.com/credfeto/credfeto-setup-arch-vm/refs/heads/main/dns | sh'" >> "$HOME/.bashrc"
 grep -qF "alias chaotic-aur='curl -sSL https://raw.githubusercontent.com/credfeto/credfeto-setup-arch-vm/refs/heads/main/chaotic-aur | sh'" "$HOME/.bashrc" || echo "alias chaotic-aur='curl -sSL https://raw.githubusercontent.com/credfeto/credfeto-setup-arch-vm/refs/heads/main/chaotic-aur | sh'" >> "$HOME/.bashrc"
+ok "Shell aliases configured"
 
 # ============================================================
 # Configure pacman.conf
 # ============================================================
 
-echo "Configuring pacman.conf"
+echo "Configuring pacman.conf..."
 grep -qF "CacheServer = https://pacman.markridgwell.com/repo/archlinux/" /etc/pacman.conf || \
   sed -i "s|^Include = /etc/pacman.d/mirrorlist$|Include = /etc/pacman.d/mirrorlist\nCacheServer = https://pacman.markridgwell.com/repo/archlinux/\$repo/os/\$arch|" /etc/pacman.conf || die "Could not update pacman.conf"
+ok "pacman.conf configured"
 
 # ============================================================
 # Configure Chaotic AUR
 # ============================================================
 
-echo "Configuring Chaotic AUR"
+echo "Configuring Chaotic AUR..."
 pacman-key --recv-key 3056513887B78AEB --keyserver hkps://keyserver.ubuntu.com || die "Could not receive Chaotic AUR key"
 pacman-key --lsign-key 3056513887B78AEB || die "Could not sign Chaotic AUR key"
 pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' --noconfirm || die "Could not install Chaotic AUR keyring"
@@ -42,22 +45,25 @@ Include = /etc/pacman.d/chaotic-mirrorlist
 CacheServer = https://pacman.markridgwell.com/repo/chaotic-aur/x86_64
 EOF
 } || die "Could not update pacman.conf with Chaotic AUR repository"
+ok "Chaotic AUR configured"
 
 # ============================================================
 # Install packages
 # ============================================================
 
-echo "Updating packages"
+echo "Updating packages..."
 pacman -Syu --noconfirm || die "Could not update dist"
+ok "Packages updated"
 
-echo "Installing packages"
+echo "Installing packages..."
 pacman -S --noconfirm --needed docker docker-compose docker-buildx git pigz criu firewalld pkgstats reflector pacman-contrib || die "Could not install packages"
+ok "Packages installed"
 
 # ============================================================
 # Configure reflector
 # ============================================================
 
-echo "Configuring reflector"
+echo "Configuring reflector..."
 cat << EOF > /etc/xdg/reflector/reflector.conf
 --save /etc/pacman.d/mirrorlist
 --protocol https
@@ -67,12 +73,13 @@ EOF
 
 systemctl enable --now reflector.timer
 systemctl start reflector.service
+ok "reflector configured"
 
 # ============================================================
 # Configure Docker
 # ============================================================
 
-echo "Configuring Docker mirror"
+echo "Configuring Docker mirror..."
 RESTART=0
 [ -d /etc/docker ] || mkdir -p /etc/docker
 if [ ! -f /etc/docker/daemon.json ]; then
@@ -83,30 +90,34 @@ if [ ! -f /etc/docker/daemon.json ]; then
 EOF
   RESTART=1
 fi
+ok "Docker mirror configured"
 
-echo "Enabling Docker"
+echo "Enabling Docker..."
 systemctl enable --now docker.socket || die "Could not enable docker.socket"
 systemctl enable --now docker || die "Could not enable docker.service"
+ok "Docker enabled"
 
 # ============================================================
 # Configure firewalld
 # ============================================================
 
-echo "Enabling firewalld"
+echo "Enabling firewalld..."
 systemctl enable --now firewalld
+ok "firewalld enabled"
 
 # ============================================================
 # Configure pkgstats
 # ============================================================
 
-echo "Enabling pkgstats"
+echo "Enabling pkgstats..."
 systemctl enable --now pkgstats.timer
+ok "pkgstats enabled"
 
 # ============================================================
 # Configure auto-update service
 # ============================================================
 
-echo "Configuring auto-update service"
+echo "Configuring auto-update service..."
 cat << 'EOF' > /etc/systemd/system/auto-update.service
 [Unit]
 Description=Run arch-update auto check
@@ -131,12 +142,13 @@ EOF
 
 systemctl daemon-reload || die "Could not reload systemd daemon"
 systemctl enable --now auto-update.timer || die "Could not enable auto-update.timer"
+ok "auto-update service configured"
 
 # ============================================================
 # Configure paccache cleanup service
 # ============================================================
 
-echo "Configuring paccache cleanup service"
+echo "Configuring paccache cleanup service..."
 cat << 'EOF' > /etc/systemd/system/paccache-cleanup.service
 [Unit]
 Description=Clean up old pacman cache entries
@@ -160,12 +172,13 @@ EOF
 
 systemctl daemon-reload || die "Could not reload systemd daemon"
 systemctl enable --now paccache-cleanup.timer || die "Could not enable paccache-cleanup.timer"
+ok "paccache cleanup service configured"
 
 # ============================================================
 # Configure docker-cleanup service
 # ============================================================
 
-echo "Configuring docker-cleanup service"
+echo "Configuring docker-cleanup service..."
 cat << 'EOF' > /etc/systemd/system/docker-cleanup.service
 [Unit]
 Description=Remove unused docker images
@@ -191,18 +204,20 @@ EOF
 
 systemctl daemon-reload || die "Could not reload systemd daemon"
 systemctl enable --now docker-cleanup.timer || die "Could not enable docker-cleanup.timer"
+ok "docker-cleanup service configured"
 
 # ============================================================
 # Configure GRUB kernel command line
 # ============================================================
 
-echo "Configuring GRUB kernel command line"
+echo "Configuring GRUB kernel command line..."
 GRUB_PARAMS="panic=20 slab_nomerge slub_debug=FZ init_on_alloc=1 init_on_free=1 pti=on lsm=landlock,lockdown,yama,apparmor,bpf apparmor=1 security=apparmor lockdown=confidentiality hardened_usercopy=on ia32_emulation=0"
 GRUB_CHANGED=0
 
 # Fix typo from earlier versions
 if grep -q "hardend_usercopy" /etc/default/grub; then
     sed -i 's/hardend_usercopy/hardened_usercopy/g' /etc/default/grub || die "Could not fix hardened_usercopy typo in GRUB config"
+    ok "GRUB: fixed hardened_usercopy typo"
     GRUB_CHANGED=1
 fi
 
@@ -214,7 +229,7 @@ for PARAM in $GRUB_PARAMS; do
     PARAM_KEY="${PARAM%%=*}"
     case " $NEW_CMDLINE " in
         *" ${PARAM_KEY}"*) ;;
-        *) NEW_CMDLINE="${NEW_CMDLINE:+$NEW_CMDLINE }${PARAM}"; GRUB_CHANGED=1 ;;
+        *) NEW_CMDLINE="${NEW_CMDLINE:+$NEW_CMDLINE }${PARAM}"; GRUB_CHANGED=1; ok "GRUB: added ${PARAM}" ;;
     esac
 done
 
@@ -222,19 +237,23 @@ if [ "$NEW_CMDLINE" != "$CMDLINE" ]; then
     sed -i "s|^GRUB_CMDLINE_LINUX=\".*\"$|GRUB_CMDLINE_LINUX=\"${NEW_CMDLINE}\"|" /etc/default/grub || die "Could not update GRUB_CMDLINE_LINUX"
 fi
 
-[ "$GRUB_CHANGED" = "1" ] && { grub-mkconfig -o /boot/grub/grub.cfg || die "Could not regenerate GRUB config"; }
+if [ "$GRUB_CHANGED" = "1" ]; then
+    grub-mkconfig -o /boot/grub/grub.cfg || die "Could not regenerate GRUB config"
+    ok "GRUB config regenerated"
+fi
 
 # ============================================================
 # Configure sysctl hardening
 # ============================================================
 
-echo "Configuring sysctl hardening"
+echo "Configuring sysctl hardening..."
 SYSCTL_CHANGED=0
 
 sysctl_set() {
     local file="/etc/sysctl.d/10-${1}.conf"
     if [ ! -f "$file" ]; then
         printf '%s=%s\n' "$1" "$2" > "$file" || die "Could not write $file"
+        ok "sysctl: ${1}=${2}"
         SYSCTL_CHANGED=1
     fi
 }
@@ -259,14 +278,17 @@ sysctl_set net.ipv4.conf.all.send_redirects         0
 sysctl_set net.ipv4.conf.default.send_redirects     0
 sysctl_set net.ipv4.icmp_echo_ignore_all            1
 
-[ "$SYSCTL_CHANGED" = "1" ] && { sysctl --system || die "Could not apply sysctl settings"; }
+if [ "$SYSCTL_CHANGED" = "1" ]; then
+    sysctl --system || die "Could not apply sysctl settings"
+    ok "sysctl settings applied"
+fi
 
 # ============================================================
 # Configure network
 # ============================================================
 
 if [ ! -f /etc/systemd/network/eth0.network ]; then
-    echo "Configuring network"
+    echo "Configuring network..."
 
     # Detect the first physical NIC (skip loopback, docker bridges, veth pairs)
     NIC=$(ip -o link show type ether | awk '!/docker|br-|veth/{sub(/:$/, "", $2); print $2; exit}')
@@ -333,12 +355,13 @@ nameserver 2a02:8010:61d5:42::254
 
 options edns0 trust-ad
 EOF
+    ok "Network configured"
 else
-    echo "Network already configured, skipping"
+    ok "Network already configured, skipping"
 fi
 
 systemctl daemon-reload
 [ "$RESTART" = "1" ] && systemctl restart docker
 networkctl reload
 
-echo "Done"
+ok "Done"
