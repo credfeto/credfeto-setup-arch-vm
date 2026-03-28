@@ -1,11 +1,13 @@
 #! /bin/sh
 
 GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
 RED='\033[0;31m'
 RESET='\033[0m'
 
-ok()  { printf "${GREEN}✓${RESET} %s\n" "$*"; }
-die() { printf "${RED}✗${RESET} %s\n" "$*" >&2; exit 1; }
+ok()   { printf "${GREEN}✓${RESET} %s\n" "$*"; }
+skip() { printf "${YELLOW}●${RESET} %s\n" "$*"; }
+die()  { printf "${RED}✗${RESET} %s\n" "$*" >&2; exit 1; }
 
 # ============================================================
 # Shell environment
@@ -357,7 +359,7 @@ options edns0 trust-ad
 EOF
     ok "Network configured"
 else
-    ok "Network already configured, skipping"
+    skip "Network already configured, skipping"
 fi
 
 systemctl daemon-reload
