@@ -277,6 +277,7 @@ jobs:
         uses: ./.github/actions/build-tools
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NUGET_PUBLIC_RESTORE_FEED: ${{ vars.NUGET_PUBLIC_RESTORE_FEED || 'https://api.nuget.org/v3/index.json' }}
 
       - name: "Update CHANGELOG.md"
         if: steps.analyse.outputs.has_changes == 'true'

@@ -44,6 +44,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Simplify PR description approach: generate-pr-description action takes base/head SHAs and returns description text; workflows own template composition
 - Only install shellcheck/devscripts if not already present; skip apt-get update when not needed
 - Use build-tools and dotnet-tool-run actions for dotnet and changelog tool setup
+- Pass NUGET_PUBLIC_RESTORE_FEED to build-tools action, falling back to public NuGet v3 feed
 ### Removed
 ### Deployment Changes
 
