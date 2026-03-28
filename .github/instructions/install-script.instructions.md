@@ -32,6 +32,7 @@ The `install` script must be safe to run multiple times without duplicating or b
 
 ## Script Style
 
+- The script **must** start with the shebang `#!/bin/sh` (or `#!/usr/bin/env sh`) — never omit it.
 - Use HEREDOC rather than multiple `echo` statements.
 - Use `sh` (POSIX shell) — avoid bash-specific syntax.
 - Validate all scripts with `shellcheck` before committing.

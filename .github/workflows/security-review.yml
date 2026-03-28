@@ -1,0 +1,354 @@
+--- # Automated security analysis of the install script using GitHub Copilot (GitHub Models).
+# Analyses the script for security improvements, removes outdated measures, and ensures
+# all systemd services are properly sandboxed. Opens a PR with any changes found.
+name: "Security: Analyse Install Script"
+
+on:
+  push:
+    branches:
+      - main
+      - 'dev/workflow/security-review/**'
+    paths:
+      - 'install'
+      - '.github/workflows/security-review.yml'
+  schedule:
+    - cron: '0 3 * * 0'  # Every Sunday at 03:00 UTC (quiet time)
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  security-review:
+    name: "Copilot Security Review"
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
+      models: read
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v6.0.2
+        with:
+          clean: true
+          fetch-depth: 0
+          fetch-tags: true
+          token: ${{secrets.SOURCE_PUSH_TOKEN}}
+
+      - name: "Install shellcheck and checkbashisms"
+        run: |
+          NEED_INSTALL=""
+          dpkg -s shellcheck >/dev/null 2>&1 || NEED_INSTALL="${NEED_INSTALL} shellcheck"
+          dpkg -s devscripts >/dev/null 2>&1 || NEED_INSTALL="${NEED_INSTALL} devscripts"
+          if [ -n "${NEED_INSTALL}" ]; then
+            sudo apt-get update -qq
+            # shellcheck disable=SC2086
+            sudo apt-get install -y --no-install-recommends ${NEED_INSTALL}
+          fi
+
+      - name: "Analyse install script with GitHub Copilot"
+        id: analyse
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 - << 'PYEOF'
+          import json
+          import os
+          import subprocess
+          import sys
+          import urllib.error
+          import urllib.request
+
+          import re as _re
+
+          SCRIPT_PATH = "install"
+          token = os.environ["GITHUB_TOKEN"]
+
+          with open(SCRIPT_PATH, "r") as f:
+              script_content = f.read()
+
+          # Pre-process: replace `local var` / `local var=val` with bare assignment.
+          # `local` is a bashism (SC3043); remove it before sending to the model so
+          # it cannot preserve existing occurrences.
+          script_content = _re.sub(r'(?m)^\s*local ([a-zA-Z_][a-zA-Z0-9_]*)(=)', lambda m: m.group(0).replace('local ', ''), script_content)
+          script_content = _re.sub(r'(?m)^(\s*)local ([a-zA-Z_][a-zA-Z0-9_]*)$', r'\1\2=', script_content)
+
+          system_prompt = """\
+          You are a Linux security expert specialising in Arch Linux, systemd hardening, and POSIX shell scripting.
+
+          Analyse the provided POSIX sh install script and apply the following improvements:
+
+          1. SECURITY ADDITIONS — apply if they will not break existing functionality:
+             - Strengthen sysctl hardening (kernel, network, filesystem parameters).
+             - Tighten file and directory permissions where appropriate.
+             - Add missing service-level security options.
+
+          2. SECURITY REMOVALS — remove if no longer valid or best-practice:
+             - Deprecated, redundant, or counterproductive security settings.
+             - Settings that conflict with modern Linux security models.
+
+          3. SYSTEMD SERVICE SANDBOXING — for every service that the script installs or enables,
+             add a drop-in at /etc/systemd/system/<service>.d/security.conf using a HEREDOC.
+             The drop-in must be written idempotently (check file content before writing, use ok/skip).
+             Apply only what each service legitimately needs; do not over-restrict:
+             - PrivateTmp=yes
+             - ProtectSystem=strict (or full where possible)
+             - ProtectHome=yes (or read-only where appropriate)
+             - NoNewPrivileges=yes
+             - ProtectKernelTunables=yes
+             - ProtectKernelModules=yes
+             - ProtectControlGroups=yes
+             - RestrictRealtime=yes
+             - RestrictSUIDSGID=yes
+             - CapabilityBoundingSet= (list only what is required)
+             - AmbientCapabilities= (only if the service needs ambient caps)
+             - PrivateNetwork=yes or RestrictAddressFamilies= (where the service has no network needs)
+             - ReadWritePaths= / ReadOnlyPaths= / InaccessiblePaths= (restrict filesystem access)
+
+          4. HARD CONSTRAINTS — never violate these:
+             - The script MUST start with the shebang line `#!/bin/sh` as the very first line — no blank lines, no comments, nothing before it.
+             - The script MUST remain POSIX sh compatible; no bash-specific syntax.
+             - The script MUST pass `shellcheck --shell=sh` with zero errors or warnings.
+             - The script MUST pass `checkbashisms` with zero errors or warnings.
+             - The script MUST remain idempotent; every write must be guarded by a content check.
+             - Do NOT use `local` — it is not defined in POSIX sh (SC3043). Use uniquely-named global variables instead.
+             - Do NOT use `[[` or `]]` — use `[` and `]` only.
+             - Do NOT use `function` keyword — define functions as `name() {`.
+             - Do NOT use bash arrays or associative arrays.
+             - Do NOT use process substitution `<(...)` or `>(...)`.
+             - Do NOT use `source` — use `.` instead.
+             - Do NOT use `echo -e` — use `printf` instead.
+             - Do NOT add kernel.unprivileged_userns_clone=0 — this breaks Docker and rootless containers.
+             - Do NOT add any sysctl or setting that breaks Docker bridge networking (docker0, br-*).
+             - Use ok/skip/die output helpers for all status messages — never plain echo for status.
+             - Section header progress lines (e.g. echo "Configuring X...") before long operations are acceptable.
+
+          Return ONLY the complete modified script — no explanation, no markdown code fences, no surrounding text.
+          The very first characters of your response MUST be `#!/bin/sh`.
+          If no changes are needed, return the script exactly as provided.
+          """
+
+          def call_model(messages):
+              req = urllib.request.Request(
+                  "https://models.inference.ai.azure.com/chat/completions",
+                  data=json.dumps({
+                      "model": "gpt-4o",
+                      "messages": messages,
+                      "temperature": 0.1,
+                      "max_tokens": 16384,
+                  }).encode("utf-8"),
+                  headers={
+                      "Authorization": f"Bearer {token}",
+                      "Content-Type": "application/json",
+                  },
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=300) as response:
+                      result = json.loads(response.read().decode("utf-8"))
+              except urllib.error.HTTPError as exc:
+                  body = exc.read().decode("utf-8", errors="replace")
+                  print(f"GitHub Models API error {exc.code}: {body}", file=sys.stderr)
+                  sys.exit(1)
+              return result["choices"][0]["message"]["content"]
+
+          def clean_response(raw):
+              text = raw.strip()
+              if text.startswith("```"):
+                  lines = text.splitlines()
+                  start = 1
+                  end = len(lines) - 1 if lines[-1].strip() == "```" else len(lines)
+                  text = "\n".join(lines[start:end])
+              return text.rstrip("\n") + "\n"
+
+          def validate(text):
+              """Returns (ok, errors) where errors is a combined string from shellcheck+checkbashisms."""
+              import tempfile
+              with tempfile.NamedTemporaryFile(mode="w", suffix=".sh", delete=False) as tmp:
+                  tmp.write(text)
+                  tmp_path = tmp.name
+              errors = []
+              try:
+                  sc = subprocess.run(["shellcheck", "--shell=sh", tmp_path], capture_output=True, text=True)
+                  if sc.returncode != 0:
+                      errors.append(sc.stdout.replace(tmp_path, "install"))
+                  cb = subprocess.run(["checkbashisms", tmp_path], capture_output=True, text=True)
+                  if cb.returncode != 0:
+                      errors.append((cb.stdout + cb.stderr).replace(tmp_path, "install"))
+              finally:
+                  import os as _os
+                  _os.unlink(tmp_path)
+              return (len(errors) == 0), "\n".join(errors)
+
+          MAX_ATTEMPTS = 3
+          initial_messages = [
+              {"role": "system", "content": system_prompt},
+              {
+                  "role": "user",
+                  "content": (
+                      "Analyse and improve this Arch Linux install script. "
+                      "Apply all security improvements described in your instructions.\n\n"
+                      + script_content
+                  ),
+              },
+          ]
+
+          modified = None
+          for attempt in range(1, MAX_ATTEMPTS + 1):
+              print(f"Attempt {attempt}/{MAX_ATTEMPTS}: calling model...")
+              if attempt == 1:
+                  messages = initial_messages
+              # (retry messages are set at the bottom of the loop)
+              raw = call_model(messages)
+              candidate = clean_response(raw)
+
+              if not candidate.strip():
+                  print(f"Attempt {attempt}: model response is empty; aborting.", file=sys.stderr)
+                  sys.exit(1)
+              if not candidate.lstrip().startswith("#!"):
+                  print(f"Attempt {attempt}: response does not start with shebang.", file=sys.stderr)
+                  if attempt == MAX_ATTEMPTS:
+                      sys.exit(1)
+                  # Fresh compact retry — don't accumulate large history.
+                  messages = [
+                      {"role": "system", "content": system_prompt},
+                      {
+                          "role": "user",
+                          "content": (
+                              "The following script does not start with '#!/bin/sh'. "
+                              "Return ONLY the corrected script — the very first characters must be '#!/bin/sh'.\n\n"
+                              + candidate
+                          ),
+                      },
+                  ]
+                  continue
+
+              ok, errors = validate(candidate)
+              if ok:
+                  modified = candidate
+                  break
+
+              print(f"Attempt {attempt}: validation failed:\n{errors}", file=sys.stderr)
+              if attempt == MAX_ATTEMPTS:
+                  print("All attempts exhausted; refusing to overwrite install script.", file=sys.stderr)
+                  sys.exit(1)
+
+              # Fresh compact retry with only the failing candidate + errors.
+              # Avoids doubling token usage by not re-including the original script.
+              messages = [
+                  {"role": "system", "content": system_prompt},
+                  {
+                      "role": "user",
+                      "content": (
+                          "The following script failed validation. "
+                          "Fix ALL listed errors and return the complete corrected script. "
+                          "Do not introduce any new errors.\n\n"
+                          "Errors:\n" + errors + "\n\nScript:\n" + candidate
+                      ),
+                  },
+              ]
+
+          with open(SCRIPT_PATH, "w") as f:
+              f.write(modified)
+
+          # Detect whether the model produced any changes.
+          diff = subprocess.run(
+              ["git", "diff", "--quiet", SCRIPT_PATH], capture_output=True
+          )
+          has_changes = diff.returncode != 0
+
+          github_output = os.environ.get("GITHUB_OUTPUT", "")
+          if github_output:
+              with open(github_output, "a") as f:
+                  f.write(f"has_changes={'true' if has_changes else 'false'}\n")
+
+          if has_changes:
+              print("Security improvements identified — changes written to install script.")
+          else:
+              print("No security improvements needed — install script is already up to date.")
+          PYEOF
+
+      - name: "Install dotnet and build tools"
+        if: steps.analyse.outputs.has_changes == 'true'
+        uses: ./.github/actions/build-tools
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NUGET_PUBLIC_RESTORE_FEED: ${{ vars.NUGET_PUBLIC_RESTORE_FEED || 'https://api.nuget.org/v3/index.json' }}
+
+      - name: "Update CHANGELOG.md"
+        if: steps.analyse.outputs.has_changes == 'true'
+        uses: ./.github/actions/dotnet-tool-run
+        with:
+          WORKING_DIRECTORY: ${{ github.workspace }}
+          TOOL_NAME: changelog
+          TOOL_ARGUMENTS: "-f CHANGELOG.md -a Changed -m \"Apply Copilot security analysis improvements to install script\""
+
+      - name: "Commit and push changes"
+        id: push
+        if: steps.analyse.outputs.has_changes == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          BASE_SHA=$(git rev-parse origin/main)
+          BRANCH="security/install-script-$(date -u +%Y%m%d-%H%M%S)"
+          git checkout -b "${BRANCH}"
+          git add install CHANGELOG.md
+          git commit \
+            -m "security: apply Copilot security analysis improvements to install script" \
+            -m "" \
+            -m "Automated security review via GitHub Copilot (GitHub Models API)." \
+            -m "Changes include security hardening additions, removal of outdated measures," \
+            -m "and systemd service sandboxing for all installed services." \
+            -m "" \
+            -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
+          git push origin "${BRANCH}"
+
+          {
+            echo "base_sha=${BASE_SHA}"
+            echo "head_sha=$(git rev-parse HEAD)"
+            echo "branch=${BRANCH}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: "Generate PR description from diff"
+        id: describe
+        if: steps.analyse.outputs.has_changes == 'true'
+        uses: ./.github/actions/generate-pr-description
+        with:
+          base_sha: ${{ steps.push.outputs.base_sha }}
+          head_sha: ${{ steps.push.outputs.head_sha }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Create PR"
+        if: steps.analyse.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DESCRIPTION: ${{ steps.describe.outputs.description }}
+          BRANCH: ${{ steps.push.outputs.branch }}
+        run: |
+          BODY=$(python3 - << 'PYEOF'
+          import os, re
+          template  = open('.github/PULL_REQUEST_TEMPLATE.md').read().rstrip()
+          desc      = os.environ.get('DESCRIPTION', '').strip()
+          auto_mark = '<!-- description-auto-generated-by-copilot -->'
+          maintained = '<!-- maintained-by-copilot -->'
+          if desc:
+              body = re.sub(
+                  r'(^#{1,3}\s+Description\s*\n)([\s\S]*?)(?=\n#{1,3}\s|$)',
+                  lambda m: f"{m.group(1)}{desc}\n\n{auto_mark}\n\n",
+                  template, flags=re.MULTILINE)
+          else:
+              body = template
+          print(body + f'\n\n{maintained}')
+          PYEOF
+          )
+
+          gh pr create \
+            --base main \
+            --head "${BRANCH}" \
+            --title "security: Copilot security analysis improvements to install script" \
+            --body "${BODY}"
