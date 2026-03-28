@@ -70,7 +70,7 @@ case "$(uname -r)" in
 esac
 
 echo "Installing packages..."
-pacman -S --noconfirm --needed docker docker-compose docker-buildx git pigz criu firewalld pkgstats reflector pacman-contrib openssh || die "Could not install packages"
+pacman -S --noconfirm --needed docker docker-compose docker-buildx git pigz criu firewalld pkgstats reflector pacman-contrib openssh logrotate || die "Could not install packages"
 ok "Packages installed"
 
 # ============================================================
@@ -355,8 +355,44 @@ systemctl enable --now docker-cleanup.timer || die "Could not enable docker-clea
 ok "docker-cleanup service configured"
 
 # ============================================================
-# Configure GRUB kernel command line
+# Configure logrotate
 # ============================================================
+
+echo "Configuring logrotate..."
+LOGROTATE_CONF="/etc/logrotate.conf"
+LOGROTATE_EXPECTED=$(cat << 'EOF'
+# Rotate logs daily
+daily
+
+# Keep 2 weeks of logs
+rotate 14
+
+# Create new log files after rotating
+create
+
+# Compress rotated logs
+compress
+delaycompress
+
+# Do not error if log file is missing
+missingok
+
+# Do not rotate empty log files
+notifempty
+
+# Ignore pacman saved files
+tabooext + .pacorig .pacnew .pacsave
+EOF
+)
+if [ -f "${LOGROTATE_CONF}" ] && [ "$(cat "${LOGROTATE_CONF}")" = "${LOGROTATE_EXPECTED}" ]; then
+    skip "logrotate.conf already correct"
+else
+    printf '%s\n' "${LOGROTATE_EXPECTED}" > "${LOGROTATE_CONF}" || die "Could not write ${LOGROTATE_CONF}"
+    ok "logrotate.conf configured (daily, 14-day retention)"
+fi
+
+systemctl enable --now logrotate.timer || die "Could not enable logrotate.timer"
+ok "logrotate timer enabled"
 
 echo "Configuring GRUB kernel command line..."
 GRUB_PARAMS="panic=20 slab_nomerge slub_debug=FZ init_on_alloc=1 init_on_free=1 pti=on lsm=landlock,lockdown,yama,apparmor,bpf apparmor=1 security=apparmor lockdown=confidentiality hardened_usercopy=on ia32_emulation=0"

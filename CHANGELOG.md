@@ -16,6 +16,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Hardened /tmp as noexec nosuid nodev tmpfs
 - Diagnostic check that only linux-hardened kernel is installed and currently running
 - Install script instruction: every installed package or service must also be hardened
+- logrotate installed and configured with daily rotation and 14-day retention
 ### Fixed
 - Enable pkgstats.timer via symlink for static unit as it has no [Install] section and cannot be enabled with systemctl enable
 ### Changed
