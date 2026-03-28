@@ -14,6 +14,7 @@ Use these instructions when writing guidance, scripts, or documentation for Arch
 - Emphasize the rolling-release model and the need for full upgrades.
 - Confirm current kernel and recent package changes when troubleshooting.
 - Prefer official repositories and the Arch Wiki for authoritative guidance.
+- **The kernel is `linux-hardened`** — this provides additional security patches, stricter defaults, and enables hardening features referenced in GRUB parameters (e.g. `hardened_usercopy`, `init_on_alloc`, `slab_nomerge`). Always assume `linux-hardened` and `linux-hardened-headers` are installed.
 
 ## Package Management
 

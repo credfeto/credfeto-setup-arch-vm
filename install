@@ -56,7 +56,8 @@ pacman -Syu --noconfirm || die "Could not update dist"
 ok "Packages updated"
 
 echo "Installing packages..."
-pacman -S --noconfirm --needed docker docker-compose docker-buildx git pigz criu firewalld pkgstats reflector pacman-contrib || die "Could not install packages"
+# linux-hardened: security-hardened kernel with additional patches and stricter defaults
+pacman -S --noconfirm --needed docker docker-compose docker-buildx git pigz criu firewalld pkgstats reflector pacman-contrib linux-hardened linux-hardened-headers openssh || die "Could not install packages"
 ok "Packages installed"
 
 # ============================================================
@@ -104,6 +105,58 @@ ok "Docker enabled"
 echo "Enabling firewalld..."
 systemctl enable --now firewalld
 ok "firewalld enabled"
+
+# ============================================================
+# Configure SSH hardening
+# ============================================================
+
+echo "Configuring SSH hardening..."
+SSH_HARDENING="/etc/ssh/sshd_config.d/98-hardening.conf"
+SSH_EXPECTED=$(cat << 'EOF'
+# Hardened SSH configuration
+HostKey /etc/ssh/ssh_host_ed25519_key
+HostKey /etc/ssh/ssh_host_rsa_key
+
+KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group16-sha512
+Ciphers chacha20-poly1305@openssh.com,aes-256-gcm@openssh.com,aes-128-gcm@openssh.com
+MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com
+
+PubkeyAuthentication yes
+PasswordAuthentication no
+PermitEmptyPasswords no
+PermitRootLogin no
+
+X11Forwarding no
+PrintMotd no
+TCPKeepAlive yes
+PermitUserEnvironment no
+ClientAliveInterval 300
+ClientAliveCountMax 2
+
+SyslogFacility AUTH
+LogLevel VERBOSE
+
+MaxAuthTries 3
+MaxSessions 3
+LoginGraceTime 30
+
+HostbasedAuthentication no
+IgnoreRhosts yes
+PermitTunnel no
+AllowAgentForwarding no
+GatewayPorts no
+VersionAddendum none
+EOF
+)
+mkdir -p /etc/ssh/sshd_config.d
+if [ -f "${SSH_HARDENING}" ] && [ "$(cat "${SSH_HARDENING}")" = "${SSH_EXPECTED}" ]; then
+    skip "SSH hardening config already correct"
+else
+    printf '%s\n' "${SSH_EXPECTED}" > "${SSH_HARDENING}" || die "Could not write ${SSH_HARDENING}"
+    sshd -t || die "SSH config validation failed"
+    systemctl enable --now sshd || die "Could not enable sshd"
+    ok "SSH hardening configured"
+fi
 
 # ============================================================
 # Configure pkgstats
@@ -277,6 +330,8 @@ sysctl_set net.core.bpf_jit_harden                 2
 sysctl_set kernel.kexec_load_disabled               1
 sysctl_set kernel.kptr_restrict                     2
 sysctl_set kernel.yama.ptrace_scope                 2
+sysctl_set kernel.randomize_va_space                2
+sysctl_set kernel.sysrq                             0
 sysctl_set net.ipv4.tcp_syncookies                  1
 sysctl_set net.ipv4.tcp_rfc1337                     1
 sysctl_set net.ipv4.conf.default.rp_filter          1
@@ -289,11 +344,90 @@ sysctl_set net.ipv6.conf.all.accept_redirects       0
 sysctl_set net.ipv6.conf.default.accept_redirects   0
 sysctl_set net.ipv4.conf.all.send_redirects         0
 sysctl_set net.ipv4.conf.default.send_redirects     0
+sysctl_set net.ipv4.conf.all.accept_source_route    0
+sysctl_set net.ipv4.conf.default.accept_source_route 0
+sysctl_set net.ipv6.conf.all.accept_source_route    0
+sysctl_set net.ipv6.conf.default.accept_source_route 0
+sysctl_set net.ipv6.conf.all.accept_ra              0
+sysctl_set net.ipv6.conf.default.accept_ra          0
 sysctl_set net.ipv4.icmp_echo_ignore_all            1
+sysctl_set net.ipv4.icmp_echo_ignore_broadcasts     1
+sysctl_set net.ipv4.icmp_ignore_bogus_error_responses 1
+sysctl_set fs.protected_hardlinks                   1
+sysctl_set fs.protected_symlinks                    1
+sysctl_set fs.protected_regular                     2
+sysctl_set fs.protected_fifos                       2
+sysctl_set fs.suid_dumpable                         0
+sysctl_set kernel.core_uses_pid                     1
 
 if [ "$SYSCTL_CHANGED" = "1" ]; then
     sysctl --system || die "Could not apply sysctl settings"
     ok "sysctl settings applied"
+fi
+
+# ============================================================
+# Disable core dumps via systemd
+# ============================================================
+
+echo "Disabling core dumps..."
+COREDUMP_CONF="/etc/systemd/system.conf.d/no-core-dumps.conf"
+COREDUMP_EXPECTED=$(cat << 'EOF'
+[Manager]
+DefaultLimitCORE=0
+EOF
+)
+mkdir -p /etc/systemd/system.conf.d
+if [ -f "${COREDUMP_CONF}" ] && [ "$(cat "${COREDUMP_CONF}")" = "${COREDUMP_EXPECTED}" ]; then
+    skip "core dump config already correct"
+else
+    printf '%s\n' "${COREDUMP_EXPECTED}" > "${COREDUMP_CONF}" || die "Could not write ${COREDUMP_CONF}"
+    ok "core dumps disabled"
+fi
+
+# ============================================================
+# Blacklist unused/dangerous kernel modules
+# ============================================================
+
+echo "Blacklisting kernel modules..."
+MODPROBE_CONF="/etc/modprobe.d/blacklist-hardening.conf"
+MODPROBE_EXPECTED=$(cat << 'EOF'
+# Uncommon and dangerous network protocols
+blacklist dccp
+blacklist sctp
+blacklist rds
+blacklist tipc
+blacklist atm
+
+# Uncommon filesystems
+blacklist cramfs
+blacklist freevxfs
+blacklist jffs2
+blacklist hfs
+blacklist hfsplus
+
+# Firewire
+blacklist firewire_core
+blacklist firewire_ohci
+blacklist firewire_sbp2
+EOF
+)
+if [ -f "${MODPROBE_CONF}" ] && [ "$(cat "${MODPROBE_CONF}")" = "${MODPROBE_EXPECTED}" ]; then
+    skip "kernel module blacklist already correct"
+else
+    printf '%s\n' "${MODPROBE_EXPECTED}" > "${MODPROBE_CONF}" || die "Could not write ${MODPROBE_CONF}"
+    ok "kernel module blacklist configured"
+fi
+
+# ============================================================
+# Harden /tmp with noexec tmpfs
+# ============================================================
+
+echo "Hardening /tmp..."
+if grep -qE '^tmpfs\s+/tmp\s+' /etc/fstab; then
+    skip "/tmp tmpfs already in fstab"
+else
+    printf 'tmpfs /tmp tmpfs defaults,rw,nosuid,nodev,noexec,relatime,size=2G 0 0\n' >> /etc/fstab || die "Could not update /etc/fstab for /tmp"
+    ok "/tmp tmpfs with noexec added to fstab"
 fi
 
 # ============================================================

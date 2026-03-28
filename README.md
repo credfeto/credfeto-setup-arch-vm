@@ -2,9 +2,15 @@
 
 Sets up an Arch Linux VM with Docker, Git, and supporting tooling. The `install` script configures:
 
+- **`linux-hardened` kernel** — security-hardened kernel with additional patches and stricter defaults
 - **Docker** (with Docker Compose and Buildx)
 - **firewalld** firewall
-- **pkgstats** — weekly anonymous package statistics submission (timer activated via symlink, as it is a static unit)
+- **SSH hardening** — strong crypto only, key-based auth, no root login
+- **sysctl hardening** — network, kernel, and filesystem protections
+- **Core dump disabling** — via sysctl and systemd
+- **Kernel module blacklisting** — unused/dangerous protocols and filesystems
+- **`/tmp` as noexec tmpfs** — prevents code execution from `/tmp`
+- **pkgstats** — weekly anonymous package statistics submission
 - **reflector** — automatic mirror ranking
 - **pacman cache pruning** — weekly `paccache -r` via systemd timer
 

@@ -8,6 +8,12 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 ## [Unreleased]
 ### Added
 - AI instructions for changelog tool and self-documenting rules workflow
+- linux-hardened kernel and linux-hardened-headers packages
+- SSH hardening with strong crypto, key-only auth, and no root login
+- Additional sysctl hardening: ASLR, sysrq disable, source route blocking, RA disable, ICMP broadcast, filesystem protections, core dump prevention
+- Core dump disabling via systemd DefaultLimitCORE=0
+- Kernel module blacklist for unused network protocols and filesystems
+- Hardened /tmp as noexec nosuid nodev tmpfs
 ### Fixed
 - Enable pkgstats.timer via symlink for static unit as it has no [Install] section and cannot be enabled with systemctl enable
 ### Changed
