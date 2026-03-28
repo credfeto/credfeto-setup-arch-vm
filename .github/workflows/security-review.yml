@@ -204,14 +204,14 @@ jobs:
           BRANCH="security/install-script-$(date -u +%Y%m%d-%H%M%S)"
           git checkout -b "${BRANCH}"
           git add install CHANGELOG.md
-          git commit -m "security: apply Copilot security analysis improvements to install script
-
-          Automated security review via GitHub Copilot (GitHub Models API).
-          Changes include security hardening additions, removal of outdated measures,
-          and systemd service sandboxing for all installed services.
-
-          Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
-
+          git commit \
+            -m "security: apply Copilot security analysis improvements to install script" \
+            -m "" \
+            -m "Automated security review via GitHub Copilot (GitHub Models API)." \
+            -m "Changes include security hardening additions, removal of outdated measures," \
+            -m "and systemd service sandboxing for all installed services." \
+            -m "" \
+            -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
           git push origin "${BRANCH}"
 
           echo "base_sha=${BASE_SHA}" >> "${GITHUB_OUTPUT}"
