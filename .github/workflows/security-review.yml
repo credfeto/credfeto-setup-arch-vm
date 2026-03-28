@@ -193,7 +193,8 @@ jobs:
           dotnet changelog -f CHANGELOG.md -a Changed \
             -m "Apply Copilot security analysis improvements to install script"
 
-      - name: "Commit changes and open PR"
+      - name: "Commit changes and create PR"
+        id: create-pr
         if: steps.analyse.outputs.has_changes == 'true'
         env:
           GH_TOKEN: ${{ secrets.SOURCE_PUSH_TOKEN }}
@@ -214,26 +215,18 @@ jobs:
 
           git push origin "${BRANCH}"
 
-          gh pr create \
+          PR_URL=$(gh pr create \
             --base main \
             --head "${BRANCH}" \
             --title "security: Copilot security analysis improvements to install script" \
-            --body "## Automated Security Review
+            --body "")
 
-          This PR was opened automatically by the **Security: Analyse Install Script** workflow.
+          PR_NUMBER=$(gh pr view "${PR_URL}" --json number --jq '.number')
+          echo "pr_number=${PR_NUMBER}" >> "${GITHUB_OUTPUT}"
 
-          ### What was analysed
-          The \`install\` script was submitted to GitHub Copilot (via GitHub Models) for a full security review.
-
-          ### Changes applied
-          - Security hardening additions that do not break existing functionality
-          - Removal of outdated or counterproductive security settings
-          - Systemd drop-in sandboxing for all services installed/enabled by the script
-
-          ### Review checklist
-          - [ ] Verify each systemd drop-in does not over-restrict the service
-          - [ ] Confirm no Docker-incompatible settings were introduced
-          - [ ] Run \`shellcheck install\` and \`checkbashisms install\` locally
-          - [ ] Test on a clean Arch VM before merging
-
-          > **Note:** This PR was generated automatically. Review all changes before merging."
+      - name: "Apply PR template and generate description"
+        if: steps.analyse.outputs.has_changes == 'true'
+        uses: ./.github/actions/apply-pr-template
+        with:
+          pull_number: ${{ steps.create-pr.outputs.pr_number }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
