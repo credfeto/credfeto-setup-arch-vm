@@ -33,9 +33,12 @@ jobs:
 
     steps:
       - name: "Checkout"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
         with:
-          token: ${{ secrets.SOURCE_PUSH_TOKEN }}
+          clean: true
+          fetch-depth: 0
+          fetch-tags: true
+          token: ${{secrets.SOURCE_PUSH_TOKEN}}
 
       - name: "Analyse install script with GitHub Copilot"
         id: analyse
