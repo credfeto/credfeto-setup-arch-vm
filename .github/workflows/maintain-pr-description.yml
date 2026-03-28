@@ -43,11 +43,115 @@ jobs:
           clean: true
           fetch-depth: 1
 
-      - name: "Apply PR template and generate description"
-        uses: ./.github/actions/apply-pr-template
+      - name: "Generate description from diff"
+        id: describe
+        uses: ./.github/actions/generate-pr-description
         with:
-          pull_number: ${{ github.event.pull_request.number }}
+          base_sha: ${{ github.event.pull_request.base.sha }}
+          head_sha:  ${{ github.event.pull_request.head.sha }}
           github_token: ${{ github.token }}
+
+      - name: "Apply template and insert description"
+        uses: actions/github-script@v7
+        env:
+          GENERATED_DESCRIPTION: ${{ steps.describe.outputs.description }}
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const AUTO_MARKER       = '<!-- description-auto-generated-by-copilot -->';
+            const MAINTAINED_MARKER = '<!-- maintained-by-copilot -->';
+            const PULL_NUMBER       = context.payload.pull_request.number;
+            const generated         = (process.env.GENERATED_DESCRIPTION || '').trim();
+
+            // Fetch current PR body (event payload may be stale)
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              pull_number: PULL_NUMBER,
+            });
+
+            // Fetch template via API
+            let template;
+            try {
+              const { data: file } = await github.rest.repos.getContent({
+                owner: context.repo.owner,
+                repo:  context.repo.repo,
+                path:  '.github/PULL_REQUEST_TEMPLATE.md',
+              });
+              template = Buffer.from(file.content, 'base64').toString('utf8').trimEnd();
+            } catch {
+              console.log('No PULL_REQUEST_TEMPLATE.md found — skipping.');
+              return;
+            }
+
+            let body = pr.body ?? '';
+            const normalize = (s) => s.trim().replace(/\r\n/g, '\n');
+            const bodyStripped = body
+              .replace(MAINTAINED_MARKER, '')
+              .replace(AUTO_MARKER, '')
+              .trim();
+
+            // Apply template when the body is empty or still the bare template
+            if (bodyStripped === '' || normalize(bodyStripped) === normalize(template)) {
+              body = `${template}\n\n${MAINTAINED_MARKER}`;
+            }
+
+            if (!body.includes(MAINTAINED_MARKER)) {
+              console.log('PR body is not managed by this workflow — skipping.');
+              return;
+            }
+
+            if (!generated) {
+              // Still persist a template-only body if we just applied it above
+              if (!pr.body || normalize(pr.body) !== normalize(body)) {
+                await github.rest.pulls.update({
+                  owner: context.repo.owner,
+                  repo:  context.repo.repo,
+                  pull_number: PULL_NUMBER,
+                  body,
+                });
+              }
+              console.log('No description generated — leaving Description section as-is.');
+              return;
+            }
+
+            // Skip if a human already wrote a description (no auto-marker, has real content)
+            const descMatch = body.match(/^#{1,3}\s+Description\s*\n([\s\S]*?)(?=\n#{1,3}\s|$)/m);
+            const descContent = descMatch ? descMatch[1] : null;
+            const hasManualDesc =
+              descContent &&
+              !body.includes(AUTO_MARKER) &&
+              descContent.replace(/<!--[\s\S]*?-->/g, '').trim().length > 0;
+
+            if (hasManualDesc) {
+              console.log('PR has a manually-written description — skipping generation.');
+              return;
+            }
+
+            // Insert generated description into the Description section
+            let updated = body
+              .replace(`\n${AUTO_MARKER}`, '')
+              .replace(AUTO_MARKER, '');
+
+            const sectionRe = /(^#{1,3}\s+Description\s*\n)([\s\S]*?)(?=\n#{1,3}\s|$)/m;
+            const match = updated.match(sectionRe);
+            if (match) {
+              updated = updated.replace(
+                match[0],
+                `${match[1]}${generated}\n\n${AUTO_MARKER}\n\n`,
+              );
+            } else {
+              updated = `# Description\n\n${generated}\n\n${AUTO_MARKER}\n\n${updated}`;
+            }
+
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              pull_number: PULL_NUMBER,
+              body: updated,
+            });
+            console.log(`Updated description for PR #${PULL_NUMBER}.`);
 
   update-status:
     name: Update CI Status

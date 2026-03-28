@@ -38,6 +38,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Harden /tmp via systemd tmp.mount drop-in (noexec) instead of fstab entry, which is the correct approach for Arch Linux
 - maintain-pr-description workflow refactored to use shared apply-pr-template action
 - security-review workflow refactored to use shared apply-pr-template action for PR descriptions
+- Simplify PR description approach: generate-pr-description action takes base/head SHAs and returns description text; workflows own template composition
 ### Removed
 ### Deployment Changes
 
