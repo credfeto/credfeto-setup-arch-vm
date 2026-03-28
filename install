@@ -111,51 +111,66 @@ ok "firewalld enabled"
 # ============================================================
 
 echo "Configuring SSH hardening..."
-SSH_HARDENING="/etc/ssh/sshd_config.d/98-hardening.conf"
-SSH_EXPECTED=$(cat << 'EOF'
-# Hardened SSH configuration
-HostKey /etc/ssh/ssh_host_ed25519_key
-HostKey /etc/ssh/ssh_host_rsa_key
+SSHD_CHANGED=0
 
-KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group16-sha512
-Ciphers chacha20-poly1305@openssh.com,aes-256-gcm@openssh.com,aes-128-gcm@openssh.com
-MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com
+sshd_set() {
+    file="/etc/ssh/sshd_config.d/10-${1}.conf"
+    expected="${2} ${3}"
+    if [ -f "$file" ] && [ "$(cat "$file")" = "$expected" ]; then
+        skip "sshd: ${2} ${3} already set"
+    else
+        printf '%s\n' "$expected" > "$file" || die "Could not write $file"
+        ok "sshd: ${2} ${3}"
+        SSHD_CHANGED=1
+    fi
+}
 
-PubkeyAuthentication yes
-PasswordAuthentication no
-PermitEmptyPasswords no
-PermitRootLogin no
-
-X11Forwarding no
-PrintMotd no
-TCPKeepAlive yes
-PermitUserEnvironment no
-ClientAliveInterval 300
-ClientAliveCountMax 2
-
-SyslogFacility AUTH
-LogLevel VERBOSE
-
-MaxAuthTries 3
-MaxSessions 3
-LoginGraceTime 30
-
-HostbasedAuthentication no
-IgnoreRhosts yes
-PermitTunnel no
-AllowAgentForwarding no
-GatewayPorts no
-VersionAddendum none
-EOF
-)
 mkdir -p /etc/ssh/sshd_config.d
-if [ -f "${SSH_HARDENING}" ] && [ "$(cat "${SSH_HARDENING}")" = "${SSH_EXPECTED}" ]; then
-    skip "SSH hardening config already correct"
-else
-    printf '%s\n' "${SSH_EXPECTED}" > "${SSH_HARDENING}" || die "Could not write ${SSH_HARDENING}"
+
+# Host keys
+sshd_set "hostkey-ed25519"          HostKey                  /etc/ssh/ssh_host_ed25519_key
+sshd_set "hostkey-rsa"              HostKey                  /etc/ssh/ssh_host_rsa_key
+
+# Key exchange, ciphers, MACs
+sshd_set "kexalgorithms"            KexAlgorithms            curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group16-sha512
+sshd_set "ciphers"                  Ciphers                  chacha20-poly1305@openssh.com,aes-256-gcm@openssh.com,aes-128-gcm@openssh.com
+sshd_set "macs"                     MACs                     hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com
+
+# Authentication
+sshd_set "pubkeyauthentication"     PubkeyAuthentication     yes
+sshd_set "passwordauthentication"   PasswordAuthentication   no
+sshd_set "permitemptypasswords"     PermitEmptyPasswords     no
+sshd_set "permitrootlogin"          PermitRootLogin          no
+
+# Session
+sshd_set "x11forwarding"            X11Forwarding            no
+sshd_set "printmotd"                PrintMotd                no
+sshd_set "tcpkeepalive"             TCPKeepAlive             yes
+sshd_set "permituserenvironment"    PermitUserEnvironment    no
+sshd_set "clientaliveinterval"      ClientAliveInterval      300
+sshd_set "clientalivecountmax"      ClientAliveCountMax      2
+
+# Logging
+sshd_set "syslogfacility"           SyslogFacility           AUTH
+sshd_set "loglevel"                 LogLevel                 VERBOSE
+
+# Rate limiting and access
+sshd_set "maxauthtries"             MaxAuthTries             3
+sshd_set "maxsessions"              MaxSessions              3
+sshd_set "logingraceime"            LoginGraceTime           30
+
+# Disable unsafe features
+sshd_set "hostbasedauthentication"  HostbasedAuthentication  no
+sshd_set "ignorerhosts"             IgnoreRhosts             yes
+sshd_set "permittunnel"             PermitTunnel             no
+sshd_set "allowagentforwarding"     AllowAgentForwarding     no
+sshd_set "gatewayports"             GatewayPorts             no
+sshd_set "versionaddendum"          VersionAddendum          none
+
+if [ "$SSHD_CHANGED" = "1" ]; then
     sshd -t || die "SSH config validation failed"
     systemctl enable --now sshd || die "Could not enable sshd"
-    ok "SSH hardening configured"
+    ok "SSH hardening applied"
 fi
 
 # ============================================================

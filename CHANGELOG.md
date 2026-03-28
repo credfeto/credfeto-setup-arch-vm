@@ -21,6 +21,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Move remembering-new-rules guidance from changelog instructions to .ai-instructions index
 - Git workflow instruction to push to origin after committing to an existing branch
 - AI instruction to re-read all instructions before starting work on a feature
+- SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 ### Removed
 ### Deployment Changes
 
