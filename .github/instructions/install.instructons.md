@@ -25,3 +25,10 @@ Keep all changes in the 'install' script unless explicitly specified in the requ
 Make the install script run in such a way that it can be run many times without breaking or introducing duplicate configuration or unwanted configuration... 
 
 e.g. if making a change to say /etc/pacman.conf then it should not make the change if it is already present.
+
+## Docker Compatibility
+
+**All settings must be compatible with Docker.** Never add a kernel parameter, sysctl value, or any other configuration that will break Docker or Docker-based workloads.
+
+Known settings that break Docker and must never be added:
+- `kernel.unprivileged_userns_clone=0` — breaks Docker networking and rootless containers
