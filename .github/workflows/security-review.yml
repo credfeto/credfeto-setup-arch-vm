@@ -219,9 +219,11 @@ jobs:
             -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
           git push origin "${BRANCH}"
 
-          echo "base_sha=${BASE_SHA}" >> "${GITHUB_OUTPUT}"
-          echo "head_sha=$(git rev-parse HEAD)" >> "${GITHUB_OUTPUT}"
-          echo "branch=${BRANCH}" >> "${GITHUB_OUTPUT}"
+          {
+            echo "base_sha=${BASE_SHA}"
+            echo "head_sha=$(git rev-parse HEAD)"
+            echo "branch=${BRANCH}"
+          } >> "${GITHUB_OUTPUT}"
 
       - name: "Generate PR description from diff"
         id: describe
