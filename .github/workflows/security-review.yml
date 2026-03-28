@@ -91,6 +91,7 @@ jobs:
              - ReadWritePaths= / ReadOnlyPaths= / InaccessiblePaths= (restrict filesystem access)
 
           4. HARD CONSTRAINTS — never violate these:
+             - The script MUST start with the shebang line `#!/bin/sh` as the very first line — no blank lines, no comments, nothing before it.
              - The script MUST remain POSIX sh compatible; no bash-specific syntax.
              - The script MUST remain idempotent; every write must be guarded by a content check.
              - Do NOT add kernel.unprivileged_userns_clone=0 — this breaks Docker and rootless containers.
@@ -99,6 +100,7 @@ jobs:
              - Section header progress lines (e.g. echo "Configuring X...") before long operations are acceptable.
 
           Return ONLY the complete modified script — no explanation, no markdown code fences, no surrounding text.
+          The very first characters of your response MUST be `#!/bin/sh`.
           If no changes are needed, return the script exactly as provided.
           """
 
