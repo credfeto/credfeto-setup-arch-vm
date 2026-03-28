@@ -339,8 +339,12 @@ Gateway=$GW6
 EOF
         fi
     } > /etc/systemd/network/eth0.network
+    ok "Network configured"
+else
+    skip "Network already configured, skipping"
+fi
 
-    cat << 'EOF' > /etc/resolv.conf
+cat << 'EOF' > /etc/resolv.conf
 search .
 
 nameserver 192.168.42.251
@@ -355,10 +359,7 @@ nameserver 2a02:8010:61d5:42::254
 
 options edns0 trust-ad
 EOF
-    ok "Network configured"
-else
-    skip "Network already configured, skipping"
-fi
+ok "resolv.conf written"
 
 systemctl daemon-reload
 [ "$RESTART" = "1" ] && systemctl restart docker
