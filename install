@@ -151,9 +151,22 @@ sshd_set "macs"                     MACs                     hmac-sha2-512-etm@o
 
 # Authentication
 sshd_set "pubkeyauthentication"     PubkeyAuthentication     yes
-sshd_set "passwordauthentication"   PasswordAuthentication   no
 sshd_set "permitemptypasswords"     PermitEmptyPasswords     no
 sshd_set "permitrootlogin"          PermitRootLogin          no
+
+# Only disable password auth if at least one user has an authorized_keys file with keys
+# — prevents accidental lockout
+HAS_AUTHORIZED_KEYS=0
+for auth_dir in /root /home/*; do
+    auth_file="${auth_dir}/.ssh/authorized_keys"
+    [ -f "${auth_file}" ] || continue
+    grep -qvE '^\s*(#|$)' "${auth_file}" && HAS_AUTHORIZED_KEYS=1 && break
+done
+if [ "${HAS_AUTHORIZED_KEYS}" = "1" ]; then
+    sshd_set "passwordauthentication" PasswordAuthentication no
+else
+    skip "sshd: PasswordAuthentication left enabled — no authorized_keys found on this system"
+fi
 
 # Session
 sshd_set "x11forwarding"            X11Forwarding            no
