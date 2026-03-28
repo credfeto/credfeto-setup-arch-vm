@@ -11,6 +11,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 ### Fixed
 - Enable pkgstats.timer via symlink for static unit as it has no [Install] section and cannot be enabled with systemctl enable
 ### Changed
+- Use dotnet changelog invocation instead of direct changelog command to avoid PATH configuration
 ### Removed
 ### Deployment Changes
 

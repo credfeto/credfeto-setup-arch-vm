@@ -15,13 +15,14 @@ The tool is a .NET global tool. Install once if not present:
 
 ```sh
 dotnet tool install -g Credfeto.Changelog.Cmd
-export PATH="$PATH:$HOME/.dotnet/tools"
 ```
 
 ## Adding an Entry
 
+Use `dotnet changelog` — no PATH changes needed:
+
 ```sh
-changelog -f CHANGELOG.md -a <Type> -m "<message>"
+dotnet changelog -f CHANGELOG.md -a <Type> -m "<message>"
 ```
 
 Valid types: `Added`, `Fixed`, `Changed`, `Removed`, `Deployment Changes`
@@ -29,9 +30,9 @@ Valid types: `Added`, `Fixed`, `Changed`, `Removed`, `Deployment Changes`
 ### Examples
 
 ```sh
-changelog -f CHANGELOG.md -a Fixed -m "Enable pkgstats.timer via symlink for static unit"
-changelog -f CHANGELOG.md -a Added -m "Configure reflector for automatic mirror ranking"
-changelog -f CHANGELOG.md -a Changed -m "Switch firewall backend from iptables to nftables"
+dotnet changelog -f CHANGELOG.md -a Fixed -m "Enable pkgstats.timer via symlink for static unit"
+dotnet changelog -f CHANGELOG.md -a Added -m "Configure reflector for automatic mirror ranking"
+dotnet changelog -f CHANGELOG.md -a Changed -m "Switch firewall backend from iptables to nftables"
 ```
 
 ## Rules
