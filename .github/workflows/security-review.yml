@@ -1,0 +1,236 @@
+--- # Automated security analysis of the install script using GitHub Copilot (GitHub Models).
+# Analyses the script for security improvements, removes outdated measures, and ensures
+# all systemd services are properly sandboxed. Opens a PR with any changes found.
+name: "Security: Analyse Install Script"
+
+on:
+  push:
+    branches:
+      - main
+      - 'dev/workflow/security-review/**'
+    paths:
+      - 'install'
+      - '.github/workflows/security-review.yml'
+  schedule:
+    - cron: '0 3 * * 0'  # Every Sunday at 03:00 UTC (quiet time)
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  security-review:
+    name: "Copilot Security Review"
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
+      models: read
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.SOURCE_PUSH_TOKEN }}
+
+      - name: "Analyse install script with GitHub Copilot"
+        id: analyse
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 - << 'PYEOF'
+          import json
+          import os
+          import subprocess
+          import sys
+          import urllib.error
+          import urllib.request
+
+          SCRIPT_PATH = "install"
+
+          with open(SCRIPT_PATH, "r") as f:
+              script_content = f.read()
+
+          system_prompt = """\
+          You are a Linux security expert specialising in Arch Linux, systemd hardening, and POSIX shell scripting.
+
+          Analyse the provided POSIX sh install script and apply the following improvements:
+
+          1. SECURITY ADDITIONS — apply if they will not break existing functionality:
+             - Strengthen sysctl hardening (kernel, network, filesystem parameters).
+             - Tighten file and directory permissions where appropriate.
+             - Add missing service-level security options.
+
+          2. SECURITY REMOVALS — remove if no longer valid or best-practice:
+             - Deprecated, redundant, or counterproductive security settings.
+             - Settings that conflict with modern Linux security models.
+
+          3. SYSTEMD SERVICE SANDBOXING — for every service that the script installs or enables,
+             add a drop-in at /etc/systemd/system/<service>.d/security.conf using a HEREDOC.
+             The drop-in must be written idempotently (check file content before writing, use ok/skip).
+             Apply only what each service legitimately needs; do not over-restrict:
+             - PrivateTmp=yes
+             - ProtectSystem=strict (or full where possible)
+             - ProtectHome=yes (or read-only where appropriate)
+             - NoNewPrivileges=yes
+             - ProtectKernelTunables=yes
+             - ProtectKernelModules=yes
+             - ProtectControlGroups=yes
+             - RestrictRealtime=yes
+             - RestrictSUIDSGID=yes
+             - CapabilityBoundingSet= (list only what is required)
+             - AmbientCapabilities= (only if the service needs ambient caps)
+             - PrivateNetwork=yes or RestrictAddressFamilies= (where the service has no network needs)
+             - ReadWritePaths= / ReadOnlyPaths= / InaccessiblePaths= (restrict filesystem access)
+
+          4. HARD CONSTRAINTS — never violate these:
+             - The script MUST remain POSIX sh compatible; no bash-specific syntax.
+             - The script MUST remain idempotent; every write must be guarded by a content check.
+             - Do NOT add kernel.unprivileged_userns_clone=0 — this breaks Docker and rootless containers.
+             - Do NOT add any sysctl or setting that breaks Docker bridge networking (docker0, br-*).
+             - Use ok/skip/die output helpers for all status messages — never plain echo for status.
+             - Section header progress lines (e.g. echo "Configuring X...") before long operations are acceptable.
+
+          Return ONLY the complete modified script — no explanation, no markdown code fences, no surrounding text.
+          If no changes are needed, return the script exactly as provided.
+          """
+
+          payload = {
+              "model": "openai/gpt-4o",
+              "messages": [
+                  {"role": "system", "content": system_prompt},
+                  {
+                      "role": "user",
+                      "content": (
+                          "Analyse and improve this Arch Linux install script. "
+                          "Apply all security improvements described in your instructions.\n\n"
+                          + script_content
+                      ),
+                  },
+              ],
+              "temperature": 0.1,
+              "max_tokens": 16384,
+          }
+
+          token = os.environ["GITHUB_TOKEN"]
+          req = urllib.request.Request(
+              "https://models.inference.ai.azure.com/chat/completions",
+              data=json.dumps(payload).encode("utf-8"),
+              headers={
+                  "Authorization": f"Bearer {token}",
+                  "Content-Type": "application/json",
+              },
+          )
+
+          try:
+              with urllib.request.urlopen(req, timeout=300) as response:
+                  result = json.loads(response.read().decode("utf-8"))
+          except urllib.error.HTTPError as exc:
+              body = exc.read().decode("utf-8", errors="replace")
+              print(f"GitHub Models API error {exc.code}: {body}", file=sys.stderr)
+              sys.exit(1)
+
+          modified = result["choices"][0]["message"]["content"].strip()
+
+          # Strip markdown code fences if the model added them despite instructions.
+          if modified.startswith("```"):
+              lines = modified.splitlines()
+              start = 1
+              end = len(lines) - 1 if lines[-1].strip() == "```" else len(lines)
+              modified = "\n".join(lines[start:end])
+
+          # Ensure the file ends with a single newline.
+          modified = modified.rstrip("\n") + "\n"
+
+          with open(SCRIPT_PATH, "w") as f:
+              f.write(modified)
+
+          # Detect whether the model produced any changes.
+          diff = subprocess.run(
+              ["git", "diff", "--quiet", SCRIPT_PATH], capture_output=True
+          )
+          has_changes = diff.returncode != 0
+
+          github_output = os.environ.get("GITHUB_OUTPUT", "")
+          if github_output:
+              with open(github_output, "a") as f:
+                  f.write(f"has_changes={'true' if has_changes else 'false'}\n")
+
+          if has_changes:
+              print("Security improvements identified — changes written to install script.")
+          else:
+              print("No security improvements needed — install script is already up to date.")
+          PYEOF
+
+      - name: "Validate modified script with shellcheck"
+        if: steps.analyse.outputs.has_changes == 'true'
+        run: |
+          sudo apt-get install -y --no-install-recommends shellcheck devscripts 2>&1 | tail -5
+          shellcheck install
+          checkbashisms install
+
+      - name: "Set up .NET for changelog tool"
+        if: steps.analyse.outputs.has_changes == 'true'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: "Install changelog tool"
+        if: steps.analyse.outputs.has_changes == 'true'
+        run: dotnet tool install -g Credfeto.Changelog.Cmd
+
+      - name: "Update CHANGELOG.md"
+        if: steps.analyse.outputs.has_changes == 'true'
+        run: |
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          dotnet changelog -f CHANGELOG.md -a Changed \
+            -m "Apply Copilot security analysis improvements to install script"
+
+      - name: "Commit changes and open PR"
+        if: steps.analyse.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.SOURCE_PUSH_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          BRANCH="security/install-script-$(date -u +%Y%m%d-%H%M%S)"
+          git checkout -b "${BRANCH}"
+          git add install CHANGELOG.md
+          git commit -m "security: apply Copilot security analysis improvements to install script
+
+          Automated security review via GitHub Copilot (GitHub Models API).
+          Changes include security hardening additions, removal of outdated measures,
+          and systemd service sandboxing for all installed services.
+
+          Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
+
+          git push origin "${BRANCH}"
+
+          gh pr create \
+            --base main \
+            --head "${BRANCH}" \
+            --title "security: Copilot security analysis improvements to install script" \
+            --body "## Automated Security Review
+
+          This PR was opened automatically by the **Security: Analyse Install Script** workflow.
+
+          ### What was analysed
+          The \`install\` script was submitted to GitHub Copilot (via GitHub Models) for a full security review.
+
+          ### Changes applied
+          - Security hardening additions that do not break existing functionality
+          - Removal of outdated or counterproductive security settings
+          - Systemd drop-in sandboxing for all services installed/enabled by the script
+
+          ### Review checklist
+          - [ ] Verify each systemd drop-in does not over-restrict the service
+          - [ ] Confirm no Docker-incompatible settings were introduced
+          - [ ] Run \`shellcheck install\` and \`checkbashisms install\` locally
+          - [ ] Test on a clean Arch VM before merging
+
+          > **Note:** This PR was generated automatically. Review all changes before merging."

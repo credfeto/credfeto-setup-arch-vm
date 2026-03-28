@@ -8,6 +8,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 ## [Unreleased]
 ### Added
 - AI instructions for changelog tool and self-documenting rules workflow
+- Security review workflow using GitHub Copilot to analyse and harden the install script
 - linux-hardened kernel and linux-hardened-headers packages
 - SSH hardening with strong crypto, key-only auth, and no root login
 - Additional sysctl hardening: ASLR, sysrq disable, source route blocking, RA disable, ICMP broadcast, filesystem protections, core dump prevention
