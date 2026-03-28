@@ -26,6 +26,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
 - PasswordAuthentication only disabled over SSH if at least one user has authorized_keys configured, preventing lockout
 - Disable KbdInteractiveAuthentication and ChallengeResponseAuthentication alongside PasswordAuthentication when authorized_keys are present
+- sshd only reloaded if already running; config is written regardless but service is not started if not already active
 ### Removed
 ### Deployment Changes
 

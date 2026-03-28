@@ -197,8 +197,12 @@ sshd_set "versionaddendum"          VersionAddendum          none
 
 if [ "$SSHD_CHANGED" = "1" ]; then
     sshd -t || die "SSH config validation failed"
-    systemctl enable --now sshd || die "Could not enable sshd"
-    ok "SSH hardening applied"
+    if systemctl is-active --quiet sshd; then
+        systemctl reload sshd || die "Could not reload sshd"
+        ok "SSH hardening applied and sshd reloaded"
+    else
+        skip "sshd is not running — config written but service not started"
+    fi
 fi
 
 # ============================================================
