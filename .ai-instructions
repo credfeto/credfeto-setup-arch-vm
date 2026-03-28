@@ -2,6 +2,8 @@
 
 This file is the index of all AI instructions for this repository.
 
+**Before starting any work, re-read all instruction files listed below — they may have changed since your last session.**
+
 **Read and apply ALL of the following instruction files before making any changes:**
 
 | File | Purpose |
@@ -11,8 +13,11 @@ This file is the index of all AI instructions for this repository.
 | [install-script.instructions.md](.github/instructions/install-script.instructions.md) | Idempotency, script style, shellcheck, scope |
 | [docker-compatibility.instructions.md](.github/instructions/docker-compatibility.instructions.md) | Settings that must never break Docker |
 | [output-formatting.instructions.md](.github/instructions/output-formatting.instructions.md) | ok / skip / die indicators and colours |
+| [changelog.instructions.md](.github/instructions/changelog.instructions.md) | Updating CHANGELOG.md with credfeto.changelog.cmd |
 
 When adding a new rule:
 - Add it to the most relevant file in `.github/instructions/`.
 - If no existing file fits, create a new `<topic>.instructions.md` file there.
 - Update this index table to include any new file.
+
+When you discover something that should be remembered for future work (a tool to use, a pattern to follow, a gotcha to avoid), add it to the most relevant `.github/instructions/` file immediately and include it in the same commit as the change that prompted it.
