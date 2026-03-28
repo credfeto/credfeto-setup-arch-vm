@@ -189,10 +189,8 @@ jobs:
       - name: "Update CHANGELOG.md"
         if: steps.analyse.outputs.has_changes == 'true'
         run: |
-          export PATH="$PATH:$HOME/.dotnet/tools"
           dotnet changelog -f CHANGELOG.md -a Changed \
             -m "Apply Copilot security analysis improvements to install script"
-
       - name: "Commit and push changes"
         id: push
         if: steps.analyse.outputs.has_changes == 'true'
