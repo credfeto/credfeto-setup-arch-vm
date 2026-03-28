@@ -181,8 +181,14 @@ jobs:
       - name: "Validate modified script with shellcheck"
         if: steps.analyse.outputs.has_changes == 'true'
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends shellcheck devscripts
+          NEED_INSTALL=""
+          dpkg -s shellcheck >/dev/null 2>&1 || NEED_INSTALL="${NEED_INSTALL} shellcheck"
+          dpkg -s devscripts >/dev/null 2>&1 || NEED_INSTALL="${NEED_INSTALL} devscripts"
+          if [ -n "${NEED_INSTALL}" ]; then
+            sudo apt-get update -qq
+            # shellcheck disable=SC2086
+            sudo apt-get install -y --no-install-recommends ${NEED_INSTALL}
+          fi
           shellcheck install
           checkbashisms install
 
