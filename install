@@ -115,10 +115,10 @@ PKGSTATS_LINK="${PKGSTATS_WANTS_DIR}/pkgstats.timer"
 if [ -L "${PKGSTATS_LINK}" ]; then
     skip "pkgstats timer already enabled"
 else
-    mkdir -p "${PKGSTATS_WANTS_DIR}"
-    ln -sf /usr/lib/systemd/system/pkgstats.timer "${PKGSTATS_LINK}"
-    systemctl daemon-reload
-    systemctl start pkgstats.timer
+    mkdir -p "${PKGSTATS_WANTS_DIR}" || die "Failed to create ${PKGSTATS_WANTS_DIR}"
+    ln -sf /usr/lib/systemd/system/pkgstats.timer "${PKGSTATS_LINK}" || die "Failed to create pkgstats.timer symlink"
+    systemctl daemon-reload || die "systemctl daemon-reload failed"
+    systemctl start pkgstats.timer || die "Failed to start pkgstats.timer"
     ok "pkgstats timer enabled"
 fi
 
