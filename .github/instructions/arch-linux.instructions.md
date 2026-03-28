@@ -15,6 +15,7 @@ Use these instructions when writing guidance, scripts, or documentation for Arch
 - Confirm current kernel and recent package changes when troubleshooting.
 - Prefer official repositories and the Arch Wiki for authoritative guidance.
 - **The kernel is `linux-hardened`** — this provides additional security patches, stricter defaults, and enables hardening features referenced in GRUB parameters (e.g. `hardened_usercopy`, `init_on_alloc`, `slab_nomerge`). Always assume `linux-hardened` and `linux-hardened-headers` are installed.
+- **`/tmp` is mounted by systemd's `tmp.mount` unit**, not via `/etc/fstab`. To change mount options (e.g. add `noexec`), use a drop-in at `/etc/systemd/system/tmp.mount.d/`. Never add a `/tmp` entry to `/etc/fstab` on Arch.
 
 ## Package Management
 
