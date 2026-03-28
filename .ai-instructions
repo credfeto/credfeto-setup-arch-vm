@@ -1,34 +1,18 @@
 # AI Instructions
 
-See `.github/instructions/` for full guidance:
+This file is the index of all AI instructions for this repository.
 
-- **[arch-linux.instructions.md](.github/instructions/arch-linux.instructions.md)** — Arch Linux administration, pacman workflows, and rolling-release best practices.
-- **[install.instructons.md](.github/instructions/install.instructons.md)** — Guidelines for updating the `install` script (idempotent changes, keep edits in `install` unless stated otherwise).
+**Read and apply ALL of the following instruction files before making any changes:**
 
-## Key Rules
+| File | Purpose |
+|---|---|
+| [arch-linux.instructions.md](.github/instructions/arch-linux.instructions.md) | Arch Linux administration, pacman workflows, rolling-release best practices |
+| [git-workflow.instructions.md](.github/instructions/git-workflow.instructions.md) | Branching strategy, commit format, PR rules |
+| [install-script.instructions.md](.github/instructions/install-script.instructions.md) | Idempotency, script style, shellcheck, scope |
+| [docker-compatibility.instructions.md](.github/instructions/docker-compatibility.instructions.md) | Settings that must never break Docker |
+| [output-formatting.instructions.md](.github/instructions/output-formatting.instructions.md) | ok / skip / die indicators and colours |
 
-- **Never commit directly to `main`.** Always work on a feature branch and open a PR.
-- **Before starting work**: switch to `main`, run `git pull`, then `git checkout -b <branch-name>`.
-- All changes go in the `install` script unless explicitly requested otherwise.
-- **If fixing or extending work already on an open branch**, commit to that same branch — do not create a new one.
-- The `install` script must be idempotent — safe to run multiple times without duplicating or breaking configuration.
-- Follow Arch Linux best practices: full upgrades (`pacman -Syu`), systemd for services, config under `/etc`.
-- Provide copy-paste-ready commands with validation and rollback steps.
-- All updates should follow best security practices.
-- All updates should make an arch linux system more secure, stable, and performant.
-- Install `pacman-contrib` and schedule `paccache -r` via a weekly systemd timer to keep the package cache from growing unbounded.
-- This file should be updated whenever a new rule is added.
-- The .github/instructions/ folder should be updated whenever a new rule is added.
-- Use HEREDOC rather than multip1le echo statements.
-- All changes to scripts should be checked with `shellcheck`.
-- All changes to scripts should be checked against checkbashisms to make sure they are sh compatible.
-
-## Making Changes
-- All changes should be made in a new branch and submitted as a pull request.
-- Changes should be made in small commits, each with a descriptive commit message.
-- Commit messages should follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) format.
-- Pull requests should be reviewed by at least one other maintainer before merging.
-- All changes should be tested and verified before merging.
-- All changes should be documented in the `CHANGELOG.md` file.
-- All changes should be documented in the `arch-linux.instructions.md` file if they affect Arch Linux administration, pacman workflows, or rolling-release best practices.
-- The `README.md` file should be updated to detail the features that are configured.
+When adding a new rule:
+- Add it to the most relevant file in `.github/instructions/`.
+- If no existing file fits, create a new `<topic>.instructions.md` file there.
+- Update this index table to include any new file.

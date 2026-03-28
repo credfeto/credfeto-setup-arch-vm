@@ -3,6 +3,8 @@ description: 'Guidance for Arch Linux administration, pacman workflows, and roll
 applyTo: '**'
 ---
 
+> **Index:** `.ai-instructions` is the index of all instruction files in this repository.
+
 # Arch Linux Administration Guidelines
 
 Use these instructions when writing guidance, scripts, or documentation for Arch Linux systems.
