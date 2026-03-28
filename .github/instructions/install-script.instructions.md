@@ -13,6 +13,15 @@ Use the Arch Linux instructions as basic guidance.
 
 Keep all changes in the `install` script unless explicitly specified in the request.
 
+## Hardening
+
+**Every package or service installed by the script must also be hardened.**
+
+- If a package exposes a network service, its configuration must be hardened (e.g. strong crypto, least-privilege, minimal attack surface).
+- If a package has known security knobs (sysctl, config file options, systemd settings), apply them.
+- Do not install a package and leave it in its default, unhardened state.
+- Hardening config for a service belongs in the same section of the script as that service's setup.
+
 ## Idempotency
 
 The `install` script must be safe to run multiple times without duplicating or breaking configuration.
