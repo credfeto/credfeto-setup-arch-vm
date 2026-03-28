@@ -172,7 +172,7 @@ jobs:
       - name: "Validate modified script with shellcheck"
         if: steps.analyse.outputs.has_changes == 'true'
         run: |
-          sudo apt-get install -y --no-install-recommends shellcheck devscripts 2>&1 | tail -5
+          sudo apt-get install -y --no-install-recommends shellcheck devscripts
           shellcheck install
           checkbashisms install
 
