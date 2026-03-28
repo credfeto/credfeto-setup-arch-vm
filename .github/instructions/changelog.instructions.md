@@ -41,7 +41,3 @@ dotnet changelog -f CHANGELOG.md -a Changed -m "Switch firewall backend from ipt
 - Run the tool **before** committing — include the updated `CHANGELOG.md` in the same commit.
 - Entries go into `[Unreleased]` automatically; do not manually move or edit entries.
 - Use a concise, user-facing description — not an internal implementation detail.
-
-## Remembering New Rules
-
-When you discover something that should be remembered for future work (a tool to use, a pattern to follow, a gotcha to avoid), add it to the most relevant file in `.github/instructions/`. If no existing file fits, create a new `<topic>.instructions.md` there and add it to the index in `.ai-instructions`.

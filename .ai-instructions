@@ -17,3 +17,5 @@ When adding a new rule:
 - Add it to the most relevant file in `.github/instructions/`.
 - If no existing file fits, create a new `<topic>.instructions.md` file there.
 - Update this index table to include any new file.
+
+When you discover something that should be remembered for future work (a tool to use, a pattern to follow, a gotcha to avoid), add it to the most relevant `.github/instructions/` file immediately and include it in the same commit as the change that prompted it.
