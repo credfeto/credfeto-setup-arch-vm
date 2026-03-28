@@ -7,6 +7,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 
 ## [Unreleased]
 ### Added
+- AI instructions for changelog tool and self-documenting rules workflow
 ### Fixed
 - Enable pkgstats.timer via symlink for static unit as it has no [Install] section and cannot be enabled with systemctl enable
 ### Changed
