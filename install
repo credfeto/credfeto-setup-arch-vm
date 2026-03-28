@@ -93,18 +93,30 @@ ok "reflector configured"
 # Configure Docker
 # ============================================================
 
-echo "Configuring Docker mirror..."
+echo "Configuring Docker..."
 RESTART=0
 [ -d /etc/docker ] || mkdir -p /etc/docker
-if [ ! -f /etc/docker/daemon.json ]; then
-  cat << EOF > /etc/docker/daemon.json
+DOCKER_DAEMON_EXPECTED=$(cat << 'EOF'
 {
-   "registry-mirrors" : ["https://docker-cache.markridgwell.com"]
+  "registry-mirrors": ["https://docker-cache.markridgwell.com"],
+  "icc": false,
+  "no-new-privileges": true,
+  "userland-proxy": false,
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "100m",
+    "max-file": "3"
+  }
 }
 EOF
-  RESTART=1
+)
+if [ -f /etc/docker/daemon.json ] && [ "$(cat /etc/docker/daemon.json)" = "${DOCKER_DAEMON_EXPECTED}" ]; then
+    skip "Docker daemon.json already correct"
+else
+    printf '%s\n' "${DOCKER_DAEMON_EXPECTED}" > /etc/docker/daemon.json || die "Could not write /etc/docker/daemon.json"
+    ok "Docker daemon.json configured"
+    RESTART=1
 fi
-ok "Docker mirror configured"
 
 echo "Enabling Docker..."
 systemctl enable --now docker.socket || die "Could not enable docker.socket"
@@ -115,9 +127,36 @@ ok "Docker enabled"
 # Configure firewalld
 # ============================================================
 
-echo "Enabling firewalld..."
-systemctl enable --now firewalld
-ok "firewalld enabled"
+echo "Configuring firewalld..."
+systemctl enable --now firewalld || die "Could not enable firewalld"
+
+# Harden default zone to drop all unexpected traffic
+CURRENT_DEFAULT=$(firewall-cmd --get-default-zone 2>/dev/null || true)
+if [ "${CURRENT_DEFAULT}" = "drop" ]; then
+    skip "firewalld default zone already drop"
+else
+    firewall-cmd --permanent --set-default-zone=drop || die "Could not set default firewalld zone"
+    ok "firewalld default zone set to drop"
+fi
+
+# Ensure SSH is reachable on the public zone
+if firewall-cmd --permanent --zone=public --query-service=ssh > /dev/null 2>&1; then
+    skip "firewalld: ssh already in public zone"
+else
+    firewall-cmd --permanent --zone=public --add-service=ssh || die "Could not add ssh to public zone"
+    ok "firewalld: ssh added to public zone"
+fi
+
+# Ensure Docker bridge traffic is accepted
+if firewall-cmd --permanent --zone=trusted --query-interface=docker0 > /dev/null 2>&1; then
+    skip "firewalld: docker0 already in trusted zone"
+else
+    firewall-cmd --permanent --zone=trusted --add-interface=docker0 || die "Could not add docker0 to trusted zone"
+    ok "firewalld: docker0 added to trusted zone"
+fi
+
+firewall-cmd --reload || die "Could not reload firewalld"
+ok "firewalld configured"
 
 # ============================================================
 # Configure SSH hardening

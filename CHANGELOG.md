@@ -28,6 +28,8 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - PasswordAuthentication only disabled over SSH if at least one user has authorized_keys configured, preventing lockout
 - Disable KbdInteractiveAuthentication and ChallengeResponseAuthentication alongside PasswordAuthentication when authorized_keys are present
 - sshd only reloaded if already running; config is written regardless but service is not started if not already active
+- Docker daemon.json hardened: icc=false, no-new-privileges=true, userland-proxy=false, log rotation; idempotency now checks file content
+- firewalld default zone set to drop; SSH added to public zone; docker0 added to trusted zone
 ### Removed
 ### Deployment Changes
 
