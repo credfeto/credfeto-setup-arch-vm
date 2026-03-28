@@ -110,8 +110,17 @@ ok "firewalld enabled"
 # ============================================================
 
 echo "Enabling pkgstats..."
-systemctl enable --now pkgstats.timer
-ok "pkgstats enabled"
+PKGSTATS_WANTS_DIR="/etc/systemd/system/timers.target.wants"
+PKGSTATS_LINK="${PKGSTATS_WANTS_DIR}/pkgstats.timer"
+if [ -L "${PKGSTATS_LINK}" ]; then
+    skip "pkgstats timer already enabled"
+else
+    mkdir -p "${PKGSTATS_WANTS_DIR}"
+    ln -sf /usr/lib/systemd/system/pkgstats.timer "${PKGSTATS_LINK}"
+    systemctl daemon-reload
+    systemctl start pkgstats.timer
+    ok "pkgstats timer enabled"
+fi
 
 # ============================================================
 # Configure auto-update service
