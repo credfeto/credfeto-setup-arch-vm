@@ -163,7 +163,9 @@ for auth_dir in /root /home/*; do
     grep -qvE '^\s*(#|$)' "${auth_file}" && HAS_AUTHORIZED_KEYS=1 && break
 done
 if [ "${HAS_AUTHORIZED_KEYS}" = "1" ]; then
-    sshd_set "passwordauthentication" PasswordAuthentication no
+    sshd_set "passwordauthentication"          PasswordAuthentication         no
+    sshd_set "kbdinteractiveauthentication"    KbdInteractiveAuthentication   no
+    sshd_set "challengeresponseauthentication" ChallengeResponseAuthentication no
 else
     skip "sshd: PasswordAuthentication left enabled — no authorized_keys found on this system"
 fi
