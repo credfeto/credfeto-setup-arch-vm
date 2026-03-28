@@ -55,9 +55,22 @@ echo "Updating packages..."
 pacman -Syu --noconfirm || die "Could not update dist"
 ok "Packages updated"
 
+# ============================================================
+# Verify linux-hardened kernel
+# ============================================================
+
+echo "Checking kernel..."
+# Only linux-hardened should be installed — no other kernels (linux, linux-lts, etc.)
+OTHER_KERNELS=$(pacman -Qq linux linux-lts linux-zen linux-rt 2>/dev/null || true)
+[ -z "$OTHER_KERNELS" ] || die "Non-hardened kernel(s) installed: ${OTHER_KERNELS} — remove them and keep only linux-hardened"
+pacman -Qq linux-hardened > /dev/null 2>&1 || die "linux-hardened is not installed"
+case "$(uname -r)" in
+    *-hardened) ok "Running linux-hardened kernel ($(uname -r))" ;;
+    *) die "Not running linux-hardened kernel (uname -r: $(uname -r)) — reboot into linux-hardened first" ;;
+esac
+
 echo "Installing packages..."
-# linux-hardened: security-hardened kernel with additional patches and stricter defaults
-pacman -S --noconfirm --needed docker docker-compose docker-buildx git pigz criu firewalld pkgstats reflector pacman-contrib linux-hardened linux-hardened-headers openssh || die "Could not install packages"
+pacman -S --noconfirm --needed docker docker-compose docker-buildx git pigz criu firewalld pkgstats reflector pacman-contrib openssh || die "Could not install packages"
 ok "Packages installed"
 
 # ============================================================
