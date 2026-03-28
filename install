@@ -344,6 +344,7 @@ else
     skip "Network already configured, skipping"
 fi
 
+rm -f /etc/resolv.conf
 cat << 'EOF' > /etc/resolv.conf
 search .
 
