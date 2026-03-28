@@ -13,6 +13,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 ### Changed
 - Use dotnet changelog invocation instead of direct changelog command to avoid PATH configuration
 - Move remembering-new-rules guidance from changelog instructions to .ai-instructions index
+- Git workflow instruction to push to origin after committing to an existing branch
 ### Removed
 ### Deployment Changes
 
