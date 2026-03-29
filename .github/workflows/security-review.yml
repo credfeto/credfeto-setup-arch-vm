@@ -35,6 +35,7 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v6.0.2
         with:
+          ref: main
           clean: true
           fetch-depth: 0
           fetch-tags: true
@@ -296,7 +297,7 @@ jobs:
 
           BASE_SHA=$(git rev-parse origin/main)
           BRANCH="security/install-script-$(date -u +%Y%m%d-%H%M%S)"
-          git checkout -b "${BRANCH}"
+          git checkout -b "${BRANCH}" origin/main
           git add install CHANGELOG.md
           git commit \
             -m "security: apply Copilot security analysis improvements to install script" \
