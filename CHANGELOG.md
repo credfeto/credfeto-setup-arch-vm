@@ -21,6 +21,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Arch Linux instruction noting /tmp is managed by systemd tmp.mount, not fstab
 - generate-pr-description composite action for diffing commits and generating Copilot PR description text
 - pull-request-template instruction rule for automated workflows
+- Rule: when updating a PR description always follow maintain-pr-description.yml logic and preserve PULL_REQUEST_TEMPLATE.md structure
 ### Fixed
 - Enable pkgstats.timer via symlink for static unit as it has no [Install] section and cannot be enabled with systemctl enable
 - Run apt-get update before installing shellcheck/devscripts to avoid stale package cache
