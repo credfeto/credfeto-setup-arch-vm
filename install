@@ -515,17 +515,15 @@ mkdir -p /etc/modprobe.d
 # Write a single-module blacklist file with an explanatory comment.
 # Usage: blacklist_module <module> <reason>
 blacklist_module() {
-    local module="$1"
-    local reason="$2"
-    local file="/etc/modprobe.d/blacklist.${module}.conf"
-    local expected
-    expected=$(printf '# %s\nblacklist %s\n' "$reason" "$module")
-    if [ -f "$file" ] && [ "$(cat "$file")" = "$expected" ]; then
-        skip "module blacklist: ${module} already blacklisted"
+    _bm_file="/etc/modprobe.d/blacklist.${1}.conf"
+    _bm_expected=$(printf '# %s\nblacklist %s\n' "$2" "$1")
+    if [ -f "$_bm_file" ] && [ "$(cat "$_bm_file")" = "$_bm_expected" ]; then
+        skip "module blacklist: ${1} already blacklisted"
     else
-        printf '%s\n' "$expected" > "$file" || die "Could not write $file"
-        ok "module blacklist: ${module} blacklisted"
+        printf '%s\n' "$_bm_expected" > "$_bm_file" || die "Could not write $_bm_file"
+        ok "module blacklist: ${1} blacklisted"
     fi
+    unset _bm_file _bm_expected
 }
 
 # Remove legacy monolithic blacklist file created by earlier versions of this script

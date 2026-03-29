@@ -33,6 +33,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Upgrade actions/github-script from v7 to v8.0.0 to fix Node.js 20 deprecation warning
 - Use mount -o remount /tmp instead of invalid systemctl remount command
 - Use systemctl restart tmp.mount instead of mount -o remount for systemd-managed /tmp
+- Replace local variables in blacklist_module with prefixed globals for POSIX sh compatibility
 ### Changed
 - Use dotnet changelog invocation instead of direct changelog command to avoid PATH configuration
 - Move remembering-new-rules guidance from changelog instructions to .ai-instructions index
