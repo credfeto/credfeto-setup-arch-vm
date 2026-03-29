@@ -434,16 +434,16 @@ echo "Configuring sysctl hardening..."
 SYSCTL_CHANGED=0
 
 sysctl_set() {
-    local file="/etc/sysctl.d/10-${1}.conf"
-    local expected
-    expected=$(printf '%s=%s\n' "$1" "$2")
-    if [ -f "$file" ] && [ "$(cat "$file")" = "$expected" ]; then
+    _ss_file="/etc/sysctl.d/10-${1}.conf"
+    _ss_expected=$(printf '%s=%s\n' "$1" "$2")
+    if [ -f "$_ss_file" ] && [ "$(cat "$_ss_file")" = "$_ss_expected" ]; then
         skip "sysctl: ${1}=${2} already set"
     else
-        printf '%s\n' "$expected" > "$file" || die "Could not write $file"
+        printf '%s\n' "$_ss_expected" > "$_ss_file" || die "Could not write $_ss_file"
         ok "sysctl: ${1}=${2}"
         SYSCTL_CHANGED=1
     fi
+    unset _ss_file _ss_expected
 }
 
 sysctl_set kernel.dmesg_restrict                    1

@@ -31,6 +31,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Remove --permanent flag from firewall-cmd --set-default-zone (incompatible options)
 - Fix SSH cipher names: aes256-gcm and aes128-gcm (no hyphen after aes)
 - Upgrade actions/github-script from v7 to v8.0.0 to fix Node.js 20 deprecation warning
+- Replace local variables in sysctl_set with prefixed globals for POSIX sh compatibility
 ### Changed
 - Use dotnet changelog invocation instead of direct changelog command to avoid PATH configuration
 - Move remembering-new-rules guidance from changelog instructions to .ai-instructions index
