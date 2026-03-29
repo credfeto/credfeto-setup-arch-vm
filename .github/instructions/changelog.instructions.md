@@ -52,3 +52,4 @@ dotnet changelog -f CHANGELOG.md -r Changed -m "Switch firewall backend from ipt
 - Do not add entries for changes that are not visible to users.
 - Do not add entries for changes that are not visible to developers.
 - Do not add entries for changes to AI instructions.
+- When in if there is an entry in the `[Unreleased]` section that is no longer valid, remove it and add a new one with the correct message if it does not violate any of the rules above.
