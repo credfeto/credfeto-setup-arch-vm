@@ -1,4 +1,4 @@
-#! /bin/sh
+#!/bin/sh
 
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
@@ -123,6 +123,31 @@ systemctl enable --now docker.socket || die "Could not enable docker.socket"
 systemctl enable --now docker || die "Could not enable docker.service"
 ok "Docker enabled"
 
+# Add systemd service sandboxing for Docker
+DOCKER_DROPIN="/etc/systemd/system/docker.service.d/security.conf"
+DOCKER_DROPIN_EXPECTED=$(cat << 'EOF'
+[Service]
+ProtectSystem=full
+ProtectHome=yes
+NoNewPrivileges=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW CAP_SYS_ADMIN CAP_SYS_MODULE CAP_SYS_RESOURCE
+EOF
+)
+mkdir -p "$(dirname "${DOCKER_DROPIN}")"
+if [ -f "${DOCKER_DROPIN}" ] && [ "$(cat "${DOCKER_DROPIN}")" = "${DOCKER_DROPIN_EXPECTED}" ]; then
+    skip "Docker service security drop-in already correct"
+else
+    printf '%s\n' "${DOCKER_DROPIN_EXPECTED}" > "${DOCKER_DROPIN}" || die "Could not write ${DOCKER_DROPIN}"
+    systemctl daemon-reload || die "Could not reload systemd daemon"
+    systemctl restart docker || die "Could not restart Docker service"
+    ok "Docker service security drop-in applied"
+fi
+
 # ============================================================
 # Configure firewalld
 # ============================================================
@@ -157,6 +182,30 @@ fi
 
 firewall-cmd --reload || die "Could not reload firewalld"
 ok "firewalld configured"
+
+# Add systemd service sandboxing for firewalld
+FIREWALLD_DROPIN="/etc/systemd/system/firewalld.service.d/security.conf"
+FIREWALLD_DROPIN_EXPECTED=$(cat << 'EOF'
+[Service]
+ProtectSystem=full
+ProtectHome=yes
+NoNewPrivileges=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+EOF
+)
+mkdir -p "$(dirname "${FIREWALLD_DROPIN}")"
+if [ -f "${FIREWALLD_DROPIN}" ] && [ "$(cat "${FIREWALLD_DROPIN}")" = "${FIREWALLD_DROPIN_EXPECTED}" ]; then
+    skip "firewalld service security drop-in already correct"
+else
+    printf '%s\n' "${FIREWALLD_DROPIN_EXPECTED}" > "${FIREWALLD_DROPIN}" || die "Could not write ${FIREWALLD_DROPIN}"
+    systemctl daemon-reload || die "Could not reload systemd daemon"
+    systemctl restart firewalld || die "Could not restart firewalld service"
+    ok "firewalld service security drop-in applied"
+fi
 
 # ============================================================
 # Configure SSH hardening
@@ -242,6 +291,30 @@ if [ "$SSHD_CHANGED" = "1" ]; then
     else
         skip "sshd is not running — config written but service not started"
     fi
+fi
+
+# Add systemd service sandboxing for SSHD
+SSHD_DROPIN="/etc/systemd/system/sshd.service.d/security.conf"
+SSHD_DROPIN_EXPECTED=$(cat << 'EOF'
+[Service]
+ProtectSystem=full
+ProtectHome=read-only
+NoNewPrivileges=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+EOF
+)
+mkdir -p "$(dirname "${SSHD_DROPIN}")"
+if [ -f "${SSHD_DROPIN}" ] && [ "$(cat "${SSHD_DROPIN}")" = "${SSHD_DROPIN_EXPECTED}" ]; then
+    skip "sshd service security drop-in already correct"
+else
+    printf '%s\n' "${SSHD_DROPIN_EXPECTED}" > "${SSHD_DROPIN}" || die "Could not write ${SSHD_DROPIN}"
+    systemctl daemon-reload || die "Could not reload systemd daemon"
+    systemctl restart sshd || die "Could not restart sshd service"
+    ok "sshd service security drop-in applied"
 fi
 
 # ============================================================
@@ -434,8 +507,8 @@ echo "Configuring sysctl hardening..."
 SYSCTL_CHANGED=0
 
 sysctl_set() {
-    local file="/etc/sysctl.d/10-${1}.conf"
-    local expected
+    file="/etc/sysctl.d/10-${1}.conf"
+    expected=
     expected=$(printf '%s=%s\n' "$1" "$2")
     if [ -f "$file" ] && [ "$(cat "$file")" = "$expected" ]; then
         skip "sysctl: ${1}=${2} already set"
