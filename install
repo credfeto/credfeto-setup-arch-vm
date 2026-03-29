@@ -510,34 +510,50 @@ fi
 # ============================================================
 
 echo "Blacklisting kernel modules..."
-MODPROBE_CONF="/etc/modprobe.d/blacklist-hardening.conf"
-MODPROBE_EXPECTED=$(cat << 'EOF'
-# Uncommon and dangerous network protocols
-blacklist dccp
-blacklist sctp
-blacklist rds
-blacklist tipc
-blacklist atm
+mkdir -p /etc/modprobe.d
 
-# Uncommon filesystems
-blacklist cramfs
-blacklist freevxfs
-blacklist jffs2
-blacklist hfs
-blacklist hfsplus
+# Write a single-module blacklist file with an explanatory comment.
+# Usage: blacklist_module <module> <reason>
+blacklist_module() {
+    _bm_file="/etc/modprobe.d/blacklist.${1}.conf"
+    _bm_expected=$(printf '# %s\nblacklist %s\n' "$2" "$1")
+    if [ -f "$_bm_file" ] && [ "$(cat "$_bm_file")" = "$_bm_expected" ]; then
+        skip "module blacklist: ${1} already blacklisted"
+    else
+        printf '%s\n' "$_bm_expected" > "$_bm_file" || die "Could not write $_bm_file"
+        ok "module blacklist: ${1} blacklisted"
+    fi
+    unset _bm_file _bm_expected
+}
 
-# Firewire
-blacklist firewire_core
-blacklist firewire_ohci
-blacklist firewire_sbp2
-EOF
-)
-if [ -f "${MODPROBE_CONF}" ] && [ "$(cat "${MODPROBE_CONF}")" = "${MODPROBE_EXPECTED}" ]; then
-    skip "kernel module blacklist already correct"
-else
-    printf '%s\n' "${MODPROBE_EXPECTED}" > "${MODPROBE_CONF}" || die "Could not write ${MODPROBE_CONF}"
-    ok "kernel module blacklist configured"
+# Remove legacy monolithic blacklist file created by earlier versions of this script
+if [ -f /etc/modprobe.d/blacklist-hardening.conf ]; then
+    rm /etc/modprobe.d/blacklist-hardening.conf || die "Could not remove legacy /etc/modprobe.d/blacklist-hardening.conf"
+    ok "removed legacy blacklist-hardening.conf"
 fi
+
+# Uncommon and dangerous network protocols
+blacklist_module dccp      "DCCP (Datagram Congestion Control Protocol) is rarely used in practice and has a history of remote kernel exploits; disabling it reduces the network attack surface"
+blacklist_module sctp      "SCTP (Stream Control Transmission Protocol) is not required on standard workloads and has historically contained kernel vulnerabilities that allow privilege escalation"
+blacklist_module rds       "RDS (Reliable Datagram Sockets) is unused on standard systems and has had critical privilege escalation vulnerabilities (e.g. CVE-2010-3904)"
+blacklist_module tipc      "TIPC (Transparent Inter-Process Communication) is a cluster networking protocol not needed outside HPC or cluster environments; its presence widens the kernel attack surface"
+blacklist_module atm       "ATM (Asynchronous Transfer Mode) is a legacy wide-area networking protocol not required on modern systems; disabling it removes an unnecessary kernel subsystem"
+
+# Uncommon filesystems — each reduces the kernel attack surface by preventing
+# automatic module loading when a crafted filesystem image is mounted
+blacklist_module cramfs    "cramfs is a legacy read-only compressed ROM filesystem; not needed on modern systems and its presence allows kernel code to be triggered by mounting crafted images"
+blacklist_module freevxfs  "freevxfs is a legacy Veritas filesystem originating from HP-UX; it is not used on modern Linux systems and disabling it removes an unnecessary attack surface"
+blacklist_module jffs2     "JFFS2 is a journalling flash filesystem designed for embedded hardware; not required on standard systems and disabling prevents exploitation via crafted flash images"
+blacklist_module hfs       "Apple HFS filesystem support is not required on standard Linux systems; disabling prevents kernel code execution via crafted HFS images (e.g. when auto-mounting removable media)"
+blacklist_module hfsplus   "Apple HFS+ filesystem support is not required on standard Linux systems; disabling prevents kernel code execution via crafted HFS+ images (e.g. when auto-mounting removable media)"
+
+# FireWire — physical DMA attack vector
+# FireWire (IEEE 1394) grants connected devices direct memory access (DMA),
+# bypassing the CPU and OS security controls.  An attacker with physical access
+# can read or write arbitrary system memory, extract credentials, or inject code.
+blacklist_module firewire_core  "FireWire (IEEE 1394) bus driver; FireWire allows DMA access to system memory by connected devices, enabling cold-boot and physical DMA attacks — disable unless the hardware explicitly requires it"
+blacklist_module firewire_ohci  "FireWire OHCI host controller driver; disabled as part of FireWire DMA attack surface reduction (see firewire_core)"
+blacklist_module firewire_sbp2  "FireWire SBP-2 storage protocol driver; disabled as part of FireWire DMA attack surface reduction (see firewire_core)"
 
 # ============================================================
 # Harden /tmp with noexec via systemd drop-in

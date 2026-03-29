@@ -33,6 +33,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Upgrade actions/github-script from v7 to v8.0.0 to fix Node.js 20 deprecation warning
 - Use mount -o remount /tmp instead of invalid systemctl remount command
 - Use systemctl restart tmp.mount instead of mount -o remount for systemd-managed /tmp
+- Replace local variables in blacklist_module with prefixed globals for POSIX sh compatibility
 ### Changed
 - Use dotnet changelog invocation instead of direct changelog command to avoid PATH configuration
 - Move remembering-new-rules guidance from changelog instructions to .ai-instructions index
@@ -51,6 +52,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Only install shellcheck/devscripts if not already present; skip apt-get update when not needed
 - Use build-tools and dotnet-tool-run actions for dotnet and changelog tool setup
 - Pass NUGET_PUBLIC_RESTORE_FEED to build-tools action, falling back to public NuGet v3 feed
+- Blacklist each kernel module in its own /etc/modprobe.d/blacklist.<module>.conf file with a detailed comment explaining why it is blacklisted, using a new blacklist_module function
 ### Removed
 ### Deployment Changes
 
