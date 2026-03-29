@@ -560,7 +560,7 @@ if [ -f "${TMP_DROPIN}" ] && [ "$(cat "${TMP_DROPIN}")" = "${TMP_DROPIN_EXPECTED
 else
     printf '%s\n' "${TMP_DROPIN_EXPECTED}" > "${TMP_DROPIN}" || die "Could not write ${TMP_DROPIN}"
     systemctl daemon-reload || die "Could not reload systemd daemon"
-    systemctl remount /tmp || die "Could not remount /tmp"
+    mount -o remount /tmp || die "Could not remount /tmp"
     ok "/tmp hardened with noexec"
 fi
 
