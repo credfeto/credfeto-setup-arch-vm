@@ -434,8 +434,7 @@ echo "Configuring sysctl hardening..."
 SYSCTL_CHANGED=0
 
 sysctl_set() {
-    local file="/etc/sysctl.d/10-${1}.conf"
-    local expected
+    file="/etc/sysctl.d/10-${1}.conf"
     expected=$(printf '%s=%s\n' "$1" "$2")
     if [ -f "$file" ] && [ "$(cat "$file")" = "$expected" ]; then
         skip "sysctl: ${1}=${2} already set"
@@ -560,7 +559,7 @@ if [ -f "${TMP_DROPIN}" ] && [ "$(cat "${TMP_DROPIN}")" = "${TMP_DROPIN_EXPECTED
 else
     printf '%s\n' "${TMP_DROPIN_EXPECTED}" > "${TMP_DROPIN}" || die "Could not write ${TMP_DROPIN}"
     systemctl daemon-reload || die "Could not reload systemd daemon"
-    systemctl remount /tmp || die "Could not remount /tmp"
+    systemctl restart tmp.mount || die "Could not remount /tmp"
     ok "/tmp hardened with noexec"
 fi
 
