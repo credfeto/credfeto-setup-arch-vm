@@ -59,10 +59,26 @@ permissions:
   models: read
 ```
 
+## Creating a PR
+
+When explicitly creating a pull request (e.g. via `gh pr create`), the body **must**:
+
+- Be built from `PULL_REQUEST_TEMPLATE.md` as its base structure — never supply a freeform body.
+- Include all sections defined in the template (`# Description`, `# How Has This Been Tested`,
+  `# Types of changes`, `## Deployment Configuration Changes`, `# Checklist`).
+- Have the `# Description` section filled with a generated description (via the composite action)
+  and the `<!-- description-auto-generated-by-copilot -->` marker.
+- End with the `<!-- maintained-by-copilot -->` marker so subsequent workflow runs can manage it.
+
 ## Updating an Existing PR Description
 
 When updating a PR body (not creating it for the first time), apply the same logic used by
-`.github/workflows/maintain-pr-description.yml`:
+`.github/workflows/maintain-pr-description.yml`.
+
+> **Important:** If the logic in `maintain-pr-description.yml` is ever changed, this instruction
+> file **must** be updated to reflect that new logic. These rules are derived from and must stay
+> in sync with that workflow — the workflow is the authoritative source of truth for update
+> behaviour.
 
 1. **Only manage bodies that contain `<!-- maintained-by-copilot -->`.**  
    If the marker is absent, do not touch the PR body.
