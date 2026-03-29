@@ -59,9 +59,42 @@ permissions:
   models: read
 ```
 
+## Updating an Existing PR Description
+
+When updating a PR body (not creating it for the first time), apply the same logic used by
+`.github/workflows/maintain-pr-description.yml`:
+
+1. **Only manage bodies that contain `<!-- maintained-by-copilot -->`.**  
+   If the marker is absent, do not touch the PR body.
+
+2. **Apply the template when the body is empty or still the bare template.**  
+   Compare the current body (after stripping both markers) against the content of
+   `PULL_REQUEST_TEMPLATE.md`. If they match, or the body is blank, reset to:
+   ```
+   <template content>
+
+   <!-- maintained-by-copilot -->
+   ```
+
+3. **Never replace a manually-written description.**  
+   If the `# Description` section has real content and the
+   `<!-- description-auto-generated-by-copilot -->` marker is absent, leave the section
+   unchanged.
+
+4. **The updated body must always conform to `PULL_REQUEST_TEMPLATE.md`.**  
+   Never write a PR body whose structure does not match the template — all sections
+   (`# Description`, `# How Has This Been Tested`, `# Types of changes`,
+   `## Deployment Configuration Changes`, `# Checklist`) must be present.
+
+5. **Re-generate the description via the composite action, do not hand-write it.**  
+   Call `./.github/actions/generate-pr-description` with the PR's `base_sha` and
+   `head_sha`, then insert the output into the `# Description` section followed by
+   `<!-- description-auto-generated-by-copilot -->`.
+
 ## Rules
 
 - Never hardcode a static PR body — always compose from the template with a generated description.
 - Generate the description **before** creating the PR so the body is complete at creation time.
 - The repo must be checked out before calling the action (local composite action at `./.github/actions/generate-pr-description`).
 - For `maintain-pr-description.yml`: call the action then update the PR body inline using the `description` output.
+- When updating a PR description, never produce a body that omits or restructures the sections defined in `PULL_REQUEST_TEMPLATE.md`.
