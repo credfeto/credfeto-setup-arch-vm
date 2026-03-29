@@ -135,7 +135,7 @@ CURRENT_DEFAULT=$(firewall-cmd --get-default-zone 2>/dev/null || true)
 if [ "${CURRENT_DEFAULT}" = "drop" ]; then
     skip "firewalld default zone already drop"
 else
-    firewall-cmd --permanent --set-default-zone=drop || die "Could not set default firewalld zone"
+    firewall-cmd --set-default-zone=drop || die "Could not set default firewalld zone"
     ok "firewalld default zone set to drop"
 fi
 
