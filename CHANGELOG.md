@@ -28,6 +28,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Add retry loop feeding shellcheck errors back to model when generated script fails validation
 - Strip local declarations from script before sending to model; use compact retry requests to avoid 413 token limit
 - Always checkout and branch from head of main in security review workflow
+- Remove --permanent flag from firewall-cmd --set-default-zone (incompatible options)
 ### Changed
 - Use dotnet changelog invocation instead of direct changelog command to avoid PATH configuration
 - Move remembering-new-rules guidance from changelog instructions to .ai-instructions index
