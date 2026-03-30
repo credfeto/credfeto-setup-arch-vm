@@ -14,6 +14,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Hardened /tmp as noexec nosuid nodev tmpfs
 - Diagnostic check that only linux-hardened kernel is installed and currently running
 - logrotate installed and configured with daily rotation and 14-day retention
+- Install and configure fail2ban with 1h ban time, firewalld rich-rules backend, and aggressive SSH jail
 ### Fixed
 - Enable pkgstats.timer via symlink for static unit as it has no [Install] section and cannot be enabled with systemctl enable
 - Remove --permanent flag from firewall-cmd --set-default-zone (incompatible options)
