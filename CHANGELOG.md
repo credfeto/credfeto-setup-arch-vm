@@ -31,6 +31,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Blacklist each kernel module in its own /etc/modprobe.d/blacklist.<module>.conf file with a detailed comment explaining why it is blacklisted, using a new blacklist_module function
 - Apply Copilot security analysis improvements to install script
 - Generate descriptive commit title and PR title from actual diff in security review workflow
+- Restrict systemd drop-ins to services the script configures; require cited source for any package-manager service exception
 ### Removed
 ### Deployment Changes
 
