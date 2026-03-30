@@ -701,6 +701,15 @@ sysctl_set fs.protected_fifos                       2
 sysctl_set fs.suid_dumpable                         0
 sysctl_set kernel.core_uses_pid                     1
 
+# Log packets with impossible/spoofed source addresses (martians); aids intrusion detection
+sysctl_set net.ipv4.conf.all.log_martians           1
+sysctl_set net.ipv4.conf.default.log_martians       1
+
+# Restrict perf_event_open to CAP_SYS_ADMIN (level 3); linux-hardened sets this by default
+# but we make it explicit here to ensure it is enforced even if the default ever changes.
+# Reference: https://www.kernel.org/doc/html/latest/admin-guide/perf-security.html
+sysctl_set kernel.perf_event_paranoid               3
+
 if [ "$SYSCTL_CHANGED" = "1" ]; then
     sysctl --system || die "Could not apply sysctl settings"
     ok "sysctl settings applied"
@@ -774,6 +783,30 @@ blacklist_module hfsplus   "Apple HFS+ filesystem support is not required on sta
 blacklist_module firewire_core  "FireWire (IEEE 1394) bus driver; FireWire allows DMA access to system memory by connected devices, enabling cold-boot and physical DMA attacks — disable unless the hardware explicitly requires it"
 blacklist_module firewire_ohci  "FireWire OHCI host controller driver; disabled as part of FireWire DMA attack surface reduction (see firewire_core)"
 blacklist_module firewire_sbp2  "FireWire SBP-2 storage protocol driver; disabled as part of FireWire DMA attack surface reduction (see firewire_core)"
+
+# HDLC line discipline — exploited in CVE-2017-2636 for local privilege escalation;
+# legacy WAN protocol with no use on a Proxmox VM.
+# Reference: https://nvd.nist.gov/vuln/detail/CVE-2017-2636
+blacklist_module n_hdlc         "HDLC line discipline; disabled due to CVE-2017-2636 privilege-escalation history and no use on a VM"
+
+# Amateur packet radio and legacy WAN protocols — no radio hardware present on a Proxmox VM.
+blacklist_module ax25           "AX.25 amateur packet radio protocol; no radio hardware on a Proxmox VM"
+blacklist_module netrom         "NET/ROM amateur packet radio protocol; no radio hardware on a Proxmox VM"
+blacklist_module x25            "X.25 legacy WAN protocol; no use in a modern VM environment"
+
+# Controller Area Network — industrial/automotive bus absent from virtual machines.
+blacklist_module can            "CAN bus protocol; industrial/automotive — absent from a Proxmox VM"
+
+# Virtual Video Test Driver — development/test module; no display hardware on a server VM.
+blacklist_module vivid           "Virtual Video Test Driver; development module with no purpose on a headless server"
+
+# USB mass storage — Proxmox VMs have no physical USB storage by default; reduce attack surface.
+# Remove this entry if USB passthrough to this VM is intentionally configured.
+blacklist_module usb_storage     "USB mass storage driver; no physical USB storage on a Proxmox VM"
+
+# Bluetooth — no Bluetooth hardware on a Proxmox VM.
+blacklist_module bluetooth       "Bluetooth subsystem; no Bluetooth hardware on a Proxmox VM"
+blacklist_module btusb           "Bluetooth USB driver; no Bluetooth hardware on a Proxmox VM"
 
 # ============================================================
 # Harden /tmp with noexec via systemd drop-in
