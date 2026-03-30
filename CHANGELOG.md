@@ -34,6 +34,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Restrict systemd drop-ins to services the script configures; require cited source for any package-manager service exception
 - Remove systemd security drop-ins for docker, firewalld, and sshd; clean up any previously installed files
 - Refactor firewalld rules into firewalld_allow_private function with idempotency and ok/skip/die output
+- Add IPv6 private range rules (ULA fc00::/7, link-local fe80::/10) to firewalld_allow_private function
 ### Removed
 ### Deployment Changes
 

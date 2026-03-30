@@ -143,6 +143,7 @@ echo "Configuring firewalld..."
 systemctl enable --now firewalld || die "Could not enable firewalld"
 
 # Allow a TCP/UDP port from all private network ranges (idempotent).
+# Covers IPv4 RFC-1918 and IPv6 ULA (fc00::/7) + link-local (fe80::/10).
 # Usage: firewalld_allow_private <protocol> <port>
 FIREWALLD_CHANGED=0
 firewalld_allow_private() {
@@ -156,6 +157,17 @@ firewalld_allow_private() {
             firewall-cmd --permanent --add-rich-rule="${_fw_rule}" \
                 || die "Could not add firewalld rich rule for ${_fw_proto}/${_fw_port} from ${_fw_cidr}"
             ok "firewalld: ${_fw_proto}/${_fw_port} from ${_fw_cidr} allowed"
+            FIREWALLD_CHANGED=1
+        fi
+    done
+    for _fw_cidr6 in "fc00::/7" "fe80::/10"; do
+        _fw_rule6="rule family=\"ipv6\" source address=\"${_fw_cidr6}\" port protocol=\"${_fw_proto}\" port=\"${_fw_port}\" accept"
+        if firewall-cmd --permanent --query-rich-rule="${_fw_rule6}" > /dev/null 2>&1; then
+            skip "firewalld: ${_fw_proto}/${_fw_port} from ${_fw_cidr6} already allowed"
+        else
+            firewall-cmd --permanent --add-rich-rule="${_fw_rule6}" \
+                || die "Could not add firewalld rich rule for ${_fw_proto}/${_fw_port} from ${_fw_cidr6}"
+            ok "firewalld: ${_fw_proto}/${_fw_port} from ${_fw_cidr6} allowed"
             FIREWALLD_CHANGED=1
         fi
     done
