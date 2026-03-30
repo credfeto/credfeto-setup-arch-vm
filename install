@@ -512,6 +512,7 @@ sysctl_set() {
         skip "sysctl: ${1}=${2} already set"
     else
         printf '%s\n' "$expected" > "$file" || die "Could not write $file"
+        sysctl -w "${1}=${2}" > /dev/null || die "Could not apply sysctl ${1}=${2}"
         ok "sysctl: ${1}=${2}"
         SYSCTL_CHANGED=1
     fi
