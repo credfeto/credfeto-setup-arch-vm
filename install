@@ -776,4 +776,26 @@ systemctl daemon-reload
 [ "$RESTART" = "1" ] && systemctl restart docker
 networkctl reload
 
-ok "Done"
+# ============================================================
+# Remove orphaned packages
+# ============================================================
+
+echo "Removing orphaned packages..."
+ORPHANS=$(pacman -Qdtq 2>/dev/null || true)
+if [ -n "${ORPHANS}" ]; then
+    printf '%s\n' "${ORPHANS}" | pacman -Rs --noconfirm - || die "Could not remove orphaned packages"
+    ok "Orphaned packages removed"
+else
+    skip "No orphaned packages to remove"
+fi
+
+# ============================================================
+# Reboot check
+# ============================================================
+
+RUNNING_KERNEL=$(uname -r)
+if [ -d "/usr/lib/modules/${RUNNING_KERNEL}" ]; then
+    ok "Running kernel ${RUNNING_KERNEL} is current — no reboot needed"
+else
+    printf "${YELLOW}⚠${RESET} Reboot required: running %s but the kernel has been updated\n" "${RUNNING_KERNEL}"
+fi
