@@ -70,7 +70,7 @@ case "$(uname -r)" in
 esac
 
 echo "Installing packages..."
-pacman -S --noconfirm --needed docker docker-compose docker-buildx git pigz criu firewalld pkgstats reflector pacman-contrib openssh logrotate || die "Could not install packages"
+pacman -S --noconfirm --needed docker docker-compose docker-buildx git firewalld pkgstats reflector pacman-contrib openssh logrotate || die "Could not install packages"
 ok "Packages installed"
 
 # ============================================================
