@@ -257,18 +257,49 @@ jobs:
               f.write(modified)
 
           # Detect whether the model produced any changes.
-          diff = subprocess.run(
+          diff_proc = subprocess.run(
               ["git", "diff", "--quiet", SCRIPT_PATH], capture_output=True
           )
-          has_changes = diff.returncode != 0
+          has_changes = diff_proc.returncode != 0
+
+          # Generate a descriptive summary of what actually changed.
+          commit_title = "security: harden install script"
+          if has_changes:
+              diff_text = subprocess.run(
+                  ["git", "diff", SCRIPT_PATH], capture_output=True, text=True
+              ).stdout
+              # Truncate diff to avoid token limits.
+              if len(diff_text) > 4000:
+                  diff_text = diff_text[:4000] + "\n... (truncated)"
+              summary_messages = [
+                  {
+                      "role": "system",
+                      "content": (
+                          "You summarise shell script diffs into a single conventional-commit subject line. "
+                          "Format: 'security: <concise description of what was changed and why>'. "
+                          "Maximum 72 characters. No full stop at the end. No markdown."
+                      ),
+                  },
+                  {
+                      "role": "user",
+                      "content": f"Summarise this diff in one conventional-commit subject line:\n\n{diff_text}",
+                  },
+              ]
+              raw_title = call_model(summary_messages).strip().splitlines()[0].strip()
+              # Sanitise: strip any accidental markdown or quotes.
+              raw_title = raw_title.strip('`\'"')
+              if raw_title:
+                  commit_title = raw_title
 
           github_output = os.environ.get("GITHUB_OUTPUT", "")
           if github_output:
               with open(github_output, "a") as f:
                   f.write(f"has_changes={'true' if has_changes else 'false'}\n")
+                  f.write(f"commit_title={commit_title}\n")
 
           if has_changes:
-              print("Security improvements identified — changes written to install script.")
+              print(f"Security improvements identified — changes written to install script.")
+              print(f"Commit title: {commit_title}")
           else:
               print("No security improvements needed — install script is already up to date.")
           PYEOF
@@ -286,7 +317,7 @@ jobs:
         with:
           WORKING_DIRECTORY: ${{ github.workspace }}
           TOOL_NAME: changelog
-          TOOL_ARGUMENTS: "-f CHANGELOG.md -a Changed -m \"Apply Copilot security analysis improvements to install script\""
+          TOOL_ARGUMENTS: "-f CHANGELOG.md -a Changed -m \"${{ steps.analyse.outputs.commit_title }}\""
 
       - name: "Commit and push changes"
         id: push
@@ -300,11 +331,9 @@ jobs:
           git checkout -b "${BRANCH}" origin/main
           git add install CHANGELOG.md
           git commit \
-            -m "security: apply Copilot security analysis improvements to install script" \
+            -m "${{ steps.analyse.outputs.commit_title }}" \
             -m "" \
             -m "Automated security review via GitHub Copilot (GitHub Models API)." \
-            -m "Changes include security hardening additions, removal of outdated measures," \
-            -m "and systemd service sandboxing for all installed services." \
             -m "" \
             -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
           git push origin "${BRANCH}"
@@ -351,5 +380,5 @@ jobs:
           gh pr create \
             --base main \
             --head "${BRANCH}" \
-            --title "security: Copilot security analysis improvements to install script" \
+            --title "${{ steps.analyse.outputs.commit_title }}" \
             --body "${BODY}"

@@ -30,6 +30,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Harden /tmp via systemd tmp.mount drop-in (noexec) instead of fstab entry, which is the correct approach for Arch Linux
 - Blacklist each kernel module in its own /etc/modprobe.d/blacklist.<module>.conf file with a detailed comment explaining why it is blacklisted, using a new blacklist_module function
 - Apply Copilot security analysis improvements to install script
+- Generate descriptive commit title and PR title from actual diff in security review workflow
 ### Removed
 ### Deployment Changes
 
