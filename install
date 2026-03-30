@@ -356,6 +356,64 @@ fi
 
 echo "Configuring auto-update service..."
 
+# Detect yay once — drives user creation, service User=, and sudoers policy
+YAY_INSTALLED=0
+[ -x /usr/bin/yay ] && YAY_INSTALLED=1
+
+# ── autoupdate system user ────────────────────────────────────────────────────
+# Only exists when yay is installed. Has no login shell and no home directory
+# so it cannot be used interactively or via SSH.
+# Removed when yay is no longer installed.
+if [ "${YAY_INSTALLED}" = "1" ]; then
+    if id autoupdate > /dev/null 2>&1; then
+        skip "autoupdate user already exists"
+    else
+        useradd --system --no-create-home --shell /usr/sbin/nologin autoupdate \
+            || die "Could not create autoupdate user"
+        ok "autoupdate user created"
+    fi
+else
+    if id autoupdate > /dev/null 2>&1; then
+        userdel autoupdate || die "Could not remove autoupdate user"
+        ok "autoupdate user removed (yay not installed)"
+    else
+        skip "autoupdate user not present"
+    fi
+fi
+
+# ── sudoers for autoupdate ────────────────────────────────────────────────────
+# NOPASSWD required so yay can call sudo pacman internally without blocking.
+# File is removed when yay is not installed (user also removed above).
+AUTOUPDATE_SUDOERS="/etc/sudoers.d/autoupdate"
+if [ "${YAY_INSTALLED}" = "1" ]; then
+    AUTOUPDATE_SUDOERS_EXPECTED="autoupdate ALL=(ALL) NOPASSWD: ALL"
+    if [ -f "${AUTOUPDATE_SUDOERS}" ] && [ "$(cat "${AUTOUPDATE_SUDOERS}")" = "${AUTOUPDATE_SUDOERS_EXPECTED}" ]; then
+        skip "sudoers autoupdate already correct"
+    else
+        printf '%s\n' "${AUTOUPDATE_SUDOERS_EXPECTED}" > "${AUTOUPDATE_SUDOERS}" \
+            || die "Could not write ${AUTOUPDATE_SUDOERS}"
+        chmod 440 "${AUTOUPDATE_SUDOERS}" || die "Could not chmod ${AUTOUPDATE_SUDOERS}"
+        visudo -c -f "${AUTOUPDATE_SUDOERS}" || die "Invalid sudoers file ${AUTOUPDATE_SUDOERS}"
+        ok "sudoers autoupdate written"
+    fi
+else
+    if [ -f "${AUTOUPDATE_SUDOERS}" ]; then
+        rm "${AUTOUPDATE_SUDOERS}" || die "Could not remove ${AUTOUPDATE_SUDOERS}"
+        ok "sudoers autoupdate removed (yay not installed)"
+    else
+        skip "sudoers autoupdate not present"
+    fi
+fi
+
+# ── legacy 01_markr sudoers cleanup ──────────────────────────────────────────
+if [ -f /etc/sudoers.d/01_markr ]; then
+    rm /etc/sudoers.d/01_markr || die "Could not remove legacy /etc/sudoers.d/01_markr"
+    ok "Removed legacy /etc/sudoers.d/01_markr"
+else
+    skip "No legacy /etc/sudoers.d/01_markr to remove"
+fi
+
+# ── wrapper script ────────────────────────────────────────────────────────────
 AUTO_UPDATE_SCRIPT="/usr/local/bin/auto-update"
 AUTO_UPDATE_SCRIPT_EXPECTED=$(cat << 'EOF'
 #!/bin/sh
@@ -369,13 +427,30 @@ EOF
 if [ -f "${AUTO_UPDATE_SCRIPT}" ] && [ "$(cat "${AUTO_UPDATE_SCRIPT}")" = "${AUTO_UPDATE_SCRIPT_EXPECTED}" ]; then
     skip "auto-update script already correct"
 else
-    printf '%s\n' "${AUTO_UPDATE_SCRIPT_EXPECTED}" > "${AUTO_UPDATE_SCRIPT}" || die "Could not write ${AUTO_UPDATE_SCRIPT}"
+    printf '%s\n' "${AUTO_UPDATE_SCRIPT_EXPECTED}" > "${AUTO_UPDATE_SCRIPT}" \
+        || die "Could not write ${AUTO_UPDATE_SCRIPT}"
     chmod 755 "${AUTO_UPDATE_SCRIPT}" || die "Could not chmod ${AUTO_UPDATE_SCRIPT}"
     ok "auto-update script written"
 fi
 
+# ── service unit ──────────────────────────────────────────────────────────────
+# Run as autoupdate (nologin system user) when yay is installed so yay does not
+# run as root. Fall back to root when only pacman is used.
 AUTO_UPDATE_SERVICE="/etc/systemd/system/auto-update.service"
-AUTO_UPDATE_SERVICE_EXPECTED=$(cat << 'EOF'
+if [ "${YAY_INSTALLED}" = "1" ]; then
+    AUTO_UPDATE_SERVICE_EXPECTED=$(cat << 'EOF'
+[Unit]
+Description=Run arch-update auto check
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=autoupdate
+ExecStart=/usr/local/bin/auto-update
+EOF
+)
+else
+    AUTO_UPDATE_SERVICE_EXPECTED=$(cat << 'EOF'
 [Unit]
 Description=Run arch-update auto check
 After=network-online.target
@@ -385,13 +460,16 @@ Type=oneshot
 ExecStart=/usr/local/bin/auto-update
 EOF
 )
+fi
 if [ -f "${AUTO_UPDATE_SERVICE}" ] && [ "$(cat "${AUTO_UPDATE_SERVICE}")" = "${AUTO_UPDATE_SERVICE_EXPECTED}" ]; then
     skip "auto-update.service already correct"
 else
-    printf '%s\n' "${AUTO_UPDATE_SERVICE_EXPECTED}" > "${AUTO_UPDATE_SERVICE}" || die "Could not write ${AUTO_UPDATE_SERVICE}"
+    printf '%s\n' "${AUTO_UPDATE_SERVICE_EXPECTED}" > "${AUTO_UPDATE_SERVICE}" \
+        || die "Could not write ${AUTO_UPDATE_SERVICE}"
     ok "auto-update.service written"
 fi
 
+# ── timer unit ────────────────────────────────────────────────────────────────
 AUTO_UPDATE_TIMER="/etc/systemd/system/auto-update.timer"
 AUTO_UPDATE_TIMER_EXPECTED=$(cat << 'EOF'
 [Unit]
@@ -408,7 +486,8 @@ EOF
 if [ -f "${AUTO_UPDATE_TIMER}" ] && [ "$(cat "${AUTO_UPDATE_TIMER}")" = "${AUTO_UPDATE_TIMER_EXPECTED}" ]; then
     skip "auto-update.timer already correct"
 else
-    printf '%s\n' "${AUTO_UPDATE_TIMER_EXPECTED}" > "${AUTO_UPDATE_TIMER}" || die "Could not write ${AUTO_UPDATE_TIMER}"
+    printf '%s\n' "${AUTO_UPDATE_TIMER_EXPECTED}" > "${AUTO_UPDATE_TIMER}" \
+        || die "Could not write ${AUTO_UPDATE_TIMER}"
     ok "auto-update.timer written"
 fi
 

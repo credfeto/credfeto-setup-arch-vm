@@ -17,6 +17,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Install and configure fail2ban with 1h ban time, firewalld rich-rules backend, and aggressive SSH jail
 - Remove orphaned packages with pacman -Rs at end of script
 - Show reboot required warning if running kernel no longer matches installed kernel
+- Write /etc/sudoers.d/01_markr with NOPASSWD when yay installed, password-required otherwise
 ### Fixed
 - Enable pkgstats.timer via symlink for static unit as it has no [Install] section and cannot be enabled with systemctl enable
 - Remove --permanent flag from firewall-cmd --set-default-zone (incompatible options)
@@ -41,6 +42,8 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Apply sysctl changes live with sysctl -w in addition to writing persistent /etc/sysctl.d file
 - Add rule that all configuration changes must be applied live and persistently in the same step
 - Use yay -Syyu in auto-update service when yay is installed, falling back to pacman
+- Run auto-update service as markr user when yay is installed; set NOPASSWD sudoers accordingly
+- Replace markr sudoers management with dedicated autoupdate system user (nologin, no home) for yay auto-update
 ### Removed
 - Remove criu and pigz packages — neither is used or configured by the script
 ### Deployment Changes
