@@ -40,6 +40,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Add IPv6 private range rules (ULA fc00::/7, link-local fe80::/10) to firewalld_allow_private function
 - Apply sysctl changes live with sysctl -w in addition to writing persistent /etc/sysctl.d file
 - Add rule that all configuration changes must be applied live and persistently in the same step
+- Use yay -Syyu in auto-update service when yay is installed, falling back to pacman
 ### Removed
 - Remove criu and pigz packages — neither is used or configured by the script
 ### Deployment Changes
