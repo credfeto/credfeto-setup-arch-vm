@@ -15,11 +15,20 @@ Keep all changes in the `install` script unless explicitly specified in the requ
 
 ## Hardening
 
-**Every package or service installed by the script must also be hardened.**
+**Only harden services that the script itself configures.** Do NOT add systemd drop-ins for services that are installed solely via the package manager and left at their upstream defaults. The upstream package maintainer owns the security posture of those services; overriding them adds maintenance burden and risks breaking the service in hard-to-diagnose ways.
 
-- If a package exposes a network service, its configuration must be hardened (e.g. strong crypto, least-privilege, minimal attack surface).
+**Exception:** a drop-in MAY be added for a package-managed service only when ALL of the following are true:
+1. There is a documented, specific, credible security risk with the upstream default.
+2. The fix cannot be achieved by configuration alone (e.g. a sysctl or conf file).
+3. The drop-in setting is well-understood and provably safe for that service.
+
+When an exception applies:
+- The drop-in **must** include an inline comment citing the source (CVE, upstream issue URL, or authoritative advisory URL).
+- That source **must** also be referenced in the commit message.
+
+For services the script does configure:
+- If a package exposes a network service, harden its configuration (e.g. strong crypto, least-privilege, minimal attack surface).
 - If a package has known security knobs (sysctl, config file options, systemd settings), apply them.
-- Do not install a package and leave it in its default, unhardened state.
 - Hardening config for a service belongs in the same section of the script as that service's setup.
 
 ## Idempotency

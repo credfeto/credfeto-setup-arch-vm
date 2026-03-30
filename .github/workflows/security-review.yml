@@ -93,23 +93,39 @@ jobs:
              - Deprecated, redundant, or counterproductive security settings.
              - Settings that conflict with modern Linux security models.
 
-          3. SYSTEMD SERVICE SANDBOXING — for every service that the script installs or enables,
-             add a drop-in at /etc/systemd/system/<service>.d/security.conf using a HEREDOC.
+          3. SYSTEMD SERVICE SANDBOXING — only for services that the script itself configures
+             (i.e. services whose config the script writes). Do NOT add drop-ins for services
+             that are installed solely via the package manager and left at their upstream defaults.
+             The upstream package maintainer is responsible for the security posture of those
+             services. Adding drop-ins on top of package-managed services risks breaking them
+             in ways that are hard to diagnose and maintain.
+
+             Exception: a drop-in MAY be added for a package-managed service ONLY when ALL of
+             the following are true:
+               a) There is a documented, specific, credible security risk with the upstream default.
+               b) The fix cannot be achieved by configuration alone (e.g. a sysctl or conf file).
+               c) The drop-in setting is well-understood and cannot break the service.
+             When an exception applies, the drop-in MUST include an inline comment citing the
+             source (CVE, upstream issue URL, or authoritative advisory URL) that justifies it,
+             and that source MUST also be referenced in the commit message.
+
+             For services the script DOES configure, add a drop-in at
+             /etc/systemd/system/<service>.d/security.conf using a HEREDOC.
              The drop-in must be written idempotently (check file content before writing, use ok/skip).
              Apply only what each service legitimately needs; do not over-restrict:
-             - PrivateTmp=yes
-             - ProtectSystem=strict (or full where possible)
-             - ProtectHome=yes (or read-only where appropriate)
-             - NoNewPrivileges=yes
-             - ProtectKernelTunables=yes
-             - ProtectKernelModules=yes
-             - ProtectControlGroups=yes
-             - RestrictRealtime=yes
-             - RestrictSUIDSGID=yes
-             - CapabilityBoundingSet= (list only what is required)
-             - AmbientCapabilities= (only if the service needs ambient caps)
-             - PrivateNetwork=yes or RestrictAddressFamilies= (where the service has no network needs)
-             - ReadWritePaths= / ReadOnlyPaths= / InaccessiblePaths= (restrict filesystem access)
+              - PrivateTmp=yes
+              - ProtectSystem=strict (or full where possible)
+              - ProtectHome=yes (or read-only where appropriate)
+              - NoNewPrivileges=yes
+              - ProtectKernelTunables=yes
+              - ProtectKernelModules=yes
+              - ProtectControlGroups=yes
+              - RestrictRealtime=yes
+              - RestrictSUIDSGID=yes
+              - CapabilityBoundingSet= (list only what is required)
+              - AmbientCapabilities= (only if the service needs ambient caps)
+              - PrivateNetwork=yes or RestrictAddressFamilies= (where the service has no network needs)
+              - ReadWritePaths= / ReadOnlyPaths= / InaccessiblePaths= (restrict filesystem access)
 
           4. HARD CONSTRAINTS — never violate these:
              - The script MUST start with the shebang line `#!/bin/sh` as the very first line — no blank lines, no comments, nothing before it.
@@ -257,18 +273,49 @@ jobs:
               f.write(modified)
 
           # Detect whether the model produced any changes.
-          diff = subprocess.run(
+          diff_proc = subprocess.run(
               ["git", "diff", "--quiet", SCRIPT_PATH], capture_output=True
           )
-          has_changes = diff.returncode != 0
+          has_changes = diff_proc.returncode != 0
+
+          # Generate a descriptive summary of what actually changed.
+          commit_title = "security: harden install script"
+          if has_changes:
+              diff_text = subprocess.run(
+                  ["git", "diff", SCRIPT_PATH], capture_output=True, text=True
+              ).stdout
+              # Truncate diff to avoid token limits.
+              if len(diff_text) > 4000:
+                  diff_text = diff_text[:4000] + "\n... (truncated)"
+              summary_messages = [
+                  {
+                      "role": "system",
+                      "content": (
+                          "You summarise shell script diffs into a single conventional-commit subject line. "
+                          "Format: 'security: <concise description of what was changed and why>'. "
+                          "Maximum 72 characters. No full stop at the end. No markdown."
+                      ),
+                  },
+                  {
+                      "role": "user",
+                      "content": f"Summarise this diff in one conventional-commit subject line:\n\n{diff_text}",
+                  },
+              ]
+              raw_title = call_model(summary_messages).strip().splitlines()[0].strip()
+              # Sanitise: strip any accidental markdown or quotes.
+              raw_title = raw_title.strip('`\'"')
+              if raw_title:
+                  commit_title = raw_title
 
           github_output = os.environ.get("GITHUB_OUTPUT", "")
           if github_output:
               with open(github_output, "a") as f:
                   f.write(f"has_changes={'true' if has_changes else 'false'}\n")
+                  f.write(f"commit_title={commit_title}\n")
 
           if has_changes:
-              print("Security improvements identified — changes written to install script.")
+              print(f"Security improvements identified — changes written to install script.")
+              print(f"Commit title: {commit_title}")
           else:
               print("No security improvements needed — install script is already up to date.")
           PYEOF
@@ -286,7 +333,7 @@ jobs:
         with:
           WORKING_DIRECTORY: ${{ github.workspace }}
           TOOL_NAME: changelog
-          TOOL_ARGUMENTS: "-f CHANGELOG.md -a Changed -m \"Apply Copilot security analysis improvements to install script\""
+          TOOL_ARGUMENTS: "-f CHANGELOG.md -a Changed -m \"${{ steps.analyse.outputs.commit_title }}\""
 
       - name: "Commit and push changes"
         id: push
@@ -300,11 +347,9 @@ jobs:
           git checkout -b "${BRANCH}" origin/main
           git add install CHANGELOG.md
           git commit \
-            -m "security: apply Copilot security analysis improvements to install script" \
+            -m "${{ steps.analyse.outputs.commit_title }}" \
             -m "" \
             -m "Automated security review via GitHub Copilot (GitHub Models API)." \
-            -m "Changes include security hardening additions, removal of outdated measures," \
-            -m "and systemd service sandboxing for all installed services." \
             -m "" \
             -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
           git push origin "${BRANCH}"
@@ -351,5 +396,5 @@ jobs:
           gh pr create \
             --base main \
             --head "${BRANCH}" \
-            --title "security: Copilot security analysis improvements to install script" \
+            --title "${{ steps.analyse.outputs.commit_title }}" \
             --body "${BODY}"
