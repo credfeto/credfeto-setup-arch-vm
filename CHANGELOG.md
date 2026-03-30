@@ -29,6 +29,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - firewalld default zone set to drop; SSH added to public zone; docker0 added to trusted zone
 - Harden /tmp via systemd tmp.mount drop-in (noexec) instead of fstab entry, which is the correct approach for Arch Linux
 - Blacklist each kernel module in its own /etc/modprobe.d/blacklist.<module>.conf file with a detailed comment explaining why it is blacklisted, using a new blacklist_module function
+- Apply Copilot security analysis improvements to install script
 ### Removed
 ### Deployment Changes
 
