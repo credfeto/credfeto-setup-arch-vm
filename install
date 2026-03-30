@@ -355,25 +355,45 @@ fi
 # ============================================================
 
 echo "Configuring auto-update service..."
-cat << 'EOF' > /etc/systemd/system/auto-update.service
+
+AUTO_UPDATE_SCRIPT="/usr/local/bin/auto-update"
+AUTO_UPDATE_SCRIPT_EXPECTED=$(cat << 'EOF'
+#!/bin/sh
+if [ -x /usr/bin/yay ]; then
+    exec yay -Syyu --noconfirm
+else
+    exec pacman -Syyu --noconfirm
+fi
+EOF
+)
+if [ -f "${AUTO_UPDATE_SCRIPT}" ] && [ "$(cat "${AUTO_UPDATE_SCRIPT}")" = "${AUTO_UPDATE_SCRIPT_EXPECTED}" ]; then
+    skip "auto-update script already correct"
+else
+    printf '%s\n' "${AUTO_UPDATE_SCRIPT_EXPECTED}" > "${AUTO_UPDATE_SCRIPT}" || die "Could not write ${AUTO_UPDATE_SCRIPT}"
+    chmod 755 "${AUTO_UPDATE_SCRIPT}" || die "Could not chmod ${AUTO_UPDATE_SCRIPT}"
+    ok "auto-update script written"
+fi
+
+AUTO_UPDATE_SERVICE="/etc/systemd/system/auto-update.service"
+AUTO_UPDATE_SERVICE_EXPECTED=$(cat << 'EOF'
 [Unit]
 Description=Run arch-update auto check
 After=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=pacman -Syyu --noconfirm
-ProtectSystem=full
-ProtectHome=true
-NoNewPrivileges=true
-ProtectKernelTunables=true
-ProtectKernelModules=true
-ProtectControlGroups=true
-RestrictRealtime=true
-RestrictSUIDSGID=true
+ExecStart=/usr/local/bin/auto-update
 EOF
+)
+if [ -f "${AUTO_UPDATE_SERVICE}" ] && [ "$(cat "${AUTO_UPDATE_SERVICE}")" = "${AUTO_UPDATE_SERVICE_EXPECTED}" ]; then
+    skip "auto-update.service already correct"
+else
+    printf '%s\n' "${AUTO_UPDATE_SERVICE_EXPECTED}" > "${AUTO_UPDATE_SERVICE}" || die "Could not write ${AUTO_UPDATE_SERVICE}"
+    ok "auto-update.service written"
+fi
 
-cat << 'EOF' > /etc/systemd/system/auto-update.timer
+AUTO_UPDATE_TIMER="/etc/systemd/system/auto-update.timer"
+AUTO_UPDATE_TIMER_EXPECTED=$(cat << 'EOF'
 [Unit]
 Description=Run arch-update auto check at boot and then every hour
 
@@ -384,6 +404,13 @@ OnUnitActiveSec=1h
 [Install]
 WantedBy=timers.target
 EOF
+)
+if [ -f "${AUTO_UPDATE_TIMER}" ] && [ "$(cat "${AUTO_UPDATE_TIMER}")" = "${AUTO_UPDATE_TIMER_EXPECTED}" ]; then
+    skip "auto-update.timer already correct"
+else
+    printf '%s\n' "${AUTO_UPDATE_TIMER_EXPECTED}" > "${AUTO_UPDATE_TIMER}" || die "Could not write ${AUTO_UPDATE_TIMER}"
+    ok "auto-update.timer written"
+fi
 
 systemctl daemon-reload || die "Could not reload systemd daemon"
 systemctl enable --now auto-update.timer || die "Could not enable auto-update.timer"
