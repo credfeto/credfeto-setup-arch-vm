@@ -39,6 +39,23 @@ The `install` script must be safe to run multiple times without duplicating or b
 - If a file already has the exact expected content, skip writing it and emit a `skip` indicator.
 - If a file is missing or has different content, write it and emit an `ok` indicator.
 
+## Apply Changes Live and Persistently
+
+**Every configuration change must take effect immediately, not only after a reboot.** Write the persistent form (file, symlink, or config entry) first, then apply the live equivalent in the same step.
+
+| Subsystem | Persistent form | Live application |
+|---|---|---|
+| kernel parameters | `/etc/sysctl.d/*.conf` | `sysctl -w key=value` |
+| systemd unit state | `systemctl enable` | `systemctl enable --now` or `systemctl start` |
+| systemd mounts | drop-in + `daemon-reload` | `systemctl restart <unit>.mount` |
+| firewall rules | `firewall-cmd --permanent …` | `firewall-cmd --reload` |
+| module blacklist | `/etc/modprobe.d/*.conf` | `modprobe -r <module>` (if currently loaded) |
+
+Rules:
+- If the persistent file is already correct (idempotency check passes), emit `skip` — do not re-apply the live change.
+- If the persistent file is written or updated, always apply the live change immediately afterwards and `die` on failure.
+- Do not apply a live change without also writing the persistent form.
+
 ## Script Style
 
 - The script **must** start with the shebang `#!/bin/sh` (or `#!/usr/bin/env sh`) — never omit it.
