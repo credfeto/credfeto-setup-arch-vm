@@ -70,7 +70,7 @@ case "$(uname -r)" in
 esac
 
 echo "Installing packages..."
-pacman -S --noconfirm --needed docker docker-compose docker-buildx git firewalld pkgstats reflector pacman-contrib openssh logrotate || die "Could not install packages"
+pacman -S --noconfirm --needed docker docker-compose docker-buildx git firewalld fail2ban pkgstats reflector pacman-contrib openssh logrotate || die "Could not install packages"
 ok "Packages installed"
 
 # ============================================================
@@ -291,6 +291,47 @@ if [ -f "${SSHD_DROPIN}" ]; then
 else
     skip "No legacy SSHD systemd security drop-in present"
 fi
+
+# ============================================================
+# Configure fail2ban
+# ============================================================
+
+echo "Configuring fail2ban..."
+mkdir -p /etc/fail2ban/jail.d
+
+# Global defaults: 1 h ban time, use firewalld rich-rules as ban action
+F2B_DEFAULT="/etc/fail2ban/jail.d/default.local"
+F2B_DEFAULT_EXPECTED=$(cat << 'EOF'
+[DEFAULT]
+bantime = 1h
+banaction = firewallcmd-rich-rules
+banaction_allports = firewallcmd-allports
+EOF
+)
+if [ -f "${F2B_DEFAULT}" ] && [ "$(cat "${F2B_DEFAULT}")" = "${F2B_DEFAULT_EXPECTED}" ]; then
+    skip "fail2ban: default.local already correct"
+else
+    printf '%s\n' "${F2B_DEFAULT_EXPECTED}" > "${F2B_DEFAULT}" || die "Could not write ${F2B_DEFAULT}"
+    ok "fail2ban: default.local written"
+fi
+
+# SSH jail: aggressive mode
+F2B_SSH="/etc/fail2ban/jail.d/ssh.local"
+F2B_SSH_EXPECTED=$(cat << 'EOF'
+[sshd]
+enabled = true
+mode = aggressive
+EOF
+)
+if [ -f "${F2B_SSH}" ] && [ "$(cat "${F2B_SSH}")" = "${F2B_SSH_EXPECTED}" ]; then
+    skip "fail2ban: ssh.local already correct"
+else
+    printf '%s\n' "${F2B_SSH_EXPECTED}" > "${F2B_SSH}" || die "Could not write ${F2B_SSH}"
+    ok "fail2ban: ssh.local written"
+fi
+
+systemctl enable --now fail2ban || die "Could not enable fail2ban"
+ok "fail2ban enabled"
 
 # ============================================================
 # Configure pkgstats
