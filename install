@@ -142,14 +142,45 @@ fi
 echo "Configuring firewalld..."
 systemctl enable --now firewalld || die "Could not enable firewalld"
 
-# Allow SSH from private network ranges
-firewall-cmd --permanent --add-rich-rule='rule family="ipv4" source address="10.0.0.0/8" port protocol="tcp" port="22" accept'
-firewall-cmd --permanent --add-rich-rule='rule family="ipv4" source address="192.168.0.0/16" port protocol="tcp" port="22" accept'
-firewall-cmd --permanent --add-rich-rule='rule family="ipv4" source address="172.16.0.0/20" port protocol="tcp" port="22" accept'
+# Allow a TCP/UDP port from all private network ranges (idempotent).
+# Covers IPv4 RFC-1918 and IPv6 ULA (fc00::/7) + link-local (fe80::/10).
+# Usage: firewalld_allow_private <protocol> <port>
+FIREWALLD_CHANGED=0
+firewalld_allow_private() {
+    _fw_proto="${1}"
+    _fw_port="${2}"
+    for _fw_cidr in "10.0.0.0/8" "192.168.0.0/16" "172.16.0.0/20"; do
+        _fw_rule="rule family=\"ipv4\" source address=\"${_fw_cidr}\" port protocol=\"${_fw_proto}\" port=\"${_fw_port}\" accept"
+        if firewall-cmd --permanent --query-rich-rule="${_fw_rule}" > /dev/null 2>&1; then
+            skip "firewalld: ${_fw_proto}/${_fw_port} from ${_fw_cidr} already allowed"
+        else
+            firewall-cmd --permanent --add-rich-rule="${_fw_rule}" \
+                || die "Could not add firewalld rich rule for ${_fw_proto}/${_fw_port} from ${_fw_cidr}"
+            ok "firewalld: ${_fw_proto}/${_fw_port} from ${_fw_cidr} allowed"
+            FIREWALLD_CHANGED=1
+        fi
+    done
+    for _fw_cidr6 in "fc00::/7" "fe80::/10"; do
+        _fw_rule6="rule family=\"ipv6\" source address=\"${_fw_cidr6}\" port protocol=\"${_fw_proto}\" port=\"${_fw_port}\" accept"
+        if firewall-cmd --permanent --query-rich-rule="${_fw_rule6}" > /dev/null 2>&1; then
+            skip "firewalld: ${_fw_proto}/${_fw_port} from ${_fw_cidr6} already allowed"
+        else
+            firewall-cmd --permanent --add-rich-rule="${_fw_rule6}" \
+                || die "Could not add firewalld rich rule for ${_fw_proto}/${_fw_port} from ${_fw_cidr6}"
+            ok "firewalld: ${_fw_proto}/${_fw_port} from ${_fw_cidr6} allowed"
+            FIREWALLD_CHANGED=1
+        fi
+    done
+}
 
+firewalld_allow_private tcp 22
 
-firewall-cmd --reload || die "Could not reload firewalld"
-ok "firewalld configured"
+if [ "${FIREWALLD_CHANGED}" = "1" ]; then
+    firewall-cmd --reload || die "Could not reload firewalld"
+    ok "firewalld reloaded"
+else
+    skip "firewalld: no changes, reload not needed"
+fi
 
 # Remove legacy systemd security drop-in for firewalld (package-manager service)
 FIREWALLD_DROPIN="/etc/systemd/system/firewalld.service.d/security.conf"
