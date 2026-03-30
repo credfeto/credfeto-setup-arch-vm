@@ -38,6 +38,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Apply sysctl changes live with sysctl -w in addition to writing persistent /etc/sysctl.d file
 - Add rule that all configuration changes must be applied live and persistently in the same step
 ### Removed
+- Remove criu and pigz packages — neither is used or configured by the script
 ### Deployment Changes
 
 <!--
