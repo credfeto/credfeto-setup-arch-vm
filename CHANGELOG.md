@@ -32,6 +32,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Apply Copilot security analysis improvements to install script
 - Generate descriptive commit title and PR title from actual diff in security review workflow
 - Restrict systemd drop-ins to services the script configures; require cited source for any package-manager service exception
+- Remove systemd security drop-ins for docker, firewalld, and sshd; clean up any previously installed files
 ### Removed
 ### Deployment Changes
 

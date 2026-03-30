@@ -123,29 +123,16 @@ systemctl enable --now docker.socket || die "Could not enable docker.socket"
 systemctl enable --now docker || die "Could not enable docker.service"
 ok "Docker enabled"
 
-# Add systemd service sandboxing for Docker
+# Remove legacy systemd security drop-in for Docker (package-manager service)
 DOCKER_DROPIN="/etc/systemd/system/docker.service.d/security.conf"
-DOCKER_DROPIN_EXPECTED=$(cat << 'EOF'
-[Service]
-ProtectSystem=full
-ProtectHome=true
-NoNewPrivileges=true
-ProtectKernelTunables=true
-ProtectKernelModules=true
-ProtectControlGroups=true
-RestrictRealtime=true
-RestrictSUIDSGID=true
-CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW CAP_SYS_ADMIN CAP_SYS_MODULE CAP_SYS_PTRACE CAP_SYS_RESOURCE
-EOF
-)
-mkdir -p "$(dirname "${DOCKER_DROPIN}")"
-if [ -f "${DOCKER_DROPIN}" ] && [ "$(cat "${DOCKER_DROPIN}")" = "${DOCKER_DROPIN_EXPECTED}" ]; then
-    skip "Docker systemd sandboxing already configured"
-else
-    printf '%s\n' "${DOCKER_DROPIN_EXPECTED}" > "${DOCKER_DROPIN}" || die "Could not write ${DOCKER_DROPIN}"
+if [ -f "${DOCKER_DROPIN}" ]; then
+    rm "${DOCKER_DROPIN}" || die "Could not remove ${DOCKER_DROPIN}"
+    rmdir "$(dirname "${DOCKER_DROPIN}")" 2>/dev/null || true
     systemctl daemon-reload || die "Could not reload systemd daemon"
     systemctl restart docker || die "Could not restart docker.service"
-    ok "Docker systemd sandboxing configured"
+    ok "Removed legacy Docker systemd security drop-in"
+else
+    skip "No legacy Docker systemd security drop-in present"
 fi
 
 # ============================================================
@@ -183,28 +170,16 @@ fi
 firewall-cmd --reload || die "Could not reload firewalld"
 ok "firewalld configured"
 
-# Add systemd service sandboxing for firewalld
+# Remove legacy systemd security drop-in for firewalld (package-manager service)
 FIREWALLD_DROPIN="/etc/systemd/system/firewalld.service.d/security.conf"
-FIREWALLD_DROPIN_EXPECTED=$(cat << 'EOF'
-[Service]
-ProtectSystem=full
-ProtectHome=true
-NoNewPrivileges=true
-ProtectKernelTunables=true
-ProtectKernelModules=true
-ProtectControlGroups=true
-RestrictRealtime=true
-RestrictSUIDSGID=true
-EOF
-)
-mkdir -p "$(dirname "${FIREWALLD_DROPIN}")"
-if [ -f "${FIREWALLD_DROPIN}" ] && [ "$(cat "${FIREWALLD_DROPIN}")" = "${FIREWALLD_DROPIN_EXPECTED}" ]; then
-    skip "firewalld systemd sandboxing already configured"
-else
-    printf '%s\n' "${FIREWALLD_DROPIN_EXPECTED}" > "${FIREWALLD_DROPIN}" || die "Could not write ${FIREWALLD_DROPIN}"
+if [ -f "${FIREWALLD_DROPIN}" ]; then
+    rm "${FIREWALLD_DROPIN}" || die "Could not remove ${FIREWALLD_DROPIN}"
+    rmdir "$(dirname "${FIREWALLD_DROPIN}")" 2>/dev/null || true
     systemctl daemon-reload || die "Could not reload systemd daemon"
     systemctl restart firewalld || die "Could not restart firewalld.service"
-    ok "firewalld systemd sandboxing configured"
+    ok "Removed legacy firewalld systemd security drop-in"
+else
+    skip "No legacy firewalld systemd security drop-in present"
 fi
 
 # ============================================================
@@ -293,28 +268,16 @@ if [ "$SSHD_CHANGED" = "1" ]; then
     fi
 fi
 
-# Add systemd service sandboxing for SSHD
+# Remove legacy systemd security drop-in for SSHD (package-manager service)
 SSHD_DROPIN="/etc/systemd/system/sshd.service.d/security.conf"
-SSHD_DROPIN_EXPECTED=$(cat << 'EOF'
-[Service]
-ProtectSystem=full
-ProtectHome=true
-NoNewPrivileges=true
-ProtectKernelTunables=true
-ProtectKernelModules=true
-ProtectControlGroups=true
-RestrictRealtime=true
-RestrictSUIDSGID=true
-EOF
-)
-mkdir -p "$(dirname "${SSHD_DROPIN}")"
-if [ -f "${SSHD_DROPIN}" ] && [ "$(cat "${SSHD_DROPIN}")" = "${SSHD_DROPIN_EXPECTED}" ]; then
-    skip "SSHD systemd sandboxing already configured"
-else
-    printf '%s\n' "${SSHD_DROPIN_EXPECTED}" > "${SSHD_DROPIN}" || die "Could not write ${SSHD_DROPIN}"
+if [ -f "${SSHD_DROPIN}" ]; then
+    rm "${SSHD_DROPIN}" || die "Could not remove ${SSHD_DROPIN}"
+    rmdir "$(dirname "${SSHD_DROPIN}")" 2>/dev/null || true
     systemctl daemon-reload || die "Could not reload systemd daemon"
     systemctl restart sshd || die "Could not restart sshd.service"
-    ok "SSHD systemd sandboxing configured"
+    ok "Removed legacy SSHD systemd security drop-in"
+else
+    skip "No legacy SSHD systemd security drop-in present"
 fi
 
 # ============================================================
