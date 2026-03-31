@@ -18,6 +18,9 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Remove orphaned packages with pacman -Rs at end of script
 - Show reboot required warning if running kernel no longer matches installed kernel
 - Write /etc/sudoers.d/01_markr with NOPASSWD when yay installed, password-required otherwise
+- Log martian (impossible source) packets via net.ipv4.conf.all/default.log_martians
+- Explicitly enforce kernel.perf_event_paranoid=3 to restrict perf_event_open to CAP_SYS_ADMIN
+- Blacklist n_hdlc (CVE-2017-2636), ax25, netrom, x25, can, vivid, usb_storage, bluetooth, btusb modules on Proxmox VM where hardware is absent
 ### Fixed
 - Enable pkgstats.timer via symlink for static unit as it has no [Install] section and cannot be enabled with systemctl enable
 - Remove --permanent flag from firewall-cmd --set-default-zone (incompatible options)
