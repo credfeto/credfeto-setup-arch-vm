@@ -26,6 +26,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Remove --permanent flag from firewall-cmd --set-default-zone (incompatible options)
 - Fix SSH cipher names: aes256-gcm and aes128-gcm (no hyphen after aes)
 - Use systemctl restart tmp.mount instead of mount -o remount for systemd-managed /tmp
+- sysctl_set no longer aborts when a key is absent from /proc/sys (e.g. kernel.kexec_load_disabled on linux-hardened with CONFIG_KEXEC=n) — persistent config is still written, live apply is skipped with a clear message
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
