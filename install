@@ -659,8 +659,16 @@ sysctl_set() {
         skip "sysctl: ${1}=${2} already set"
     else
         printf '%s\n' "$expected" > "$file" || die "Could not write $file"
-        sysctl -w "${1}=${2}" > /dev/null || die "Could not apply sysctl ${1}=${2}"
-        ok "sysctl: ${1}=${2}"
+        # Some sysctl keys are absent at runtime when the kernel feature is compiled out
+        # (e.g. kernel.kexec_load_disabled when CONFIG_KEXEC=n on linux-hardened).
+        # In that case write the persistent config only; skip the live apply.
+        _sysctl_proc="/proc/sys/$(printf '%s' "$1" | tr '.' '/')"
+        if [ -e "$_sysctl_proc" ]; then
+            sysctl -w "${1}=${2}" > /dev/null || die "Could not apply sysctl ${1}=${2}"
+            ok "sysctl: ${1}=${2}"
+        else
+            ok "sysctl: ${1}=${2} (persistent only — key not present in running kernel)"
+        fi
         SYSCTL_CHANGED=1
     fi
 }
