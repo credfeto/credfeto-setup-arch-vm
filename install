@@ -937,6 +937,26 @@ else
 fi
 
 # ============================================================
+# Create security script in current directory
+# ============================================================
+
+echo "Creating security script..."
+SECURITY_SCRIPT="./security"
+SECURITY_SCRIPT_EXPECTED=$(cat << 'EOF'
+#!  /bin/sh
+
+curl -fsSL https://raw.githubusercontent.com/credfeto/credfeto-setup-arch-vm/refs/heads/main/install | sh
+EOF
+)
+if [ -f "${SECURITY_SCRIPT}" ] && [ "$(cat "${SECURITY_SCRIPT}")" = "${SECURITY_SCRIPT_EXPECTED}" ]; then
+    skip "security script already correct"
+else
+    printf '%s\n' "${SECURITY_SCRIPT_EXPECTED}" > "${SECURITY_SCRIPT}" || die "Could not write ${SECURITY_SCRIPT}"
+    chmod 755 "${SECURITY_SCRIPT}" || die "Could not chmod ${SECURITY_SCRIPT}"
+    ok "security script written"
+fi
+
+# ============================================================
 # Reboot check
 # ============================================================
 
