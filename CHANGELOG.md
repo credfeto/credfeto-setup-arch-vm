@@ -21,7 +21,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Log martian (impossible source) packets via net.ipv4.conf.all/default.log_martians
 - Explicitly enforce kernel.perf_event_paranoid=3 to restrict perf_event_open to CAP_SYS_ADMIN
 - Blacklist n_hdlc (CVE-2017-2636), ax25, netrom, x25, can, vivid, usb_storage, bluetooth, btusb modules on Proxmox VM where hardware is absent
-- security script to run install script from GitHub
+- Security script to run install script from GitHub
 ### Fixed
 - Enable pkgstats.timer via symlink for static unit as it has no [Install] section and cannot be enabled with systemctl enable
 - Remove --permanent flag from firewall-cmd --set-default-zone (incompatible options)
