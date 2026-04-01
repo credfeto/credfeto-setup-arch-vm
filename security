@@ -1,0 +1,3 @@
+#!  /bin/sh
+
+curl -fsSL https://raw.githubusercontent.com/credfeto/credfeto-setup-arch-vm/refs/heads/main/install | sh
