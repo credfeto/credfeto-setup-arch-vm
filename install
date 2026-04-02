@@ -847,8 +847,12 @@ fi
 if [ ! -f /etc/systemd/network/eth0.network ]; then
     echo "Configuring network..."
 
-    # Detect the first physical NIC (skip loopback, docker bridges, veth pairs)
-    NIC=$(ip -o link show type ether | awk '!/docker|br-|veth/{sub(/:$/, "", $2); print $2; exit}')
+    # Detect the first physical wired NIC. The prefixes eth/enp/ens are exclusively
+    # assigned to wired Ethernet by systemd predictable network naming, so this
+    # positive match is both precise and VM-friendly (avoids 'type ether' which can
+    # miss interfaces on some hypervisors). Wireless (wlan/wlp) and virtual
+    # interfaces (docker/br-/veth) are naturally excluded by not matching.
+    NIC=$(ip -o link show | awk '/^[0-9]+: (eth|enp|ens)/{sub(/:$/, "", $2); print $2; exit}')
     [ -n "$NIC" ] || die "Could not detect a physical network interface"
 
     IPV4=$(ip -o -4 addr show dev "$NIC" scope global | awk 'NR==1{print $4}')
