@@ -149,7 +149,15 @@ FIREWALLD_CHANGED=0
 firewalld_allow_private() {
     _fw_proto="${1}"
     _fw_port="${2}"
-    for _fw_cidr in "10.0.0.0/8" "192.168.0.0/16" "172.16.0.0/20"; do
+    # Remove legacy incorrect 172.16.0.0/20 rule if present (RFC 1918 range is /12)
+    _fw_legacy_rule="rule family=\"ipv4\" source address=\"172.16.0.0/20\" port protocol=\"${_fw_proto}\" port=\"${_fw_port}\" accept"
+    if firewall-cmd --permanent --query-rich-rule="${_fw_legacy_rule}" > /dev/null 2>&1; then
+        firewall-cmd --permanent --remove-rich-rule="${_fw_legacy_rule}" \
+            || die "Could not remove legacy firewalld rule for ${_fw_proto}/${_fw_port} from 172.16.0.0/20"
+        ok "firewalld: removed legacy ${_fw_proto}/${_fw_port} rule for 172.16.0.0/20"
+        FIREWALLD_CHANGED=1
+    fi
+    for _fw_cidr in "10.0.0.0/8" "192.168.0.0/16" "172.16.0.0/12"; do
         _fw_rule="rule family=\"ipv4\" source address=\"${_fw_cidr}\" port protocol=\"${_fw_proto}\" port=\"${_fw_port}\" accept"
         if firewall-cmd --permanent --query-rich-rule="${_fw_rule}" > /dev/null 2>&1; then
             skip "firewalld: ${_fw_proto}/${_fw_port} from ${_fw_cidr} already allowed"
