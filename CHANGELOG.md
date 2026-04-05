@@ -22,6 +22,8 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Explicitly enforce kernel.perf_event_paranoid=3 to restrict perf_event_open to CAP_SYS_ADMIN
 - Blacklist n_hdlc (CVE-2017-2636), ax25, netrom, x25, can, vivid, usb_storage, bluetooth, btusb modules on Proxmox VM where hardware is absent
 - install script creates a security script in the current working directory
+- Install ansible and configure ansible-pull systemd timer to automatically apply latest system configuration every 6 hours, replacing the manual security script
+- Add site.yml Ansible playbook entry point for ansible-pull
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
@@ -54,6 +56,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Replace markr sudoers management with dedicated autoupdate system user (nologin, no home) for yay auto-update
 ### Removed
 - Remove criu and pigz packages — neither is used or configured by the script
+- Remove curl-based security script in favour of ansible-pull timer
 ### Deployment Changes
 
 <!--
