@@ -26,6 +26,8 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Add site.yml Ansible playbook entry point for ansible-pull
 - Harden default umask to 027 via /etc/profile.d/umask.sh
 - Install and enable AppArmor service with community profiles enforced for sshd, docker-default, and fail2ban
+- Install audit package alongside AppArmor for kernel-level audit logging
+- Enable auditd service for AppArmor audit event logging
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
@@ -63,6 +65,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Replace markr sudoers management with dedicated autoupdate system user (nologin, no home) for yay auto-update
 - autoupdate user always created regardless of whether yay is installed
 - auto-update service always runs as autoupdate user; wrapper uses sudo pacman as fallback when yay is absent
+- Add integrity LSM to GRUB lsm= kernel parameter for IMA support alongside AppArmor
 ### Removed
 - Remove criu and pigz packages — neither is used or configured by the script
 - Remove curl-based security script in favour of ansible-pull timer

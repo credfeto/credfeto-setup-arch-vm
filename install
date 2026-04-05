@@ -598,7 +598,7 @@ systemctl enable --now logrotate.timer || die "Could not enable logrotate.timer"
 ok "logrotate timer enabled"
 
 echo "Configuring GRUB kernel command line..."
-GRUB_PARAMS="panic=20 slab_nomerge slub_debug=FZ init_on_alloc=1 init_on_free=1 pti=on lsm=landlock,lockdown,yama,apparmor,bpf apparmor=1 security=apparmor lockdown=confidentiality hardened_usercopy=on ia32_emulation=0"
+GRUB_PARAMS="panic=20 slab_nomerge slub_debug=FZ init_on_alloc=1 init_on_free=1 pti=on lsm=landlock,lockdown,yama,integrity,apparmor,bpf apparmor=1 security=apparmor lockdown=confidentiality hardened_usercopy=on ia32_emulation=0"
 GRUB_CHANGED=0
 
 # Fix typo from earlier versions
@@ -611,6 +611,20 @@ fi
 # Extract current value and build new value in memory, checking only within GRUB_CMDLINE_LINUX
 CMDLINE=$(sed -n 's/^GRUB_CMDLINE_LINUX="\(.*\)"$/\1/p' /etc/default/grub)
 NEW_CMDLINE="$CMDLINE"
+
+# Migrate lsm= to include integrity if the parameter is already set without it
+_lsm_current=$(printf '%s\n' "$NEW_CMDLINE" | tr ' ' '\n' | grep '^lsm=' | sed 's/^lsm=//')
+if [ -n "$_lsm_current" ]; then
+    case "$_lsm_current" in
+        *integrity*) skip "GRUB: lsm already contains integrity" ;;
+        *)
+            NEW_CMDLINE=$(printf '%s\n' "$NEW_CMDLINE" | sed "s|lsm=${_lsm_current}|lsm=landlock,lockdown,yama,integrity,apparmor,bpf|")
+            GRUB_CHANGED=1
+            ok "GRUB: updated lsm= to include integrity"
+            ;;
+    esac
+fi
+unset _lsm_current
 
 for PARAM in $GRUB_PARAMS; do
     PARAM_KEY="${PARAM%%=*}"
@@ -633,13 +647,16 @@ fi
 # Configure AppArmor
 # ============================================================
 # The GRUB command line already enables AppArmor as an LSM:
-#   lsm=landlock,lockdown,yama,apparmor,bpf apparmor=1 security=apparmor
+#   lsm=landlock,lockdown,yama,integrity,apparmor,bpf apparmor=1 security=apparmor
 # Install the userspace tools and profiles so the LSM is not loaded empty.
+# The audit package provides the auditd daemon for AppArmor audit logging.
 
 echo "Configuring AppArmor..."
-pacman -S --noconfirm --needed apparmor || die "Could not install apparmor"
+pacman -S --noconfirm --needed apparmor audit || die "Could not install apparmor and audit"
 systemctl enable --now apparmor || die "Could not enable apparmor"
 ok "AppArmor service enabled"
+systemctl enable --now auditd || die "Could not enable auditd"
+ok "auditd enabled for AppArmor audit logging"
 
 # Install community-maintained profiles if available (may come from Chaotic AUR)
 if pacman -Qq apparmor-profiles > /dev/null 2>&1; then
