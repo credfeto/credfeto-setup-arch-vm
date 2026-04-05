@@ -629,6 +629,46 @@ if [ "$GRUB_CHANGED" = "1" ]; then
 fi
 
 # ============================================================
+# Configure AppArmor
+# ============================================================
+# The GRUB command line already enables AppArmor as an LSM:
+#   lsm=landlock,lockdown,yama,apparmor,bpf apparmor=1 security=apparmor
+# Install the userspace tools and profiles so the LSM is not loaded empty.
+
+echo "Configuring AppArmor..."
+pacman -S --noconfirm --needed apparmor || die "Could not install apparmor"
+systemctl enable --now apparmor || die "Could not enable apparmor"
+ok "AppArmor service enabled"
+
+# Install community-maintained profiles if available (may come from Chaotic AUR)
+if pacman -Qq apparmor-profiles > /dev/null 2>&1; then
+    skip "apparmor-profiles already installed"
+else
+    if pacman -S --noconfirm --needed apparmor-profiles 2>/dev/null; then
+        ok "apparmor-profiles installed"
+    else
+        skip "apparmor-profiles not available in repos — continuing without community profiles"
+    fi
+fi
+
+# Enforce AppArmor profiles for services configured by this script.
+# Only profiles whose files are present on disk are enforced; missing profiles are skipped.
+for _aa_profile in sshd docker-default fail2ban; do
+    _aa_file="/etc/apparmor.d/${_aa_profile}"
+    if [ ! -f "${_aa_file}" ]; then
+        skip "AppArmor: no profile found for ${_aa_profile}"
+        continue
+    fi
+    if aa-status 2>/dev/null | grep -qF "   ${_aa_profile}"; then
+        skip "AppArmor: ${_aa_profile} already in enforce mode"
+    else
+        aa-enforce "${_aa_file}" || die "Could not enforce AppArmor profile ${_aa_profile}"
+        ok "AppArmor: ${_aa_profile} profile enforced"
+    fi
+done
+unset _aa_profile _aa_file
+
+# ============================================================
 # Configure sysctl hardening
 # ============================================================
 
