@@ -36,6 +36,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Restrict autoupdate sudoers to /usr/bin/pacman only instead of unrestricted root access
 - Corrected typo in sshd config filename logingraceime to loginGraceTime and clean up old misnamed file
 - Correct RFC 1918 firewalld CIDR for 172.16.0.0 range from /20 to /12 and remove any legacy /20 rules
+- Consolidate Docker restarts to avoid restarting twice when both daemon.json and legacy drop-in change
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
