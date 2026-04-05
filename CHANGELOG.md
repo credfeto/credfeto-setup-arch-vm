@@ -25,6 +25,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Install ansible and configure ansible-pull systemd timer to automatically apply latest system configuration every 6 hours, replacing the manual security script
 - Add site.yml Ansible playbook entry point for ansible-pull
 - Harden default umask to 027 via /etc/profile.d/umask.sh
+- Install and enable AppArmor service with community profiles enforced for sshd, docker-default, and fail2ban
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
