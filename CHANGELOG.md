@@ -42,6 +42,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Correct RFC 1918 firewalld CIDR for 172.16.0.0 range from /20 to /12 and remove any legacy /20 rules
 - Consolidate Docker restarts to avoid restarting twice when both daemon.json and legacy drop-in change
 - Enable post-quantum key exchange algorithms (mlkem768x25519-sha256, sntrup761x25519-sha512) in SSH server to prevent store-now-decrypt-later attacks
+- Ensure sshd host keys are generated before SSH configuration on fresh installs
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
