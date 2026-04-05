@@ -91,15 +91,32 @@ fi
 # ============================================================
 
 echo "Configuring reflector..."
-cat << EOF > /etc/xdg/reflector/reflector.conf
+REFLECTOR_CONF="/etc/xdg/reflector/reflector.conf"
+REFLECTOR_CONF_EXPECTED=$(cat << 'EOF'
 --save /etc/pacman.d/mirrorlist
 --protocol https
 --latest 10
 --sort rate
 EOF
+)
+if [ -f "${REFLECTOR_CONF}" ] && [ "$(cat "${REFLECTOR_CONF}")" = "${REFLECTOR_CONF_EXPECTED}" ]; then
+    skip "reflector.conf already correct"
+else
+    printf '%s\n' "${REFLECTOR_CONF_EXPECTED}" > "${REFLECTOR_CONF}" || die "Could not write ${REFLECTOR_CONF}"
+    ok "reflector.conf written"
+fi
 
-systemctl enable --now reflector.timer
-systemctl start reflector.service
+systemctl enable --now reflector.timer || die "Could not enable reflector.timer"
+
+# Only trigger a manual mirror refresh if the timer is not already active.
+# When the timer is already running, it manages reflector automatically —
+# starting reflector.service manually causes a redundant network round-trip.
+if systemctl is-active --quiet reflector.timer; then
+    skip "reflector.service start skipped — reflector.timer is already active"
+else
+    systemctl start reflector.service || die "Could not start reflector.service"
+    ok "reflector.service started (timer not yet active)"
+fi
 ok "reflector configured"
 
 # ============================================================
