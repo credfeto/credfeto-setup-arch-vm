@@ -33,6 +33,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Use systemctl restart tmp.mount instead of mount -o remount for systemd-managed /tmp
 - sysctl_set no longer aborts when a key is absent from /proc/sys (e.g. kernel.kexec_load_disabled on linux-hardened with CONFIG_KEXEC=n) — persistent config is still written, live apply is skipped with a clear message
 - Detect physical network interface on VMs by matching common prefixes (eth, enp, ens) instead of using 'type ether' filter
+- Restrict autoupdate sudoers to /usr/bin/pacman only instead of unrestricted root access
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
@@ -54,6 +55,8 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Use yay -Syyu in auto-update service when yay is installed, falling back to pacman
 - Run auto-update service as markr user when yay is installed; set NOPASSWD sudoers accordingly
 - Replace markr sudoers management with dedicated autoupdate system user (nologin, no home) for yay auto-update
+- autoupdate user always created regardless of whether yay is installed
+- auto-update service always runs as autoupdate user; wrapper uses sudo pacman as fallback when yay is absent
 ### Removed
 - Remove criu and pigz packages — neither is used or configured by the script
 - Remove curl-based security script in favour of ansible-pull timer

@@ -356,53 +356,31 @@ fi
 
 echo "Configuring auto-update service..."
 
-# Detect yay once — drives user creation, service User=, and sudoers policy
-YAY_INSTALLED=0
-[ -x /usr/bin/yay ] && YAY_INSTALLED=1
-
 # ── autoupdate system user ────────────────────────────────────────────────────
-# Only exists when yay is installed. Has no login shell and no home directory
-# so it cannot be used interactively or via SSH.
-# Removed when yay is no longer installed.
-if [ "${YAY_INSTALLED}" = "1" ]; then
-    if id autoupdate > /dev/null 2>&1; then
-        skip "autoupdate user already exists"
-    else
-        useradd --system --no-create-home --shell /usr/sbin/nologin autoupdate \
-            || die "Could not create autoupdate user"
-        ok "autoupdate user created"
-    fi
+# Always present. Has no login shell and no home directory so it cannot be used
+# interactively or via SSH. The service always runs as this user regardless of
+# whether yay or pacman is the active updater.
+if id autoupdate > /dev/null 2>&1; then
+    skip "autoupdate user already exists"
 else
-    if id autoupdate > /dev/null 2>&1; then
-        userdel autoupdate || die "Could not remove autoupdate user"
-        ok "autoupdate user removed (yay not installed)"
-    else
-        skip "autoupdate user not present"
-    fi
+    useradd --system --no-create-home --shell /usr/sbin/nologin autoupdate \
+        || die "Could not create autoupdate user"
+    ok "autoupdate user created"
 fi
 
 # ── sudoers for autoupdate ────────────────────────────────────────────────────
-# NOPASSWD required so yay can call sudo pacman internally without blocking.
-# File is removed when yay is not installed (user also removed above).
+# Restricted to /usr/bin/pacman only. yay calls sudo pacman internally; the
+# pacman-only fallback wrapper also uses sudo pacman. No broad root access needed.
 AUTOUPDATE_SUDOERS="/etc/sudoers.d/autoupdate"
-if [ "${YAY_INSTALLED}" = "1" ]; then
-    AUTOUPDATE_SUDOERS_EXPECTED="autoupdate ALL=(ALL) NOPASSWD: ALL"
-    if [ -f "${AUTOUPDATE_SUDOERS}" ] && [ "$(cat "${AUTOUPDATE_SUDOERS}")" = "${AUTOUPDATE_SUDOERS_EXPECTED}" ]; then
-        skip "sudoers autoupdate already correct"
-    else
-        printf '%s\n' "${AUTOUPDATE_SUDOERS_EXPECTED}" > "${AUTOUPDATE_SUDOERS}" \
-            || die "Could not write ${AUTOUPDATE_SUDOERS}"
-        chmod 440 "${AUTOUPDATE_SUDOERS}" || die "Could not chmod ${AUTOUPDATE_SUDOERS}"
-        visudo -c -f "${AUTOUPDATE_SUDOERS}" || die "Invalid sudoers file ${AUTOUPDATE_SUDOERS}"
-        ok "sudoers autoupdate written"
-    fi
+AUTOUPDATE_SUDOERS_EXPECTED="autoupdate ALL=(ALL) NOPASSWD: /usr/bin/pacman"
+if [ -f "${AUTOUPDATE_SUDOERS}" ] && [ "$(cat "${AUTOUPDATE_SUDOERS}")" = "${AUTOUPDATE_SUDOERS_EXPECTED}" ]; then
+    skip "sudoers autoupdate already correct"
 else
-    if [ -f "${AUTOUPDATE_SUDOERS}" ]; then
-        rm "${AUTOUPDATE_SUDOERS}" || die "Could not remove ${AUTOUPDATE_SUDOERS}"
-        ok "sudoers autoupdate removed (yay not installed)"
-    else
-        skip "sudoers autoupdate not present"
-    fi
+    printf '%s\n' "${AUTOUPDATE_SUDOERS_EXPECTED}" > "${AUTOUPDATE_SUDOERS}" \
+        || die "Could not write ${AUTOUPDATE_SUDOERS}"
+    chmod 440 "${AUTOUPDATE_SUDOERS}" || die "Could not chmod ${AUTOUPDATE_SUDOERS}"
+    visudo -c -f "${AUTOUPDATE_SUDOERS}" || die "Invalid sudoers file ${AUTOUPDATE_SUDOERS}"
+    ok "sudoers autoupdate written"
 fi
 
 # ── legacy 01_markr sudoers cleanup ──────────────────────────────────────────
@@ -420,7 +398,7 @@ AUTO_UPDATE_SCRIPT_EXPECTED=$(cat << 'EOF'
 if [ -x /usr/bin/yay ]; then
     exec yay -Syyu --noconfirm
 else
-    exec pacman -Syyu --noconfirm
+    exec sudo pacman -Syyu --noconfirm
 fi
 EOF
 )
@@ -434,11 +412,10 @@ else
 fi
 
 # ── service unit ──────────────────────────────────────────────────────────────
-# Run as autoupdate (nologin system user) when yay is installed so yay does not
-# run as root. Fall back to root when only pacman is used.
+# Always run as autoupdate (nologin system user). The wrapper uses sudo pacman
+# when yay is not installed, so root is never needed directly.
 AUTO_UPDATE_SERVICE="/etc/systemd/system/auto-update.service"
-if [ "${YAY_INSTALLED}" = "1" ]; then
-    AUTO_UPDATE_SERVICE_EXPECTED=$(cat << 'EOF'
+AUTO_UPDATE_SERVICE_EXPECTED=$(cat << 'EOF'
 [Unit]
 Description=Run arch-update auto check
 After=network-online.target
@@ -449,18 +426,6 @@ User=autoupdate
 ExecStart=/usr/local/bin/auto-update
 EOF
 )
-else
-    AUTO_UPDATE_SERVICE_EXPECTED=$(cat << 'EOF'
-[Unit]
-Description=Run arch-update auto check
-After=network-online.target
-
-[Service]
-Type=oneshot
-ExecStart=/usr/local/bin/auto-update
-EOF
-)
-fi
 if [ -f "${AUTO_UPDATE_SERVICE}" ] && [ "$(cat "${AUTO_UPDATE_SERVICE}")" = "${AUTO_UPDATE_SERVICE_EXPECTED}" ]; then
     skip "auto-update.service already correct"
 else
