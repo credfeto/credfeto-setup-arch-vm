@@ -28,6 +28,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Install and enable AppArmor service with community profiles enforced for sshd, docker-default, and fail2ban
 - Install audit package alongside AppArmor for kernel-level audit logging
 - Enable auditd service for AppArmor audit event logging
+- Add weekly systemd timer to automatically remove orphaned pacman packages
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
@@ -43,6 +44,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Consolidate Docker restarts to avoid restarting twice when both daemon.json and legacy drop-in change
 - Enable post-quantum key exchange algorithms (mlkem768x25519-sha256, sntrup761x25519-sha512) in SSH server to prevent store-now-decrypt-later attacks
 - Ensure sshd host keys are generated before SSH configuration on fresh installs
+- Add idempotency checks to paccache-cleanup service and timer configuration
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script

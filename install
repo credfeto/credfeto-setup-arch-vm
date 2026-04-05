@@ -494,7 +494,8 @@ ok "auto-update service configured"
 # ============================================================
 
 echo "Configuring paccache cleanup service..."
-cat << 'EOF' > /etc/systemd/system/paccache-cleanup.service
+PACCACHE_SVC="/etc/systemd/system/paccache-cleanup.service"
+PACCACHE_SVC_EXPECTED=$(cat << 'EOF'
 [Unit]
 Description=Clean up old pacman cache entries
 
@@ -510,8 +511,16 @@ ProtectControlGroups=true
 RestrictRealtime=true
 RestrictSUIDSGID=true
 EOF
+)
+if [ -f "${PACCACHE_SVC}" ] && [ "$(cat "${PACCACHE_SVC}")" = "${PACCACHE_SVC_EXPECTED}" ]; then
+    skip "paccache-cleanup.service already correct"
+else
+    printf '%s\n' "${PACCACHE_SVC_EXPECTED}" > "${PACCACHE_SVC}" || die "Could not write ${PACCACHE_SVC}"
+    ok "paccache-cleanup.service written"
+fi
 
-cat << 'EOF' > /etc/systemd/system/paccache-cleanup.timer
+PACCACHE_TIMER="/etc/systemd/system/paccache-cleanup.timer"
+PACCACHE_TIMER_EXPECTED=$(cat << 'EOF'
 [Unit]
 Description=Run paccache cleanup once a week
 
@@ -522,10 +531,67 @@ Persistent=true
 [Install]
 WantedBy=timers.target
 EOF
+)
+if [ -f "${PACCACHE_TIMER}" ] && [ "$(cat "${PACCACHE_TIMER}")" = "${PACCACHE_TIMER_EXPECTED}" ]; then
+    skip "paccache-cleanup.timer already correct"
+else
+    printf '%s\n' "${PACCACHE_TIMER_EXPECTED}" > "${PACCACHE_TIMER}" || die "Could not write ${PACCACHE_TIMER}"
+    ok "paccache-cleanup.timer written"
+fi
 
 systemctl daemon-reload || die "Could not reload systemd daemon"
 systemctl enable --now paccache-cleanup.timer || die "Could not enable paccache-cleanup.timer"
 ok "paccache cleanup service configured"
+
+# ============================================================
+# Configure orphan package removal service
+# ============================================================
+
+echo "Configuring orphan package removal service..."
+ORPHAN_SVC="/etc/systemd/system/pacman-orphan-cleanup.service"
+ORPHAN_SVC_EXPECTED=$(cat << 'EOF'
+[Unit]
+Description=Remove orphaned pacman packages
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'ORPHANS=$(pacman -Qdtq 2>/dev/null); [ -z "${ORPHANS}" ] || printf "%s\n" "${ORPHANS}" | pacman -Rs --noconfirm -'
+ProtectHome=true
+NoNewPrivileges=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+EOF
+)
+if [ -f "${ORPHAN_SVC}" ] && [ "$(cat "${ORPHAN_SVC}")" = "${ORPHAN_SVC_EXPECTED}" ]; then
+    skip "pacman-orphan-cleanup.service already correct"
+else
+    printf '%s\n' "${ORPHAN_SVC_EXPECTED}" > "${ORPHAN_SVC}" || die "Could not write ${ORPHAN_SVC}"
+    ok "pacman-orphan-cleanup.service written"
+fi
+
+ORPHAN_TIMER="/etc/systemd/system/pacman-orphan-cleanup.timer"
+ORPHAN_TIMER_EXPECTED=$(cat << 'EOF'
+[Unit]
+Description=Remove orphaned pacman packages weekly
+
+[Timer]
+OnCalendar=weekly
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+)
+if [ -f "${ORPHAN_TIMER}" ] && [ "$(cat "${ORPHAN_TIMER}")" = "${ORPHAN_TIMER_EXPECTED}" ]; then
+    skip "pacman-orphan-cleanup.timer already correct"
+else
+    printf '%s\n' "${ORPHAN_TIMER_EXPECTED}" > "${ORPHAN_TIMER}" || die "Could not write ${ORPHAN_TIMER}"
+    ok "pacman-orphan-cleanup.timer written"
+fi
+
+systemctl daemon-reload || die "Could not reload systemd daemon"
+systemctl enable --now pacman-orphan-cleanup.timer || die "Could not enable pacman-orphan-cleanup.timer"
+ok "orphan package removal service configured"
 
 # ============================================================
 # Configure docker-cleanup service
