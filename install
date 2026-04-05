@@ -129,7 +129,7 @@ if [ -f "${DOCKER_DROPIN}" ]; then
     rm "${DOCKER_DROPIN}" || die "Could not remove ${DOCKER_DROPIN}"
     rmdir "$(dirname "${DOCKER_DROPIN}")" 2>/dev/null || true
     systemctl daemon-reload || die "Could not reload systemd daemon"
-    systemctl restart docker || die "Could not restart docker.service"
+    RESTART=1
     ok "Removed legacy Docker systemd security drop-in"
 else
     skip "No legacy Docker systemd security drop-in present"
