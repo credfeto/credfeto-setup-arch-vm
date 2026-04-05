@@ -70,7 +70,7 @@ case "$(uname -r)" in
 esac
 
 echo "Installing packages..."
-pacman -S --noconfirm --needed docker docker-compose docker-buildx git firewalld fail2ban pkgstats reflector pacman-contrib openssh logrotate || die "Could not install packages"
+pacman -S --noconfirm --needed docker docker-compose docker-buildx git firewalld fail2ban pkgstats reflector pacman-contrib openssh logrotate ansible || die "Could not install packages"
 ok "Packages installed"
 
 # ============================================================
@@ -941,24 +941,66 @@ else
 fi
 
 # ============================================================
-# Create security script in current directory
+# Configure ansible-pull for automatic updates
+#
+# ansible-pull inverts the normal Ansible push model: a systemd timer on the
+# managed host periodically runs `ansible-pull`, which checks out the latest
+# version of this repository from GitHub and applies the `site.yml` playbook
+# (which in turn re-runs this `install` script).  This replaces the old
+# `./security` curl-based wrapper with a proper scheduled, pull-based approach.
 # ============================================================
 
-echo "Creating security script..."
-SECURITY_SCRIPT="./security"
-SECURITY_SCRIPT_EXPECTED=$(cat << 'EOF'
-#!  /bin/sh
+echo "Configuring ansible-pull service..."
 
-curl -fsSL https://raw.githubusercontent.com/credfeto/credfeto-setup-arch-vm/refs/heads/main/install | sh
+ANSIBLE_PULL_SERVICE="/etc/systemd/system/ansible-pull.service"
+ANSIBLE_PULL_SERVICE_EXPECTED=$(cat << 'EOF'
+[Unit]
+Description=Ansible Pull - automatic system configuration update
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/ansible-pull -U https://github.com/credfeto/credfeto-setup-arch-vm.git -C main site.yml
+StandardOutput=journal
+StandardError=journal
 EOF
 )
-if [ -f "${SECURITY_SCRIPT}" ] && [ "$(cat "${SECURITY_SCRIPT}")" = "${SECURITY_SCRIPT_EXPECTED}" ]; then
-    skip "security script already correct"
+if [ -f "${ANSIBLE_PULL_SERVICE}" ] && [ "$(cat "${ANSIBLE_PULL_SERVICE}")" = "${ANSIBLE_PULL_SERVICE_EXPECTED}" ]; then
+    skip "ansible-pull.service already correct"
 else
-    printf '%s\n' "${SECURITY_SCRIPT_EXPECTED}" > "${SECURITY_SCRIPT}" || die "Could not write ${SECURITY_SCRIPT}"
-    chmod 755 "${SECURITY_SCRIPT}" || die "Could not chmod ${SECURITY_SCRIPT}"
-    ok "security script written"
+    printf '%s\n' "${ANSIBLE_PULL_SERVICE_EXPECTED}" > "${ANSIBLE_PULL_SERVICE}" || die "Could not write ${ANSIBLE_PULL_SERVICE}"
+    ok "ansible-pull.service written"
 fi
+
+echo "Configuring ansible-pull timer..."
+
+ANSIBLE_PULL_TIMER="/etc/systemd/system/ansible-pull.timer"
+ANSIBLE_PULL_TIMER_EXPECTED=$(cat << 'EOF'
+[Unit]
+Description=Run ansible-pull every 6 hours to apply latest system configuration
+Requires=ansible-pull.service
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=6h
+RandomizedDelaySec=10min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+)
+if [ -f "${ANSIBLE_PULL_TIMER}" ] && [ "$(cat "${ANSIBLE_PULL_TIMER}")" = "${ANSIBLE_PULL_TIMER_EXPECTED}" ]; then
+    skip "ansible-pull.timer already correct"
+else
+    printf '%s\n' "${ANSIBLE_PULL_TIMER_EXPECTED}" > "${ANSIBLE_PULL_TIMER}" || die "Could not write ${ANSIBLE_PULL_TIMER}"
+    ok "ansible-pull.timer written"
+fi
+
+systemctl daemon-reload || die "Could not reload systemd daemon after ansible-pull unit changes"
+systemctl enable --now ansible-pull.timer || die "Could not enable ansible-pull.timer"
+ok "ansible-pull.timer enabled and started"
 
 # ============================================================
 # Reboot check
