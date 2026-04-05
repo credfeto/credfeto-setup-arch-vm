@@ -726,6 +726,29 @@ else
 fi
 
 # ============================================================
+# Harden default umask via /etc/profile.d
+# ============================================================
+
+# Sets a restrictive default umask (027) for all login shells:
+#   files: 640 (owner rw, group r, others none)
+#   dirs:  750 (owner rwx, group rx, others none)
+# This reduces the risk of newly created files being world-readable.
+echo "Configuring umask hardening..."
+UMASK_PROFILE="/etc/profile.d/umask.sh"
+UMASK_EXPECTED=$(cat << 'EOF'
+#!/bin/sh
+umask 027
+EOF
+)
+if [ -f "${UMASK_PROFILE}" ] && [ "$(cat "${UMASK_PROFILE}")" = "${UMASK_EXPECTED}" ]; then
+    skip "umask profile already correct"
+else
+    printf '%s\n' "${UMASK_EXPECTED}" > "${UMASK_PROFILE}" || die "Could not write ${UMASK_PROFILE}"
+    chmod 644 "${UMASK_PROFILE}" || die "Could not chmod ${UMASK_PROFILE}"
+    ok "umask hardening configured (027)"
+fi
+
+# ============================================================
 # Blacklist unused/dangerous kernel modules
 # ============================================================
 
