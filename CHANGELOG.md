@@ -23,6 +23,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Blacklist n_hdlc (CVE-2017-2636), ax25, netrom, x25, can, vivid, usb_storage, bluetooth, btusb modules on Proxmox VM where hardware is absent
 - install script creates a security script in the current working directory
 ### Fixed
+- Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
 - Enable pkgstats.timer via symlink for static unit as it has no [Install] section and cannot be enabled with systemctl enable
 - Remove --permanent flag from firewall-cmd --set-default-zone (incompatible options)
