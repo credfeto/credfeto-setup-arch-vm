@@ -215,6 +215,16 @@ sshd_set() {
 
 mkdir -p /etc/ssh/sshd_config.d
 
+# Remove legacy misnamed sshd config file (logingraceime → loginGraceTime typo fix)
+SSHD_LEGACY_GRACETIME="/etc/ssh/sshd_config.d/10-logingraceime.conf"
+if [ -f "${SSHD_LEGACY_GRACETIME}" ]; then
+    rm "${SSHD_LEGACY_GRACETIME}" || die "Could not remove ${SSHD_LEGACY_GRACETIME}"
+    SSHD_CHANGED=1
+    ok "Removed legacy misnamed sshd config file: 10-logingraceime.conf"
+else
+    skip "No legacy misnamed sshd config file present"
+fi
+
 # Host keys
 sshd_set "hostkey-ed25519"          HostKey                  /etc/ssh/ssh_host_ed25519_key
 sshd_set "hostkey-rsa"              HostKey                  /etc/ssh/ssh_host_rsa_key
@@ -260,7 +270,7 @@ sshd_set "loglevel"                 LogLevel                 VERBOSE
 # Rate limiting and access
 sshd_set "maxauthtries"             MaxAuthTries             3
 sshd_set "maxsessions"              MaxSessions              3
-sshd_set "logingraceime"            LoginGraceTime           30
+sshd_set "loginGraceTime"           LoginGraceTime           30
 
 # Disable unsafe features
 sshd_set "hostbasedauthentication"  HostbasedAuthentication  no

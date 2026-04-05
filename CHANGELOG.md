@@ -34,6 +34,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - sysctl_set no longer aborts when a key is absent from /proc/sys (e.g. kernel.kexec_load_disabled on linux-hardened with CONFIG_KEXEC=n) — persistent config is still written, live apply is skipped with a clear message
 - Detect physical network interface on VMs by matching common prefixes (eth, enp, ens) instead of using 'type ether' filter
 - Restrict autoupdate sudoers to /usr/bin/pacman only instead of unrestricted root access
+- Corrected typo in sshd config filename logingraceime to loginGraceTime and clean up old misnamed file
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
