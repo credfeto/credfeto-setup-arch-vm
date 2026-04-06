@@ -209,6 +209,16 @@ fi
 echo "Configuring SSH hardening..."
 SSHD_CHANGED=0
 
+# Ensure sshd host keys exist before configuring or validating sshd
+# On a fresh install, sshd may never have been started so keys are absent.
+# ssh-keygen -A generates all missing host key types without overwriting existing ones.
+if [ ! -f /etc/ssh/ssh_host_ed25519_key ]; then
+    ssh-keygen -A || die "Could not generate sshd host keys"
+    ok "sshd host keys generated"
+else
+    skip "sshd host keys already present"
+fi
+
 sshd_set() {
     file="/etc/ssh/sshd_config.d/10-${1}.conf"
     expected="${2} ${3}"
