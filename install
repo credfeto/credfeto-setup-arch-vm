@@ -74,6 +74,19 @@ pacman -S --noconfirm --needed docker docker-compose docker-buildx git firewalld
 ok "Packages installed"
 
 # ============================================================
+# Remove orphaned packages
+# ============================================================
+
+echo "Removing orphaned packages..."
+ORPHANS=$(pacman -Qdtq 2>/dev/null || true)
+if [ -n "${ORPHANS}" ]; then
+    printf '%s\n' "${ORPHANS}" | pacman -Rs --noconfirm - || die "Could not remove orphaned packages"
+    ok "Orphaned packages removed"
+else
+    skip "No orphaned packages to remove"
+fi
+
+# ============================================================
 # Configure reflector
 # ============================================================
 
@@ -542,56 +555,6 @@ fi
 systemctl daemon-reload || die "Could not reload systemd daemon"
 systemctl enable --now paccache-cleanup.timer || die "Could not enable paccache-cleanup.timer"
 ok "paccache cleanup service configured"
-
-# ============================================================
-# Configure orphan package removal service
-# ============================================================
-
-echo "Configuring orphan package removal service..."
-ORPHAN_SVC="/etc/systemd/system/pacman-orphan-cleanup.service"
-ORPHAN_SVC_EXPECTED=$(cat << 'EOF'
-[Unit]
-Description=Remove orphaned pacman packages
-
-[Service]
-Type=oneshot
-ExecStart=/bin/sh -c 'ORPHANS=$(pacman -Qdtq 2>/dev/null); [ -z "${ORPHANS}" ] || printf "%s\n" "${ORPHANS}" | pacman -Rs --noconfirm -'
-ProtectHome=true
-NoNewPrivileges=true
-RestrictRealtime=true
-RestrictSUIDSGID=true
-EOF
-)
-if [ -f "${ORPHAN_SVC}" ] && [ "$(cat "${ORPHAN_SVC}")" = "${ORPHAN_SVC_EXPECTED}" ]; then
-    skip "pacman-orphan-cleanup.service already correct"
-else
-    printf '%s\n' "${ORPHAN_SVC_EXPECTED}" > "${ORPHAN_SVC}" || die "Could not write ${ORPHAN_SVC}"
-    ok "pacman-orphan-cleanup.service written"
-fi
-
-ORPHAN_TIMER="/etc/systemd/system/pacman-orphan-cleanup.timer"
-ORPHAN_TIMER_EXPECTED=$(cat << 'EOF'
-[Unit]
-Description=Remove orphaned pacman packages weekly
-
-[Timer]
-OnCalendar=weekly
-Persistent=true
-
-[Install]
-WantedBy=timers.target
-EOF
-)
-if [ -f "${ORPHAN_TIMER}" ] && [ "$(cat "${ORPHAN_TIMER}")" = "${ORPHAN_TIMER_EXPECTED}" ]; then
-    skip "pacman-orphan-cleanup.timer already correct"
-else
-    printf '%s\n' "${ORPHAN_TIMER_EXPECTED}" > "${ORPHAN_TIMER}" || die "Could not write ${ORPHAN_TIMER}"
-    ok "pacman-orphan-cleanup.timer written"
-fi
-
-systemctl daemon-reload || die "Could not reload systemd daemon"
-systemctl enable --now pacman-orphan-cleanup.timer || die "Could not enable pacman-orphan-cleanup.timer"
-ok "orphan package removal service configured"
 
 # ============================================================
 # Configure docker-cleanup service
@@ -1066,19 +1029,6 @@ ok "resolv.conf written"
 systemctl daemon-reload
 [ "$RESTART" = "1" ] && systemctl restart docker
 networkctl reload
-
-# ============================================================
-# Remove orphaned packages
-# ============================================================
-
-echo "Removing orphaned packages..."
-ORPHANS=$(pacman -Qdtq 2>/dev/null || true)
-if [ -n "${ORPHANS}" ]; then
-    printf '%s\n' "${ORPHANS}" | pacman -Rs --noconfirm - || die "Could not remove orphaned packages"
-    ok "Orphaned packages removed"
-else
-    skip "No orphaned packages to remove"
-fi
 
 # ============================================================
 # Configure ansible-pull for automatic updates
