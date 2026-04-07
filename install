@@ -794,7 +794,8 @@ sysctl_set kernel.randomize_va_space                2
 sysctl_set kernel.sysrq                             0
 sysctl_set net.ipv4.tcp_syncookies                  1
 sysctl_set net.ipv4.tcp_rfc1337                     1
-# Disable TCP timestamps to prevent uptime/fingerprinting leakage (RFC 1323 optional feature)
+# Disable TCP timestamps to prevent uptime-based fingerprinting and PAWS-bypass techniques;
+# net.ipv4.tcp_rfc1337=1 above provides partial mitigation for TIME-WAIT assassination.
 # Reference: https://obscurix.github.io/security/kernel-hardening.html
 sysctl_set net.ipv4.tcp_timestamps                  0
 sysctl_set net.ipv4.conf.default.rp_filter          1
