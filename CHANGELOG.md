@@ -44,6 +44,8 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Enable post-quantum key exchange algorithms (mlkem768x25519-sha256, sntrup761x25519-sha512) in SSH server to prevent store-now-decrypt-later attacks
 - Ensure sshd host keys are generated before SSH configuration on fresh installs
 - Add idempotency checks to paccache-cleanup service and timer configuration
+- Skip manual reflector.service start when reflector.timer is already active
+- Add idempotency check for reflector.conf configuration
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
