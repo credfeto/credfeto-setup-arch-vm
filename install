@@ -70,7 +70,22 @@ case "$(uname -r)" in
 esac
 
 echo "Installing packages..."
-pacman -S --noconfirm --needed docker docker-compose docker-buildx git firewalld fail2ban pkgstats reflector pacman-contrib openssh logrotate ansible || die "Could not install packages"
+pacman -S --noconfirm --needed \
+    ansible \
+    apparmor \
+    audit \
+    docker \
+    docker-buildx \
+    docker-compose \
+    fail2ban \
+    firewalld \
+    git \
+    logrotate \
+    openssh \
+    pacman-contrib \
+    pkgstats \
+    reflector \
+    || die "Could not install packages"
 ok "Packages installed"
 
 # ============================================================
@@ -708,7 +723,6 @@ fi
 # The audit package provides the auditd daemon for AppArmor audit logging.
 
 echo "Configuring AppArmor..."
-pacman -S --noconfirm --needed apparmor audit || die "Could not install apparmor and audit"
 systemctl enable --now apparmor || die "Could not enable apparmor"
 ok "AppArmor service enabled"
 systemctl enable --now auditd || die "Could not enable auditd"

@@ -70,6 +70,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - autoupdate user always created regardless of whether yay is installed
 - auto-update service always runs as autoupdate user; wrapper uses sudo pacman as fallback when yay is absent
 - Add integrity LSM to GRUB lsm= kernel parameter for IMA support alongside AppArmor
+- Consolidated all unconditional pacman package installs into a single sorted call
 ### Removed
 - Remove criu and pigz packages — neither is used or configured by the script
 - Remove curl-based security script in favour of ansible-pull timer
