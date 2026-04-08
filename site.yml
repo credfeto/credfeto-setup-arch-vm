@@ -9,6 +9,7 @@
     - users
     - docker
     - sysctl
+    - proc
     - grub
     - ssh
     - firewall
