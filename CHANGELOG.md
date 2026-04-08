@@ -42,6 +42,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Ansible playbook with 11 roles (packages, users, docker, sysctl, grub, ssh, firewall, network, apparmor, services, ansible_pull) replacing the monolithic install script with native Ansible tasks using ansible.posix and community.general collections
 - ansible-lint job added to pull-request.yml CI workflow
 - requirements.yml listing ansible.posix and community.general collections
+- Mount /proc with hidepid=2 and gid=proc to prevent cross-user process visibility
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run

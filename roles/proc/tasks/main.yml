@@ -1,0 +1,60 @@
+---
+- name: Create proc system group
+  ansible.builtin.group:
+    name: proc
+    system: true
+    state: present
+
+- name: Write systemd-logind proc group drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/systemd-logind.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Write systemd-logind proc group drop-in
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/systemd-logind.service.d/proc-group.conf
+    content: |
+      [Service]
+      SupplementaryGroups=proc
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart systemd-logind
+
+- name: Write proc mount hidepid drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/proc.mount.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Write proc mount hidepid drop-in
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/proc.mount.d/hidepid.conf
+    content: |
+      [Mount]
+      Options=nosuid,nodev,noexec,hidepid=2,gid=proc
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Check if /proc is already mounted with hidepid=2
+  ansible.builtin.shell:
+    cmd: set -o pipefail; findmnt -n -o OPTIONS /proc | grep -q hidepid=2 && echo yes || echo no
+    executable: /bin/bash
+  register: proc_hidepid_check
+  changed_when: false
+  failed_when: false
+
+- name: Remount /proc with hidepid=2 live
+  ansible.builtin.command:
+    cmd: mount -o remount,nosuid,nodev,noexec,hidepid=2,gid=proc /proc
+  changed_when: true
+  when: proc_hidepid_check.stdout == 'no'

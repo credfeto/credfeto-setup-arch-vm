@@ -1,0 +1,9 @@
+---
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Restart systemd-logind
+  ansible.builtin.systemd:
+    name: systemd-logind
+    state: restarted
