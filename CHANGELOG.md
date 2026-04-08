@@ -29,6 +29,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Enable auditd service for AppArmor audit event logging
 - Remove orphaned packages inline after package install step rather than via a systemd timer
 - Enforce signed kernel modules via module.sig_enforce=1 GRUB parameter to prevent loading of unsigned modules
+- Add mitigations=auto to GRUB to explicitly enable all applicable CPU vulnerability mitigations (Spectre, Meltdown, MDS, etc.)
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
