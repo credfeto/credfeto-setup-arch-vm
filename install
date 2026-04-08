@@ -791,6 +791,10 @@ sysctl_set kernel.kexec_load_disabled               1
 sysctl_set kernel.kptr_restrict                     2
 sysctl_set kernel.yama.ptrace_scope                 2
 sysctl_set kernel.randomize_va_space                2
+# Maximise ASLR entropy for 64-bit and 32-bit compat mmap — harder to brute-force bypass.
+# Reference: https://obscurix.github.io/security/kernel-hardening.html
+sysctl_set vm.mmap_rnd_bits                         32
+sysctl_set vm.mmap_rnd_compat_bits                  16
 sysctl_set kernel.sysrq                             0
 sysctl_set net.ipv4.tcp_syncookies                  1
 sysctl_set net.ipv4.tcp_rfc1337                     1
