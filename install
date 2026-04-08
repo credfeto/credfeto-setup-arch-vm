@@ -978,6 +978,80 @@ else
 fi
 
 # ============================================================
+# Harden /proc with hidepid=2 to prevent cross-user process visibility
+# ============================================================
+
+# hidepid=2 hides /proc/<pid> entries entirely for processes not owned by the user.
+# A 'proc' system group is used to exempt privileged services (systemd-logind, polkit).
+# Reference: https://wiki.archlinux.org/title/Security#hidepid
+#            https://obscurix.github.io/security/kernel-hardening.html
+
+echo "Hardening /proc with hidepid=2..."
+
+# Create the 'proc' system group if it does not exist
+if getent group proc > /dev/null 2>&1; then
+    skip "proc group already exists"
+else
+    groupadd --system proc || die "Could not create proc group"
+    ok "proc group created"
+fi
+
+# Add root to the proc group so root retains full /proc access
+if id -nG root | tr ' ' '\n' | grep -qx proc; then
+    skip "root already in proc group"
+else
+    gpasswd -a root proc || die "Could not add root to proc group"
+    ok "root added to proc group"
+fi
+
+# Give systemd-logind access to /proc via SupplementaryGroups=proc
+LOGIND_DROPIN_DIR="/etc/systemd/system/systemd-logind.service.d"
+LOGIND_DROPIN="${LOGIND_DROPIN_DIR}/proc-group.conf"
+LOGIND_DROPIN_EXPECTED=$(cat << 'EOF'
+[Service]
+SupplementaryGroups=proc
+EOF
+)
+mkdir -p "${LOGIND_DROPIN_DIR}"
+if [ -f "${LOGIND_DROPIN}" ] && [ "$(cat "${LOGIND_DROPIN}")" = "${LOGIND_DROPIN_EXPECTED}" ]; then
+    skip "systemd-logind proc group drop-in already correct"
+else
+    printf '%s\n' "${LOGIND_DROPIN_EXPECTED}" > "${LOGIND_DROPIN}" || die "Could not write ${LOGIND_DROPIN}"
+    systemctl daemon-reload || die "Could not reload systemd daemon"
+    systemctl restart systemd-logind || die "Could not restart systemd-logind"
+    ok "systemd-logind proc group drop-in configured"
+fi
+
+# Configure /proc mount with hidepid=2 and gid=proc via systemd drop-in.
+# Docker containers have their own /proc namespace and are unaffected.
+PROC_MOUNT_DROPIN_DIR="/etc/systemd/system/proc.mount.d"
+PROC_MOUNT_DROPIN="${PROC_MOUNT_DROPIN_DIR}/hidepid.conf"
+PROC_MOUNT_DROPIN_EXPECTED=$(cat << 'EOF'
+[Mount]
+Options=nosuid,nodev,noexec,hidepid=2,gid=proc
+EOF
+)
+mkdir -p "${PROC_MOUNT_DROPIN_DIR}"
+if [ -f "${PROC_MOUNT_DROPIN}" ] && [ "$(cat "${PROC_MOUNT_DROPIN}")" = "${PROC_MOUNT_DROPIN_EXPECTED}" ]; then
+    skip "/proc hidepid drop-in already correct"
+else
+    printf '%s\n' "${PROC_MOUNT_DROPIN_EXPECTED}" > "${PROC_MOUNT_DROPIN}" || die "Could not write ${PROC_MOUNT_DROPIN}"
+    ok "/proc hidepid drop-in written"
+fi
+
+# Apply hidepid=2 live — remount /proc with the new options
+PROC_MOUNT_OPTS=$(findmnt -n -o OPTIONS /proc 2>/dev/null || true)
+case "${PROC_MOUNT_OPTS}" in
+    *hidepid=2*)
+        skip "/proc already mounted with hidepid=2"
+        ;;
+    *)
+        mount -o remount,nosuid,nodev,noexec,hidepid=2,gid=proc /proc || die "Could not remount /proc with hidepid=2"
+        ok "/proc remounted with hidepid=2"
+        ;;
+esac
+
+# ============================================================
 # Configure network
 # ============================================================
 
