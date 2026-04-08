@@ -35,6 +35,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Persist net.ipv6.conf.all.forwarding=1 and net.ipv6.conf.default.forwarding=1 for routed Docker/VM traffic
 - Block newly connected USB devices after boot via kernel.deny_new_usb=1 to prevent BadUSB attacks on a headless server VM
 - Add mitigations=auto to GRUB to explicitly enable all applicable CPU vulnerability mitigations (Spectre, Meltdown, MDS, etc.)
+- Disable TCP SACK (net.ipv4.tcp_sack=0) to reduce remote kernel exploit surface (CVE-2019-11477, CVE-2019-11478, CVE-2019-11479)
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run

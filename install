@@ -862,6 +862,13 @@ sysctl_set kernel.perf_event_paranoid               3
 # Reference: https://obscurix.github.io/security/kernel-hardening.html
 sysctl_set kernel.deny_new_usb                      1
 
+# Disable TCP SACK (Selective Acknowledgment) — a history of critical remote kernel
+# vulnerabilities (CVE-2019-11477, CVE-2019-11478, CVE-2019-11479). On a VM with
+# reliable datacenter networking the performance trade-off of full-window retransmits
+# on packet loss is negligible.
+# Reference: https://obscurix.github.io/security/kernel-hardening.html
+sysctl_set net.ipv4.tcp_sack                        0
+
 if [ "$SYSCTL_CHANGED" = "1" ]; then
     sysctl --system || die "Could not apply sysctl settings"
     ok "sysctl settings applied"
