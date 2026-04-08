@@ -37,6 +37,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Add mitigations=auto to GRUB to explicitly enable all applicable CPU vulnerability mitigations (Spectre, Meltdown, MDS, etc.)
 - Add mce=0 to GRUB to panic immediately on uncorrectable hardware memory errors
 - Disable TCP SACK (net.ipv4.tcp_sack=0) to reduce remote kernel exploit surface (CVE-2019-11477, CVE-2019-11478, CVE-2019-11479)
+- Enable IOMMU in GRUB (intel_iommu=on, amd_iommu=on, iommu=force) to provide DMA protection against malicious devices
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
