@@ -832,6 +832,15 @@ sysctl_set net.ipv4.conf.default.log_martians       1
 # Reference: https://www.kernel.org/doc/html/latest/admin-guide/perf-security.html
 sysctl_set kernel.perf_event_paranoid               3
 
+# Block newly connected USB devices after boot to prevent BadUSB attacks and
+# physical access exploitation. After boot there is no legitimate reason to
+# connect new USB devices to a headless server VM. The sysctl_set helper
+# handles absent sysctls gracefully (linux-hardened may or may not expose this).
+# The usb_storage module is already blacklisted; this provides kernel-level
+# enforcement regardless of module state.
+# Reference: https://obscurix.github.io/security/kernel-hardening.html
+sysctl_set kernel.deny_new_usb                      1
+
 if [ "$SYSCTL_CHANGED" = "1" ]; then
     sysctl --system || die "Could not apply sysctl settings"
     ok "sysctl settings applied"
