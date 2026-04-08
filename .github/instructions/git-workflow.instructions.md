@@ -27,7 +27,14 @@ Before starting any work:
   Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
   ```
 
+## Issue Assignment
+
+- Before picking up an issue, assign it to yourself: `gh issue edit <number> --add-assignee @me`
+- Do not pick up issues already assigned to someone else.
+- Do not work on issues labelled `on-hold`.
+
 ## Pull Requests
 
 - PRs must be reviewed by at least one other maintainer before merging.
 - All changes must be tested and verified before merging.
+- Always add yourself as assignee when creating or updating a PR: `gh pr edit <number> --add-assignee @me`
