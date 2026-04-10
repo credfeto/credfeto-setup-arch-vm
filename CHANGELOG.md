@@ -47,6 +47,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Add idempotency checks to paccache-cleanup service and timer configuration
 - Skip manual reflector.service start when reflector.timer is already active
 - Add idempotency check for reflector.conf configuration
+- Disable TCP timestamps (net.ipv4.tcp_timestamps=0) to prevent uptime leakage and OS fingerprinting
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
