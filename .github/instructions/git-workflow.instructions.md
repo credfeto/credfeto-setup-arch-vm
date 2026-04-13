@@ -43,6 +43,8 @@ Before starting any work:
 - Follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) format.
 - Keep commits small and focused, each with a descriptive message.
 - **Never push empty commits** — always verify there are actual staged changes before committing; if nothing is staged, do not commit.
+- **Run tests before every push** — confirm all tests pass before pushing any commit; fix failures before pushing, never push broken code.
+- **Monitor CI after every push** — after pushing, check the PR's CI status; if any check fails, read the failure logs, fix the cause locally, re-run tests, and push again; report to the user if CI fails 3 times on the same PR without resolution.
 - **One commit per review comment** — when addressing PR review comments, each individual comment must be resolved in its own separate commit; do not batch multiple review comments into one commit.
 - Always include the Co-authored-by trailer:
   ```
