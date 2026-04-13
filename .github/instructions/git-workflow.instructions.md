@@ -7,6 +7,26 @@ applyTo: '**'
 
 # Git Workflow
 
+## Git Identity Check (MANDATORY before any commit)
+
+Before making any git commit, verify the configured identity is correct and GPG signing is enabled:
+
+```bash
+CURRENT_EMAIL=$(git config user.email)
+if [ "$CURRENT_EMAIL" = "andy@nanoclaw.ai" ] || [ -z "$CURRENT_EMAIL" ]; then
+  echo "ERROR: Git is configured with the wrong identity ($CURRENT_EMAIL). Aborting."
+  exit 1
+fi
+if [ "$(git config commit.gpgsign)" != "true" ]; then
+  echo "ERROR: GPG signing is not enabled. Aborting."
+  exit 1
+fi
+```
+
+**If either check fails: stop all work immediately, do not commit, and report the misconfiguration.**
+
+---
+
 **Never commit directly to `main`.** All changes must be made on a feature branch.
 
 Before starting any work:
@@ -22,6 +42,8 @@ Before starting any work:
 
 - Follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) format.
 - Keep commits small and focused, each with a descriptive message.
+- **Never push empty commits** — always verify there are actual staged changes before committing; if nothing is staged, do not commit.
+- **One commit per review comment** — when addressing PR review comments, each individual comment must be resolved in its own separate commit; do not batch multiple review comments into one commit.
 - Always include the Co-authored-by trailer:
   ```
   Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
@@ -32,6 +54,14 @@ Before starting any work:
 - Before picking up an issue, assign it to yourself: `gh issue edit <number> --add-assignee @me`
 - Do not pick up issues already assigned to someone else.
 - Do not work on issues labelled `on-hold`.
+
+## Multi-Agent Implementation and Review Pattern
+
+All implementation work uses a two-agent loop:
+
+1. **Implementer agent** — reads all instruction files, implements the issue, commits (GPG signed), pushes, opens PR.
+2. **Reviewer agent** — reads all instruction files, runs `git diff origin/main...HEAD`, checks every change against every rule, fixes violations, commits, pushes. Reports `clean` if no violations found.
+3. **Repeat** the reviewer step until it reports `clean` (capped at 5 iterations).
 
 ## Pull Requests
 
