@@ -55,6 +55,14 @@ Before starting any work:
 - Do not pick up issues already assigned to someone else.
 - Do not work on issues labelled `on-hold`.
 
+## Multi-Agent Implementation and Review Pattern
+
+All implementation work uses a two-agent loop:
+
+1. **Implementer agent** — reads all instruction files, implements the issue, commits (GPG signed), pushes, opens PR.
+2. **Reviewer agent** — reads all instruction files, runs `git diff origin/main...HEAD`, checks every change against every rule, fixes violations, commits, pushes. Reports `clean` if no violations found.
+3. **Repeat** the reviewer step until it reports `clean` (capped at 5 iterations).
+
 ## Pull Requests
 
 - PRs must be reviewed by at least one other maintainer before merging.
