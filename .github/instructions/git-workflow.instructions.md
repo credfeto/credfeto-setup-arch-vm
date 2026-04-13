@@ -42,6 +42,8 @@ Before starting any work:
 
 - Follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) format.
 - Keep commits small and focused, each with a descriptive message.
+- **Never push empty commits** — always verify there are actual staged changes before committing; if nothing is staged, do not commit.
+- **One commit per review comment** — when addressing PR review comments, each individual comment must be resolved in its own separate commit; do not batch multiple review comments into one commit.
 - Always include the Co-authored-by trailer:
   ```
   Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
