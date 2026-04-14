@@ -59,6 +59,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - change rp_filter from strict (1) to loose (2) to allow Docker container routing; persist net.ipv4.ip_forward=1 so container traffic survives sysctl reloads
 - net.bridge.bridge-nf-call-iptables corrected to 1 (was incorrectly set to 0 in #111) — value 1 enables iptables filtering on bridged traffic, required for Docker networking rules to apply to container traffic
 - Docker daemon.json: set firewall-backend to nftables so Docker uses nftables for its NAT/filtering rules, consistent with the system firewall (firewalld running in nftables mode)
+- Clarify TCP timestamps comment: document PAWS-bypass mitigation and relationship with net.ipv4.tcp_rfc1337=1
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
