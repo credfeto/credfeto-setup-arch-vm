@@ -805,8 +805,13 @@ sysctl_set net.ipv4.tcp_rfc1337                     1
 # Disable TCP timestamps to prevent uptime/fingerprinting leakage (RFC 1323 optional feature)
 # Reference: https://obscurix.github.io/security/kernel-hardening.html
 sysctl_set net.ipv4.tcp_timestamps                  0
-sysctl_set net.ipv4.conf.default.rp_filter          1
-sysctl_set net.ipv4.conf.all.rp_filter              1
+# Loose reverse-path filtering (2) instead of strict (1): strict mode drops packets on
+# asymmetric routes (e.g. Docker container traffic via docker0) even when they are valid.
+sysctl_set net.ipv4.conf.default.rp_filter          2
+sysctl_set net.ipv4.conf.all.rp_filter              2
+# Persist IP forwarding so routed traffic (Docker containers, VMs) can reach external networks.
+# Docker enables this at runtime but does not persist it; a sysctl reload would revert it.
+sysctl_set net.ipv4.ip_forward                      1
 sysctl_set net.ipv4.conf.all.accept_redirects       0
 sysctl_set net.ipv4.conf.default.accept_redirects   0
 sysctl_set net.ipv4.conf.all.secure_redirects       0

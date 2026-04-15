@@ -50,6 +50,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Add idempotency check for reflector.conf configuration
 - Disable TCP timestamps (net.ipv4.tcp_timestamps=0) to prevent uptime leakage and OS fingerprinting
 - set net.bridge.bridge-nf-call-iptables=0 via sysctl; enable firewalld masquerade with --add-masquerade
+- change rp_filter from strict (1) to loose (2) to allow Docker container routing; persist net.ipv4.ip_forward=1 so container traffic survives sysctl reloads
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
