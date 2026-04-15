@@ -228,6 +228,14 @@ firewalld_allow_private() {
 
 firewalld_allow_private tcp 22
 
+if ! firewall-cmd --permanent --query-masquerade > /dev/null 2>&1; then
+    firewall-cmd --permanent --add-masquerade || die "Could not add masquerade to firewalld"
+    FIREWALLD_CHANGED=1
+    ok "firewalld: masquerade enabled"
+else
+    skip "firewalld: masquerade already enabled"
+fi
+
 if [ "${FIREWALLD_CHANGED}" = "1" ]; then
     firewall-cmd --reload || die "Could not reload firewalld"
     ok "firewalld reloaded"
@@ -813,6 +821,7 @@ sysctl_set net.ipv6.conf.all.accept_source_route    0
 sysctl_set net.ipv6.conf.default.accept_source_route 0
 sysctl_set net.ipv6.conf.all.accept_ra              0
 sysctl_set net.ipv6.conf.default.accept_ra          0
+sysctl_set net.bridge.bridge-nf-call-iptables        0
 sysctl_set net.ipv4.icmp_echo_ignore_all            1
 sysctl_set net.ipv4.icmp_echo_ignore_broadcasts     1
 sysctl_set net.ipv4.icmp_ignore_bogus_error_responses 1
