@@ -7,6 +7,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 
 ## [Unreleased]
 ### Added
+- Git workflow instructions: never-squash-commits rule to preserve the full commit history however messy the path
 - AI instructions: mandatory git identity and GPG signing check before any commit — abort if identity is `andy@nanoclaw.ai` or GPG signing is disabled
 - SSH hardening with strong crypto, key-only auth, and no root login
 - Additional sysctl hardening: ASLR, sysrq disable, source route blocking, RA disable, ICMP broadcast, filesystem protections, core dump prevention
