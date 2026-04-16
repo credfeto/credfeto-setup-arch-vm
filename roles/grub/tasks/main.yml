@@ -1,0 +1,169 @@
+---
+# Fix typo from earlier versions of the install script
+- name: Fix hardened_usercopy typo in GRUB config
+  ansible.builtin.replace:
+    path: /etc/default/grub
+    regexp: 'hardend_usercopy'
+    replace: 'hardened_usercopy'
+  notify: Regenerate GRUB config
+
+# Ensure lsm= includes integrity
+- name: Ensure lsm parameter includes integrity
+  ansible.builtin.replace:
+    path: /etc/default/grub
+    regexp: '(GRUB_CMDLINE_LINUX="[^"]*)\blsm=(?!.*\bintegrity\b)([^" ]*)'
+    replace: '\1lsm=landlock,lockdown,yama,integrity,apparmor,bpf'
+  notify: Regenerate GRUB config
+
+# Add each required kernel parameter if not already present
+- name: Ensure panic=20 in GRUB_CMDLINE_LINUX
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    backrefs: true
+    regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\bpanic=).*)"$'
+    line: '\1 panic=20"'
+  notify: Regenerate GRUB config
+
+- name: Ensure mce=0 in GRUB_CMDLINE_LINUX
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    backrefs: true
+    regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\bmce=).*)"$'
+    line: '\1 mce=0"'
+  notify: Regenerate GRUB config
+
+- name: Ensure oops=panic in GRUB_CMDLINE_LINUX
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    backrefs: true
+    regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\boops=).*)"$'
+    line: '\1 oops=panic"'
+  notify: Regenerate GRUB config
+
+- name: Ensure mitigations=auto in GRUB_CMDLINE_LINUX
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    backrefs: true
+    regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\bmitigations=).*)"$'
+    line: '\1 mitigations=auto"'
+  notify: Regenerate GRUB config
+
+- name: Ensure slab_nomerge in GRUB_CMDLINE_LINUX
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    backrefs: true
+    regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\bslab_nomerge\b).*)"$'
+    line: '\1 slab_nomerge"'
+  notify: Regenerate GRUB config
+
+- name: Ensure slub_debug=FZ in GRUB_CMDLINE_LINUX
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    backrefs: true
+    regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\bslub_debug=).*)"$'
+    line: '\1 slub_debug=FZ"'
+  notify: Regenerate GRUB config
+
+- name: Ensure init_on_alloc=1 in GRUB_CMDLINE_LINUX
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    backrefs: true
+    regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\binit_on_alloc=).*)"$'
+    line: '\1 init_on_alloc=1"'
+  notify: Regenerate GRUB config
+
+- name: Ensure init_on_free=1 in GRUB_CMDLINE_LINUX
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    backrefs: true
+    regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\binit_on_free=).*)"$'
+    line: '\1 init_on_free=1"'
+  notify: Regenerate GRUB config
+
+- name: Ensure pti=on in GRUB_CMDLINE_LINUX
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    backrefs: true
+    regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\bpti=).*)"$'
+    line: '\1 pti=on"'
+  notify: Regenerate GRUB config
+
+- name: Ensure lsm= in GRUB_CMDLINE_LINUX
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    backrefs: true
+    regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\blsm=).*)"$'
+    line: '\1 lsm=landlock,lockdown,yama,integrity,apparmor,bpf"'
+  notify: Regenerate GRUB config
+
+- name: Ensure apparmor=1 in GRUB_CMDLINE_LINUX
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    backrefs: true
+    regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\bapparmor=).*)"$'
+    line: '\1 apparmor=1"'
+  notify: Regenerate GRUB config
+
+- name: Ensure security=apparmor in GRUB_CMDLINE_LINUX
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    backrefs: true
+    regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\bsecurity=).*)"$'
+    line: '\1 security=apparmor"'
+  notify: Regenerate GRUB config
+
+- name: Ensure lockdown=confidentiality in GRUB_CMDLINE_LINUX
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    backrefs: true
+    regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\blockdown=).*)"$'
+    line: '\1 lockdown=confidentiality"'
+  notify: Regenerate GRUB config
+
+- name: Ensure hardened_usercopy=on in GRUB_CMDLINE_LINUX
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    backrefs: true
+    regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\bhardened_usercopy=).*)"$'
+    line: '\1 hardened_usercopy=on"'
+  notify: Regenerate GRUB config
+
+- name: Ensure ia32_emulation=0 in GRUB_CMDLINE_LINUX
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    backrefs: true
+    regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\bia32_emulation=).*)"$'
+    line: '\1 ia32_emulation=0"'
+  notify: Regenerate GRUB config
+
+- name: Ensure module.sig_enforce=1 in GRUB_CMDLINE_LINUX
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    backrefs: true
+    regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\bmodule\.sig_enforce=).*)"$'
+    line: '\1 module.sig_enforce=1"'
+  notify: Regenerate GRUB config
+
+- name: Ensure intel_iommu=on in GRUB_CMDLINE_LINUX
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    backrefs: true
+    regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\bintel_iommu=).*)"$'
+    line: '\1 intel_iommu=on"'
+  notify: Regenerate GRUB config
+
+- name: Ensure amd_iommu=on in GRUB_CMDLINE_LINUX
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    backrefs: true
+    regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\bamd_iommu=).*)"$'
+    line: '\1 amd_iommu=on"'
+  notify: Regenerate GRUB config
+
+- name: Ensure iommu=force in GRUB_CMDLINE_LINUX
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    backrefs: true
+    regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\biommu=).*)"$'
+    line: '\1 iommu=force"'
+  notify: Regenerate GRUB config

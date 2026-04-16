@@ -50,6 +50,18 @@ jobs:
             core.info('Repo: ${{env.REPO}}');
             core.info('Owner: ${{env.REPO_OWNER}}');
 
+  ansible-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout source"
+        uses: actions/checkout@v6.0.2
+
+      - name: "Install Ansible and ansible-lint"
+        run: pip install ansible ansible-lint
+
+      - name: "Run ansible-lint"
+        run: ansible-lint site.yml
+
   pull-request:
     runs-on: ubuntu-latest
 

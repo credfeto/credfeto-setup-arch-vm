@@ -1,0 +1,5 @@
+---
+- name: Regenerate GRUB config
+  ansible.builtin.command:
+    cmd: grub-mkconfig -o /boot/grub/grub.cfg
+  changed_when: true

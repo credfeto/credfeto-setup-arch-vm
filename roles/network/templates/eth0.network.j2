@@ -1,0 +1,27 @@
+[Match]
+Name={{ detected_nic.stdout }}
+
+[Link]
+RequiredForOnline=routable
+
+[Network]
+DNS=192.168.42.251 192.168.42.252 192.168.42.253 192.168.42.254
+DNS=2a02:8010:61d5:42::251 2a02:8010:61d5:42::252 2a02:8010:61d5:42::253 2a02:8010:61d5:42::254
+
+[Address]
+Address={{ detected_ipv4.stdout }}
+{% if detected_gw4.stdout | length > 0 %}
+
+[Route]
+Gateway={{ detected_gw4.stdout }}
+{% endif %}
+{% if detected_ipv6.stdout | length > 0 %}
+
+[Address]
+Address={{ detected_ipv6.stdout }}
+{% endif %}
+{% if detected_gw6.stdout | length > 0 %}
+
+[Route]
+Gateway={{ detected_gw6.stdout }}
+{% endif %}

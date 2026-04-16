@@ -1,0 +1,16 @@
+[Unit]
+Description=Remove unused docker images
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=docker image prune --all --force
+ProtectSystem=full
+ProtectHome=true
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictSUIDSGID=true

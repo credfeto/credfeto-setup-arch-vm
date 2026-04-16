@@ -1,0 +1,6 @@
+#!/bin/sh
+if [ -x /usr/bin/yay ]; then
+    exec yay -Syyu --noconfirm
+else
+    exec sudo pacman -Syyu --noconfirm
+fi

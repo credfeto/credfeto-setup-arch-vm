@@ -1,0 +1,71 @@
+---
+# The eth0.network file is only written on first run (when it doesn't already exist).
+# It captures the current IP/GW at bootstrap time; subsequent runs leave it alone.
+- name: Detect primary network interface
+  ansible.builtin.shell:
+    cmd: ip -o link show | awk '/^[0-9]+: (eth|enp|ens)/{sub(/:$/, "", $2); print $2; exit}'
+  register: detected_nic
+  changed_when: false
+  when: not ansible_check_mode
+
+- name: Detect IPv4 address
+  ansible.builtin.shell:
+    cmd: "ip -o -4 addr show dev {{ detected_nic.stdout }} scope global | awk 'NR==1{print $4}'"
+  register: detected_ipv4
+  changed_when: false
+  when:
+    - not ansible_check_mode
+    - detected_nic.stdout | length > 0
+
+- name: Detect IPv4 gateway
+  ansible.builtin.shell:
+    cmd: "ip -4 route show default dev {{ detected_nic.stdout }} | awk 'NR==1{print $3}'"
+  register: detected_gw4
+  changed_when: false
+  when:
+    - not ansible_check_mode
+    - detected_nic.stdout | length > 0
+
+- name: Detect IPv6 address
+  ansible.builtin.shell:
+    cmd: "ip -o -6 addr show dev {{ detected_nic.stdout }} scope global | awk 'NR==1{print $4}'"
+  register: detected_ipv6
+  changed_when: false
+  when:
+    - not ansible_check_mode
+    - detected_nic.stdout | length > 0
+
+- name: Detect IPv6 gateway
+  ansible.builtin.shell:
+    cmd: "ip -6 route show default dev {{ detected_nic.stdout }} 2>/dev/null | awk 'NR==1{print $3}'"
+  register: detected_gw6
+  changed_when: false
+  when:
+    - not ansible_check_mode
+    - detected_nic.stdout | length > 0
+
+- name: Write systemd-networkd configuration for primary interface
+  ansible.builtin.template:
+    src: eth0.network.j2
+    dest: /etc/systemd/network/eth0.network
+    owner: root
+    group: root
+    mode: "0644"
+  when:
+    - not ansible_check_mode
+    - detected_nic.stdout | length > 0
+    - detected_ipv4.stdout | length > 0
+
+- name: Write /etc/resolv.conf
+  ansible.builtin.copy:
+    src: resolv.conf
+    dest: /etc/resolv.conf
+    owner: root
+    group: root
+    mode: "0644"
+    force: true
+
+- name: Reload networkctl
+  ansible.builtin.command:
+    cmd: networkctl reload
+  changed_when: true

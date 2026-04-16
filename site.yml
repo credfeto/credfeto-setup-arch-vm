@@ -1,30 +1,18 @@
 ---
-# ansible-pull entry point
-#
-# This playbook is invoked by ansible-pull running on the managed host:
-#
-#   ansible-pull -U https://github.com/credfeto/credfeto-setup-arch-vm.git -C main site.yml
-#
-# ansible-pull checks out the repository to a local working directory and then
-# runs this playbook against localhost.  The single task here delegates all
-# real configuration work to the idempotent `install` shell script that lives
-# alongside this file in the repository root.
-#
-# Why a shell script rather than native Ansible tasks?
-# The `install` script is the authoritative source of truth for this system's
-# configuration.  Duplicating its logic in YAML would create drift risk and
-# maintenance overhead.  Calling the script from Ansible lets us gain the
-# scheduling and pull-based delivery benefits of ansible-pull while keeping a
-# single implementation.
-
-- name: Apply system configuration via install script
+- name: Configure Arch Linux VM
   hosts: localhost
   connection: local
   become: true
 
-  tasks:
-    - name: Run install script
-      ansible.builtin.command:
-        cmd: "{{ playbook_dir }}/install"
-        chdir: "{{ playbook_dir }}"
-      changed_when: true
+  roles:
+    - packages
+    - users
+    - docker
+    - sysctl
+    - grub
+    - ssh
+    - firewall
+    - network
+    - apparmor
+    - services
+    - ansible_pull

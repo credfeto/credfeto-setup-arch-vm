@@ -1,0 +1,5 @@
+---
+profile: production
+warn_list:
+  - yaml[truthy]
+skip_list: []

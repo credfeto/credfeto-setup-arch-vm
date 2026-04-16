@@ -39,6 +39,9 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Disable TCP SACK (net.ipv4.tcp_sack=0) to reduce remote kernel exploit surface (CVE-2019-11477, CVE-2019-11478, CVE-2019-11479)
 - Enable IOMMU in GRUB (intel_iommu=on, amd_iommu=on, iommu=force) to provide DMA protection against malicious devices
 - Add oops=panic to GRUB to cause an immediate kernel panic on any kernel oops, preventing post-oops exploitation
+- Ansible playbook with 11 roles (packages, users, docker, sysctl, grub, ssh, firewall, network, apparmor, services, ansible_pull) replacing the monolithic install script with native Ansible tasks using ansible.posix and community.general collections
+- ansible-lint job added to pull-request.yml CI workflow
+- requirements.yml listing ansible.posix and community.general collections
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
@@ -88,6 +91,9 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - auto-update service always runs as autoupdate user; wrapper uses sudo pacman as fallback when yay is absent
 - Add integrity LSM to GRUB lsm= kernel parameter for IMA support alongside AppArmor
 - Consolidated all unconditional pacman package installs into a single sorted call
+- install script reduced to a thin bootstrap: installs ansible+git, creates autoupdate system user with NOPASSWD:ALL sudoers, writes and enables the hourly ansible-pull service+timer, then runs ansible-pull once immediately
+- ansible-pull timer changed from 6-hourly to hourly (OnUnitActiveSec=1h)
+- autoupdate sudoers broadened from NOPASSWD:/usr/bin/pacman to NOPASSWD:ALL so ansible-pull can become root for all configuration tasks
 ### Removed
 - Remove criu and pigz packages — neither is used or configured by the script
 - Remove curl-based security script in favour of ansible-pull timer

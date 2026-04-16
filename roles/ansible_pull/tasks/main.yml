@@ -1,0 +1,30 @@
+---
+- name: Install ansible-pull.service unit
+  ansible.builtin.copy:
+    src: ansible-pull.service
+    dest: /etc/systemd/system/ansible-pull.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Install ansible-pull.timer unit
+  ansible.builtin.copy:
+    src: ansible-pull.timer
+    dest: /etc/systemd/system/ansible-pull.timer
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Enable and start ansible-pull timer
+  ansible.builtin.systemd:
+    name: ansible-pull.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+
+handlers:
+  - name: Reload systemd
+    ansible.builtin.systemd:
+      daemon_reload: true

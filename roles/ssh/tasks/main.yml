@@ -1,0 +1,284 @@
+---
+- name: Ensure sshd_config.d directory exists
+  ansible.builtin.file:
+    path: /etc/ssh/sshd_config.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Generate sshd host keys if missing
+  ansible.builtin.command:
+    cmd: ssh-keygen -A
+    creates: /etc/ssh/ssh_host_ed25519_key
+
+- name: Remove legacy misnamed logingraceime config file
+  ansible.builtin.file:
+    path: /etc/ssh/sshd_config.d/10-logingraceime.conf
+    state: absent
+  notify: Reload sshd
+
+- name: Remove legacy sshd systemd security drop-in
+  ansible.builtin.file:
+    path: /etc/systemd/system/sshd.service.d/security.conf
+    state: absent
+  notify: Reload sshd
+
+# Host keys
+- name: Configure sshd HostKey ed25519
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-hostkey-ed25519.conf
+    content: "HostKey /etc/ssh/ssh_host_ed25519_key\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+- name: Configure sshd HostKey rsa
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-hostkey-rsa.conf
+    content: "HostKey /etc/ssh/ssh_host_rsa_key\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+# Key exchange, ciphers, MACs
+- name: Configure sshd KexAlgorithms
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-kexalgorithms.conf
+    content: "KexAlgorithms mlkem768x25519-sha256,sntrup761x25519-sha512@openssh.com,curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group16-sha512\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+- name: Configure sshd Ciphers
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-ciphers.conf
+    content: "Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+- name: Configure sshd MACs
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-macs.conf
+    content: "MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+# Authentication
+- name: Configure sshd PubkeyAuthentication
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-pubkeyauthentication.conf
+    content: "PubkeyAuthentication yes\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+- name: Configure sshd PermitEmptyPasswords
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-permitemptypasswords.conf
+    content: "PermitEmptyPasswords no\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+- name: Configure sshd PermitRootLogin
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-permitrootlogin.conf
+    content: "PermitRootLogin no\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+- name: Configure sshd PasswordAuthentication
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-passwordauthentication.conf
+    content: "PasswordAuthentication no\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+- name: Configure sshd KbdInteractiveAuthentication
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-kbdinteractiveauthentication.conf
+    content: "KbdInteractiveAuthentication no\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+- name: Configure sshd ChallengeResponseAuthentication
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-challengeresponseauthentication.conf
+    content: "ChallengeResponseAuthentication no\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+# Session
+- name: Configure sshd X11Forwarding
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-x11forwarding.conf
+    content: "X11Forwarding no\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+- name: Configure sshd PrintMotd
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-printmotd.conf
+    content: "PrintMotd no\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+- name: Configure sshd TCPKeepAlive
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-tcpkeepalive.conf
+    content: "TCPKeepAlive yes\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+- name: Configure sshd PermitUserEnvironment
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-permituserenvironment.conf
+    content: "PermitUserEnvironment no\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+- name: Configure sshd ClientAliveInterval
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-clientaliveinterval.conf
+    content: "ClientAliveInterval 300\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+- name: Configure sshd ClientAliveCountMax
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-clientalivecountmax.conf
+    content: "ClientAliveCountMax 2\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+# Logging
+- name: Configure sshd SyslogFacility
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-syslogfacility.conf
+    content: "SyslogFacility AUTH\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+- name: Configure sshd LogLevel
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-loglevel.conf
+    content: "LogLevel VERBOSE\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+# Rate limiting and access
+- name: Configure sshd MaxAuthTries
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-maxauthtries.conf
+    content: "MaxAuthTries 3\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+- name: Configure sshd MaxSessions
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-maxsessions.conf
+    content: "MaxSessions 3\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+- name: Configure sshd LoginGraceTime
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-loginGraceTime.conf
+    content: "LoginGraceTime 30\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+# Disable unsafe features
+- name: Configure sshd HostbasedAuthentication
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-hostbasedauthentication.conf
+    content: "HostbasedAuthentication no\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+- name: Configure sshd IgnoreRhosts
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-ignorerhosts.conf
+    content: "IgnoreRhosts yes\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+- name: Configure sshd PermitTunnel
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-permittunnel.conf
+    content: "PermitTunnel no\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+- name: Configure sshd AllowAgentForwarding
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-allowagentforwarding.conf
+    content: "AllowAgentForwarding no\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+- name: Configure sshd GatewayPorts
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-gatewayports.conf
+    content: "GatewayPorts no\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+- name: Configure sshd VersionAddendum
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-versionaddendum.conf
+    content: "VersionAddendum none\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd

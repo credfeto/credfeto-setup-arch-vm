@@ -1,0 +1,12 @@
+[Unit]
+Description=Run ansible-pull every hour to apply latest system configuration
+Requires=ansible-pull.service
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=1h
+RandomizedDelaySec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

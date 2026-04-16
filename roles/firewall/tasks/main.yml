@@ -1,0 +1,76 @@
+---
+- name: Enable and start firewalld
+  ansible.builtin.systemd:
+    name: firewalld
+    enabled: true
+    state: started
+
+- name: Remove legacy firewalld systemd security drop-in
+  ansible.builtin.file:
+    path: /etc/systemd/system/firewalld.service.d/security.conf
+    state: absent
+  notify: Restart firewalld
+
+# Allow SSH from IPv4 RFC-1918 private ranges
+- name: Allow SSH from 10.0.0.0/8 (IPv4)
+  ansible.posix.firewalld:
+    rich_rule: 'rule family="ipv4" source address="10.0.0.0/8" port protocol="tcp" port="22" accept'
+    permanent: true
+    state: enabled
+  notify: Reload firewalld
+
+- name: Allow SSH from 192.168.0.0/16 (IPv4)
+  ansible.posix.firewalld:
+    rich_rule: 'rule family="ipv4" source address="192.168.0.0/16" port protocol="tcp" port="22" accept'
+    permanent: true
+    state: enabled
+  notify: Reload firewalld
+
+- name: Allow SSH from 172.16.0.0/12 (IPv4)
+  ansible.posix.firewalld:
+    rich_rule: 'rule family="ipv4" source address="172.16.0.0/12" port protocol="tcp" port="22" accept'
+    permanent: true
+    state: enabled
+  notify: Reload firewalld
+
+# Remove legacy incorrect 172.16.0.0/20 rule if present
+- name: Remove legacy SSH rule for 172.16.0.0/20
+  ansible.posix.firewalld:
+    rich_rule: 'rule family="ipv4" source address="172.16.0.0/20" port protocol="tcp" port="22" accept'
+    permanent: true
+    state: disabled
+  notify: Reload firewalld
+
+# Allow SSH from IPv6 ULA and link-local ranges
+- name: Allow SSH from fc00::/7 (IPv6 ULA)
+  ansible.posix.firewalld:
+    rich_rule: 'rule family="ipv6" source address="fc00::/7" port protocol="tcp" port="22" accept'
+    permanent: true
+    state: enabled
+  notify: Reload firewalld
+
+- name: Allow SSH from fe80::/10 (IPv6 link-local)
+  ansible.posix.firewalld:
+    rich_rule: 'rule family="ipv6" source address="fe80::/10" port protocol="tcp" port="22" accept'
+    permanent: true
+    state: enabled
+  notify: Reload firewalld
+
+- name: Enable masquerade permanently
+  ansible.posix.firewalld:
+    masquerade: true
+    permanent: true
+    state: enabled
+  notify: Reload firewalld
+
+handlers:
+  - name: Reload firewalld
+    ansible.builtin.command:
+      cmd: firewall-cmd --reload
+    changed_when: true
+
+  - name: Restart firewalld
+    ansible.builtin.systemd:
+      name: firewalld
+      state: restarted
+      daemon_reload: true

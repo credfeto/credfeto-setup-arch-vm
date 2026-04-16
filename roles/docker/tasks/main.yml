@@ -1,0 +1,46 @@
+---
+- name: Ensure /etc/docker directory exists
+  ansible.builtin.file:
+    path: /etc/docker
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Configure Docker daemon
+  ansible.builtin.copy:
+    src: daemon.json
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart docker
+
+- name: Remove legacy Docker systemd security drop-in
+  ansible.builtin.file:
+    path: /etc/systemd/system/docker.service.d/security.conf
+    state: absent
+  notify: Reload systemd
+
+- name: Enable and start docker.socket
+  ansible.builtin.systemd:
+    name: docker.socket
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Enable and start docker service
+  ansible.builtin.systemd:
+    name: docker
+    enabled: true
+    state: started
+
+handlers:
+  - name: Reload systemd
+    ansible.builtin.systemd:
+      daemon_reload: true
+
+  - name: Restart docker
+    ansible.builtin.systemd:
+      name: docker
+      state: restarted
