@@ -63,6 +63,13 @@
     state: present
     extra_args: "--noconfirm --needed"
 
+- name: Remove linux-firmware (not needed on VMs)
+  community.general.pacman:
+    name: linux-firmware
+    state: absent
+    extra_args: "--noconfirm"
+  ignore_errors: true # noqa: ignore-errors - package may not be installed
+
 - name: Remove orphaned packages
   ansible.builtin.shell:
     cmd: |
