@@ -3,46 +3,61 @@
 # It captures the current IP/GW at bootstrap time; subsequent runs leave it alone.
 - name: Detect primary network interface
   ansible.builtin.shell:
-    cmd: "ip -o link show | awk '/^[0-9]+: (eth|enp|ens)/{sub(/:$/, \"\", $2); print $2; exit}'"
-  register: detected_nic
+    cmd: |
+      set -o pipefail
+      ip -o link show | awk '/^[0-9]+: (eth|enp|ens)/{sub(/:$/, "", $2); print $2; exit}'
+    executable: /bin/bash
+  register: network_nic
   changed_when: false
   when: not ansible_check_mode
 
 - name: Detect IPv4 address
   ansible.builtin.shell:
-    cmd: "ip -o -4 addr show dev {{ detected_nic.stdout }} scope global | awk 'NR==1{print $4}'"
-  register: detected_ipv4
+    cmd: |
+      set -o pipefail
+      ip -o -4 addr show dev {{ network_nic.stdout }} scope global | awk 'NR==1{print $4}'
+    executable: /bin/bash
+  register: network_ipv4
   changed_when: false
   when:
     - not ansible_check_mode
-    - detected_nic.stdout | length > 0
+    - network_nic.stdout | length > 0
 
 - name: Detect IPv4 gateway
   ansible.builtin.shell:
-    cmd: "ip -4 route show default dev {{ detected_nic.stdout }} | awk 'NR==1{print $3}'"
-  register: detected_gw4
+    cmd: |
+      set -o pipefail
+      ip -4 route show default dev {{ network_nic.stdout }} | awk 'NR==1{print $3}'
+    executable: /bin/bash
+  register: network_gw4
   changed_when: false
   when:
     - not ansible_check_mode
-    - detected_nic.stdout | length > 0
+    - network_nic.stdout | length > 0
 
 - name: Detect IPv6 address
   ansible.builtin.shell:
-    cmd: "ip -o -6 addr show dev {{ detected_nic.stdout }} scope global | awk 'NR==1{print $4}'"
-  register: detected_ipv6
+    cmd: |
+      set -o pipefail
+      ip -o -6 addr show dev {{ network_nic.stdout }} scope global | awk 'NR==1{print $4}'
+    executable: /bin/bash
+  register: network_ipv6
   changed_when: false
   when:
     - not ansible_check_mode
-    - detected_nic.stdout | length > 0
+    - network_nic.stdout | length > 0
 
 - name: Detect IPv6 gateway
   ansible.builtin.shell:
-    cmd: "ip -6 route show default dev {{ detected_nic.stdout }} 2>/dev/null | awk 'NR==1{print $3}'"
-  register: detected_gw6
+    cmd: |
+      set -o pipefail
+      ip -6 route show default dev {{ network_nic.stdout }} 2>/dev/null | awk 'NR==1{print $3}'
+    executable: /bin/bash
+  register: network_gw6
   changed_when: false
   when:
     - not ansible_check_mode
-    - detected_nic.stdout | length > 0
+    - network_nic.stdout | length > 0
 
 - name: Write systemd-networkd configuration for primary interface
   ansible.builtin.template:
@@ -53,8 +68,8 @@
     mode: "0644"
   when:
     - not ansible_check_mode
-    - detected_nic.stdout | length > 0
-    - detected_ipv4.stdout | length > 0
+    - network_nic.stdout | length > 0
+    - network_ipv4.stdout | length > 0
 
 - name: Write /etc/resolv.conf
   ansible.builtin.copy:

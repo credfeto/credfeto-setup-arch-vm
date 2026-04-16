@@ -62,4 +62,3 @@
     permanent: true
     state: enabled
   notify: Reload firewalld
-
