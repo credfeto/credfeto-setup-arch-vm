@@ -5,7 +5,7 @@ Requires=docker.service
 
 [Service]
 Type=oneshot
-ExecStart=docker image prune --all --force
+ExecStart=docker image prune --force
 ProtectSystem=full
 ProtectHome=true
 NoNewPrivileges=true
