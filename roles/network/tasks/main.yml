@@ -3,7 +3,7 @@
 # It captures the current IP/GW at bootstrap time; subsequent runs leave it alone.
 - name: Detect primary network interface
   ansible.builtin.shell:
-    cmd: ip -o link show | awk '/^[0-9]+: (eth|enp|ens)/{sub(/:$/, "", $2); print $2; exit}'
+    cmd: "ip -o link show | awk '/^[0-9]+: (eth|enp|ens)/{sub(/:$/, \"\", $2); print $2; exit}'"
   register: detected_nic
   changed_when: false
   when: not ansible_check_mode

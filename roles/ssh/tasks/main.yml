@@ -47,7 +47,8 @@
 - name: Configure sshd KexAlgorithms
   ansible.builtin.copy:
     dest: /etc/ssh/sshd_config.d/10-kexalgorithms.conf
-    content: "KexAlgorithms mlkem768x25519-sha256,sntrup761x25519-sha512@openssh.com,curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group16-sha512\n"
+    content: |
+      KexAlgorithms mlkem768x25519-sha256,sntrup761x25519-sha512@openssh.com,curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group16-sha512
     owner: root
     group: root
     mode: "0600"

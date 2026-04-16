@@ -66,10 +66,12 @@
 - name: Remove orphaned packages
   ansible.builtin.shell:
     cmd: |
+      set -o pipefail
       ORPHANS=$(pacman -Qdtq 2>/dev/null || true)
       if [ -n "${ORPHANS}" ]; then
         printf '%s\n' "${ORPHANS}" | pacman -Rs --noconfirm -
       fi
+    executable: /bin/bash
   changed_when: false
 
 - name: Configure reflector

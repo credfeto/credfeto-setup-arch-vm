@@ -35,12 +35,3 @@
     enabled: true
     state: started
 
-handlers:
-  - name: Reload systemd
-    ansible.builtin.systemd:
-      daemon_reload: true
-
-  - name: Restart docker
-    ansible.builtin.systemd:
-      name: docker
-      state: restarted

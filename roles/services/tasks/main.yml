@@ -94,7 +94,3 @@
     state: started
     daemon_reload: true
 
-handlers:
-  - name: Reload systemd
-    ansible.builtin.systemd:
-      daemon_reload: true
