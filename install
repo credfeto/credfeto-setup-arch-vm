@@ -678,7 +678,7 @@ systemctl enable --now logrotate.timer || die "Could not enable logrotate.timer"
 ok "logrotate timer enabled"
 
 echo "Configuring GRUB kernel command line..."
-GRUB_PARAMS="panic=20 mce=0 mitigations=auto slab_nomerge slub_debug=FZ init_on_alloc=1 init_on_free=1 pti=on lsm=landlock,lockdown,yama,integrity,apparmor,bpf apparmor=1 security=apparmor lockdown=confidentiality hardened_usercopy=on ia32_emulation=0 module.sig_enforce=1"
+GRUB_PARAMS="panic=20 mce=0 oops=panic mitigations=auto slab_nomerge slub_debug=FZ init_on_alloc=1 init_on_free=1 pti=on lsm=landlock,lockdown,yama,integrity,apparmor,bpf apparmor=1 security=apparmor lockdown=confidentiality hardened_usercopy=on ia32_emulation=0 module.sig_enforce=1"
 GRUB_CHANGED=0
 
 # Fix typo from earlier versions
