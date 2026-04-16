@@ -1,0 +1,12 @@
+{
+  "registry-mirrors": ["https://docker-cache.markridgwell.com"],
+  "icc": false,
+  "no-new-privileges": true,
+  "userland-proxy": false,
+  "firewall-backend": "nftables",
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "100m",
+    "max-file": "3"
+  }
+}

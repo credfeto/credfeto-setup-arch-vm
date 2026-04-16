@@ -1,0 +1,22 @@
+---
+- name: Create autoupdate system user
+  ansible.builtin.user:
+    name: autoupdate
+    system: true
+    create_home: false
+    shell: /usr/sbin/nologin
+    state: present
+
+- name: Write sudoers file for autoupdate (NOPASSWD ALL for ansible-pull)
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/autoupdate
+    content: "autoupdate ALL=(ALL) NOPASSWD: ALL\n"
+    owner: root
+    group: root
+    mode: "0440"
+    validate: visudo -c -f %s
+
+- name: Remove legacy 01_markr sudoers file
+  ansible.builtin.file:
+    path: /etc/sudoers.d/01_markr
+    state: absent

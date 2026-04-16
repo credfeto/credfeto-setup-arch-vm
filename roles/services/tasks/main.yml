@@ -1,0 +1,95 @@
+---
+# auto-update wrapper script
+- name: Install auto-update wrapper script
+  ansible.builtin.copy:
+    src: auto-update
+    dest: /usr/local/bin/auto-update
+    owner: root
+    group: root
+    mode: "0755"
+
+# auto-update service + timer
+- name: Install auto-update.service unit
+  ansible.builtin.copy:
+    src: auto-update.service
+    dest: /etc/systemd/system/auto-update.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Install auto-update.timer unit
+  ansible.builtin.copy:
+    src: auto-update.timer
+    dest: /etc/systemd/system/auto-update.timer
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Enable and start auto-update timer
+  ansible.builtin.systemd:
+    name: auto-update.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+
+# paccache-cleanup service + timer
+- name: Install paccache-cleanup.service unit
+  ansible.builtin.copy:
+    src: paccache-cleanup.service
+    dest: /etc/systemd/system/paccache-cleanup.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Install paccache-cleanup.timer unit
+  ansible.builtin.copy:
+    src: paccache-cleanup.timer
+    dest: /etc/systemd/system/paccache-cleanup.timer
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Enable and start paccache-cleanup timer
+  ansible.builtin.systemd:
+    name: paccache-cleanup.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+
+# docker-cleanup service + timer
+- name: Install docker-cleanup.service unit
+  ansible.builtin.copy:
+    src: docker-cleanup.service
+    dest: /etc/systemd/system/docker-cleanup.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Install docker-cleanup.timer unit
+  ansible.builtin.copy:
+    src: docker-cleanup.timer
+    dest: /etc/systemd/system/docker-cleanup.timer
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Enable and start docker-cleanup timer
+  ansible.builtin.systemd:
+    name: docker-cleanup.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+
+# pkgstats timer (ships with the pkgstats package)
+- name: Enable and start pkgstats timer
+  ansible.builtin.systemd:
+    name: pkgstats.timer
+    enabled: true
+    state: started
+    daemon_reload: true

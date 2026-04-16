@@ -1,0 +1,101 @@
+---
+- name: Configure pacman cache server
+  ansible.builtin.lineinfile:
+    path: /etc/pacman.conf
+    line: "CacheServer = https://pacman.markridgwell.com/repo/archlinux/$repo/os/$arch"
+    insertafter: "^Include = /etc/pacman.d/mirrorlist$"
+    state: present
+
+- name: Receive Chaotic AUR signing key
+  ansible.builtin.command:
+    cmd: pacman-key --recv-key 3056513887B78AEB --keyserver hkps://keyserver.ubuntu.com
+  changed_when: true
+
+- name: Locally sign Chaotic AUR key
+  ansible.builtin.command:
+    cmd: pacman-key --lsign-key 3056513887B78AEB
+  changed_when: true
+
+- name: Install Chaotic AUR keyring
+  community.general.pacman:
+    name: https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst
+    state: present
+    extra_args: "--noconfirm --needed"
+
+- name: Install Chaotic AUR mirrorlist
+  community.general.pacman:
+    name: https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst
+    state: present
+    extra_args: "--noconfirm --needed"
+
+- name: Add Chaotic AUR repository to pacman.conf
+  ansible.builtin.blockinfile:
+    path: /etc/pacman.conf
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - chaotic-aur"
+    block: |
+      [chaotic-aur]
+      Include = /etc/pacman.d/chaotic-mirrorlist
+      CacheServer = https://pacman.markridgwell.com/repo/chaotic-aur/x86_64
+    state: present
+
+- name: Update all packages
+  community.general.pacman:
+    update_cache: true
+    upgrade: true
+
+- name: Install required packages
+  community.general.pacman:
+    name:
+      - ansible
+      - apparmor
+      - audit
+      - docker
+      - docker-buildx
+      - docker-compose
+      - fail2ban
+      - firewalld
+      - git
+      - logrotate
+      - openssh
+      - pacman-contrib
+      - pkgstats
+      - reflector
+    state: present
+    extra_args: "--noconfirm --needed"
+
+- name: Remove linux-firmware (not needed on VMs)
+  community.general.pacman:
+    name: linux-firmware
+    state: absent
+    extra_args: "--noconfirm"
+  ignore_errors: true # noqa: ignore-errors - package may not be installed
+
+- name: Remove orphaned packages
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      ORPHANS=$(pacman -Qdtq 2>/dev/null || true)
+      if [ -n "${ORPHANS}" ]; then
+        printf '%s\n' "${ORPHANS}" | pacman -Rs --noconfirm -
+      fi
+    executable: /bin/bash
+  changed_when: false
+
+- name: Configure reflector
+  ansible.builtin.copy:
+    dest: /etc/xdg/reflector/reflector.conf
+    content: |
+      --save /etc/pacman.d/mirrorlist
+      --protocol https
+      --latest 10
+      --sort rate
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Enable and start reflector timer
+  ansible.builtin.systemd:
+    name: reflector.timer
+    enabled: true
+    state: started
+    daemon_reload: true

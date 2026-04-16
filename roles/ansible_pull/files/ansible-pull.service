@@ -1,0 +1,11 @@
+[Unit]
+Description=Ansible Pull - automatic system configuration update
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=autoupdate
+ExecStart=/usr/bin/ansible-pull -U https://github.com/credfeto/credfeto-setup-arch-vm.git -C main site.yml
+StandardOutput=journal
+StandardError=journal

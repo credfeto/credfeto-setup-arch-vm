@@ -1,0 +1,14 @@
+[Unit]
+Description=Clean up old pacman cache entries
+
+[Service]
+Type=oneshot
+ExecStart=paccache -r
+ProtectSystem=full
+ProtectHome=true
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictSUIDSGID=true

@@ -1,0 +1,8 @@
+#!/bin/sh
+if [ -x /usr/bin/paru ]; then
+    exec paru -Syyu --noconfirm
+elif [ -x /usr/bin/yay ]; then
+    exec yay -Syyu --noconfirm
+else
+    exec sudo pacman -Syyu --noconfirm
+fi

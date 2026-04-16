@@ -1,0 +1,31 @@
+name: "Ansible Lint"
+
+on:
+  push:
+    branches-ignore:
+      - master
+      - main
+      - develop
+      - "release/**"
+      - "hotfix/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{github.workflow}}-${{github.ref}}
+  cancel-in-progress: true
+
+jobs:
+  ansible-lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Checkout source"
+        uses: actions/checkout@v6.0.2
+
+      - name: "Install Ansible and ansible-lint"
+        run: pip install ansible ansible-lint
+
+      - name: "Run ansible-lint"
+        run: ansible-lint site.yml

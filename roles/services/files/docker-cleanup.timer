@@ -1,0 +1,9 @@
+[Unit]
+Description=Remove unused docker images weekly
+
+[Timer]
+OnCalendar=weekly
+Persistent=true
+
+[Install]
+WantedBy=timers.target

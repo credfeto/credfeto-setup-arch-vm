@@ -1,0 +1,331 @@
+---
+- name: Set kernel.dmesg_restrict
+  ansible.posix.sysctl:
+    name: kernel.dmesg_restrict
+    value: "1"
+    sysctl_file: /etc/sysctl.d/10-kernel.dmesg_restrict.conf
+    reload: true
+
+- name: Set kernel.unprivileged_bpf_disabled
+  ansible.posix.sysctl:
+    name: kernel.unprivileged_bpf_disabled
+    value: "1"
+    sysctl_file: /etc/sysctl.d/10-kernel.unprivileged_bpf_disabled.conf
+    reload: true
+
+- name: Set net.core.bpf_jit_harden
+  ansible.posix.sysctl:
+    name: net.core.bpf_jit_harden
+    value: "2"
+    sysctl_file: /etc/sysctl.d/10-net.core.bpf_jit_harden.conf
+    reload: true
+
+- name: Set kernel.kexec_load_disabled
+  ansible.posix.sysctl:
+    name: kernel.kexec_load_disabled
+    value: "1"
+    sysctl_file: /etc/sysctl.d/10-kernel.kexec_load_disabled.conf
+    reload: true
+    ignore_errors: true  # noqa: ignore-errors - key may not exist in hardened kernel
+
+- name: Set kernel.kptr_restrict
+  ansible.posix.sysctl:
+    name: kernel.kptr_restrict
+    value: "2"
+    sysctl_file: /etc/sysctl.d/10-kernel.kptr_restrict.conf
+    reload: true
+
+- name: Set kernel.yama.ptrace_scope
+  ansible.posix.sysctl:
+    name: kernel.yama.ptrace_scope
+    value: "2"
+    sysctl_file: /etc/sysctl.d/10-kernel.yama.ptrace_scope.conf
+    reload: true
+
+- name: Set kernel.randomize_va_space
+  ansible.posix.sysctl:
+    name: kernel.randomize_va_space
+    value: "2"
+    sysctl_file: /etc/sysctl.d/10-kernel.randomize_va_space.conf
+    reload: true
+
+- name: Set vm.mmap_rnd_bits
+  ansible.posix.sysctl:
+    name: vm.mmap_rnd_bits
+    value: "32"
+    sysctl_file: /etc/sysctl.d/10-vm.mmap_rnd_bits.conf
+    reload: true
+
+- name: Set vm.mmap_rnd_compat_bits
+  ansible.posix.sysctl:
+    name: vm.mmap_rnd_compat_bits
+    value: "16"
+    sysctl_file: /etc/sysctl.d/10-vm.mmap_rnd_compat_bits.conf
+    reload: true
+
+- name: Set kernel.sysrq
+  ansible.posix.sysctl:
+    name: kernel.sysrq
+    value: "0"
+    sysctl_file: /etc/sysctl.d/10-kernel.sysrq.conf
+    reload: true
+
+- name: Set net.ipv4.tcp_syncookies
+  ansible.posix.sysctl:
+    name: net.ipv4.tcp_syncookies
+    value: "1"
+    sysctl_file: /etc/sysctl.d/10-net.ipv4.tcp_syncookies.conf
+    reload: true
+
+- name: Set net.ipv4.tcp_rfc1337
+  ansible.posix.sysctl:
+    name: net.ipv4.tcp_rfc1337
+    value: "1"
+    sysctl_file: /etc/sysctl.d/10-net.ipv4.tcp_rfc1337.conf
+    reload: true
+
+- name: Set net.ipv4.tcp_timestamps
+  ansible.posix.sysctl:
+    name: net.ipv4.tcp_timestamps
+    value: "0"
+    sysctl_file: /etc/sysctl.d/10-net.ipv4.tcp_timestamps.conf
+    reload: true
+
+- name: Set net.ipv4.conf.default.rp_filter
+  ansible.posix.sysctl:
+    name: net.ipv4.conf.default.rp_filter
+    value: "2"
+    sysctl_file: /etc/sysctl.d/10-net.ipv4.conf.default.rp_filter.conf
+    reload: true
+
+- name: Set net.ipv4.conf.all.rp_filter
+  ansible.posix.sysctl:
+    name: net.ipv4.conf.all.rp_filter
+    value: "2"
+    sysctl_file: /etc/sysctl.d/10-net.ipv4.conf.all.rp_filter.conf
+    reload: true
+
+- name: Set net.ipv4.ip_forward
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    sysctl_file: /etc/sysctl.d/10-net.ipv4.ip_forward.conf
+    reload: true
+
+- name: Set net.ipv6.conf.all.forwarding
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.all.forwarding
+    value: "1"
+    sysctl_file: /etc/sysctl.d/10-net.ipv6.conf.all.forwarding.conf
+    reload: true
+
+- name: Set net.ipv6.conf.default.forwarding
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.default.forwarding
+    value: "1"
+    sysctl_file: /etc/sysctl.d/10-net.ipv6.conf.default.forwarding.conf
+    reload: true
+
+- name: Set net.ipv4.conf.all.accept_redirects
+  ansible.posix.sysctl:
+    name: net.ipv4.conf.all.accept_redirects
+    value: "0"
+    sysctl_file: /etc/sysctl.d/10-net.ipv4.conf.all.accept_redirects.conf
+    reload: true
+
+- name: Set net.ipv4.conf.default.accept_redirects
+  ansible.posix.sysctl:
+    name: net.ipv4.conf.default.accept_redirects
+    value: "0"
+    sysctl_file: /etc/sysctl.d/10-net.ipv4.conf.default.accept_redirects.conf
+    reload: true
+
+- name: Set net.ipv4.conf.all.secure_redirects
+  ansible.posix.sysctl:
+    name: net.ipv4.conf.all.secure_redirects
+    value: "0"
+    sysctl_file: /etc/sysctl.d/10-net.ipv4.conf.all.secure_redirects.conf
+    reload: true
+
+- name: Set net.ipv4.conf.default.secure_redirects
+  ansible.posix.sysctl:
+    name: net.ipv4.conf.default.secure_redirects
+    value: "0"
+    sysctl_file: /etc/sysctl.d/10-net.ipv4.conf.default.secure_redirects.conf
+    reload: true
+
+- name: Set net.ipv6.conf.all.accept_redirects
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.all.accept_redirects
+    value: "0"
+    sysctl_file: /etc/sysctl.d/10-net.ipv6.conf.all.accept_redirects.conf
+    reload: true
+
+- name: Set net.ipv6.conf.default.accept_redirects
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.default.accept_redirects
+    value: "0"
+    sysctl_file: /etc/sysctl.d/10-net.ipv6.conf.default.accept_redirects.conf
+    reload: true
+
+- name: Set net.ipv4.conf.all.send_redirects
+  ansible.posix.sysctl:
+    name: net.ipv4.conf.all.send_redirects
+    value: "0"
+    sysctl_file: /etc/sysctl.d/10-net.ipv4.conf.all.send_redirects.conf
+    reload: true
+
+- name: Set net.ipv4.conf.default.send_redirects
+  ansible.posix.sysctl:
+    name: net.ipv4.conf.default.send_redirects
+    value: "0"
+    sysctl_file: /etc/sysctl.d/10-net.ipv4.conf.default.send_redirects.conf
+    reload: true
+
+- name: Set net.ipv4.conf.all.accept_source_route
+  ansible.posix.sysctl:
+    name: net.ipv4.conf.all.accept_source_route
+    value: "0"
+    sysctl_file: /etc/sysctl.d/10-net.ipv4.conf.all.accept_source_route.conf
+    reload: true
+
+- name: Set net.ipv4.conf.default.accept_source_route
+  ansible.posix.sysctl:
+    name: net.ipv4.conf.default.accept_source_route
+    value: "0"
+    sysctl_file: /etc/sysctl.d/10-net.ipv4.conf.default.accept_source_route.conf
+    reload: true
+
+- name: Set net.ipv6.conf.all.accept_source_route
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.all.accept_source_route
+    value: "0"
+    sysctl_file: /etc/sysctl.d/10-net.ipv6.conf.all.accept_source_route.conf
+    reload: true
+
+- name: Set net.ipv6.conf.default.accept_source_route
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.default.accept_source_route
+    value: "0"
+    sysctl_file: /etc/sysctl.d/10-net.ipv6.conf.default.accept_source_route.conf
+    reload: true
+
+- name: Set net.ipv6.conf.all.accept_ra
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.all.accept_ra
+    value: "0"
+    sysctl_file: /etc/sysctl.d/10-net.ipv6.conf.all.accept_ra.conf
+    reload: true
+
+- name: Set net.ipv6.conf.default.accept_ra
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.default.accept_ra
+    value: "0"
+    sysctl_file: /etc/sysctl.d/10-net.ipv6.conf.default.accept_ra.conf
+    reload: true
+
+- name: Set net.bridge.bridge-nf-call-iptables
+  ansible.posix.sysctl:
+    name: net.bridge.bridge-nf-call-iptables
+    value: "1"
+    sysctl_file: /etc/sysctl.d/10-net.bridge.bridge-nf-call-iptables.conf
+    reload: true
+
+- name: Set net.ipv4.icmp_echo_ignore_all
+  ansible.posix.sysctl:
+    name: net.ipv4.icmp_echo_ignore_all
+    value: "1"
+    sysctl_file: /etc/sysctl.d/10-net.ipv4.icmp_echo_ignore_all.conf
+    reload: true
+
+- name: Set net.ipv4.icmp_echo_ignore_broadcasts
+  ansible.posix.sysctl:
+    name: net.ipv4.icmp_echo_ignore_broadcasts
+    value: "1"
+    sysctl_file: /etc/sysctl.d/10-net.ipv4.icmp_echo_ignore_broadcasts.conf
+    reload: true
+
+- name: Set net.ipv4.icmp_ignore_bogus_error_responses
+  ansible.posix.sysctl:
+    name: net.ipv4.icmp_ignore_bogus_error_responses
+    value: "1"
+    sysctl_file: /etc/sysctl.d/10-net.ipv4.icmp_ignore_bogus_error_responses.conf
+    reload: true
+
+- name: Set fs.protected_hardlinks
+  ansible.posix.sysctl:
+    name: fs.protected_hardlinks
+    value: "1"
+    sysctl_file: /etc/sysctl.d/10-fs.protected_hardlinks.conf
+    reload: true
+
+- name: Set fs.protected_symlinks
+  ansible.posix.sysctl:
+    name: fs.protected_symlinks
+    value: "1"
+    sysctl_file: /etc/sysctl.d/10-fs.protected_symlinks.conf
+    reload: true
+
+- name: Set fs.protected_regular
+  ansible.posix.sysctl:
+    name: fs.protected_regular
+    value: "2"
+    sysctl_file: /etc/sysctl.d/10-fs.protected_regular.conf
+    reload: true
+
+- name: Set fs.protected_fifos
+  ansible.posix.sysctl:
+    name: fs.protected_fifos
+    value: "2"
+    sysctl_file: /etc/sysctl.d/10-fs.protected_fifos.conf
+    reload: true
+
+- name: Set fs.suid_dumpable
+  ansible.posix.sysctl:
+    name: fs.suid_dumpable
+    value: "0"
+    sysctl_file: /etc/sysctl.d/10-fs.suid_dumpable.conf
+    reload: true
+
+- name: Set kernel.core_uses_pid
+  ansible.posix.sysctl:
+    name: kernel.core_uses_pid
+    value: "1"
+    sysctl_file: /etc/sysctl.d/10-kernel.core_uses_pid.conf
+    reload: true
+
+- name: Set net.ipv4.conf.all.log_martians
+  ansible.posix.sysctl:
+    name: net.ipv4.conf.all.log_martians
+    value: "1"
+    sysctl_file: /etc/sysctl.d/10-net.ipv4.conf.all.log_martians.conf
+    reload: true
+
+- name: Set net.ipv4.conf.default.log_martians
+  ansible.posix.sysctl:
+    name: net.ipv4.conf.default.log_martians
+    value: "1"
+    sysctl_file: /etc/sysctl.d/10-net.ipv4.conf.default.log_martians.conf
+    reload: true
+
+- name: Set kernel.perf_event_paranoid
+  ansible.posix.sysctl:
+    name: kernel.perf_event_paranoid
+    value: "3"
+    sysctl_file: /etc/sysctl.d/10-kernel.perf_event_paranoid.conf
+    reload: true
+
+- name: Set kernel.deny_new_usb
+  ansible.posix.sysctl:
+    name: kernel.deny_new_usb
+    value: "1"
+    sysctl_file: /etc/sysctl.d/10-kernel.deny_new_usb.conf
+    reload: true
+    ignore_errors: true  # noqa: ignore-errors - key may not exist in all kernels
+
+- name: Set net.ipv4.tcp_sack
+  ansible.posix.sysctl:
+    name: net.ipv4.tcp_sack
+    value: "0"
+    sysctl_file: /etc/sysctl.d/10-net.ipv4.tcp_sack.conf
+    reload: true
