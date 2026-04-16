@@ -3,9 +3,26 @@
   ansible.builtin.user:
     name: autoupdate
     system: true
-    create_home: false
+    create_home: true
+    home: /home/autoupdate
     shell: /usr/sbin/nologin
     state: present
+
+- name: Ensure autoupdate home directory has correct ownership
+  ansible.builtin.file:
+    path: /home/autoupdate
+    state: directory
+    owner: autoupdate
+    group: autoupdate
+    mode: "0750"
+
+- name: Ensure .ansible/tmp directory exists for autoupdate user
+  ansible.builtin.file:
+    path: /home/autoupdate/.ansible/tmp
+    state: directory
+    owner: autoupdate
+    group: autoupdate
+    mode: "0700"
 
 - name: Write sudoers file for autoupdate (NOPASSWD ALL for ansible-pull)
   ansible.builtin.copy:
