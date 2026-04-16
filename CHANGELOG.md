@@ -36,6 +36,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Block newly connected USB devices after boot via kernel.deny_new_usb=1 to prevent BadUSB attacks on a headless server VM
 - Add mitigations=auto to GRUB to explicitly enable all applicable CPU vulnerability mitigations (Spectre, Meltdown, MDS, etc.)
 - Add mce=0 to GRUB to panic immediately on uncorrectable hardware memory errors
+- Disable TCP SACK (net.ipv4.tcp_sack=0) to reduce remote kernel exploit surface (CVE-2019-11477, CVE-2019-11478, CVE-2019-11479)
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
@@ -59,6 +60,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - change rp_filter from strict (1) to loose (2) to allow Docker container routing; persist net.ipv4.ip_forward=1 so container traffic survives sysctl reloads
 - net.bridge.bridge-nf-call-iptables corrected to 1 (was incorrectly set to 0 in #111) — value 1 enables iptables filtering on bridged traffic, required for Docker networking rules to apply to container traffic
 - Docker daemon.json: set firewall-backend to nftables so Docker uses nftables for its NAT/filtering rules, consistent with the system firewall (firewalld running in nftables mode)
+- Clarify TCP timestamps comment: document PAWS-bypass mitigation and relationship with net.ipv4.tcp_rfc1337=1
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
