@@ -46,7 +46,7 @@ fi
 
 # ── Sudoers for autoupdate (NOPASSWD: ALL for ansible-pull) ──────────────────
 SUDOERS_FILE="/etc/sudoers.d/autoupdate"
-SUDOERS_CONTENT="autoupdate ALL=(ALL) NOPASSWD: ALL"
+SUDOERS_CONTENT="autoupdate ALL=(ALL) NOPASSWD: /usr/bin/ansible-pull"
 if [ -f "${SUDOERS_FILE}" ] && grep -Fxq "${SUDOERS_CONTENT}" "${SUDOERS_FILE}"; then
     skip "sudoers file already configured for autoupdate"
 else
@@ -83,7 +83,9 @@ CapabilityBoundingSet=
 AmbientCapabilities=
 PrivateNetwork=yes
 ReadOnlyPaths=/
-InaccessiblePaths=/boot /etc /root /usr /var /lib /bin /sbin /opt /srv"
+InaccessiblePaths=/boot /etc /root /usr /var /lib /bin /sbin /opt /srv
+SystemCallFilter=@system-service
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX"
 
 if [ -f "${SERVICE_FILE}" ]; then
     CURRENT_CONTENT=$(cat "${SERVICE_FILE}")
