@@ -6,7 +6,7 @@ Sets up an Arch Linux VM with Docker, Git, and supporting tooling. The `install`
 - **Docker** (with Docker Compose and Buildx)
 - **firewalld** firewall
 - **SSH hardening** — strong crypto only, key-based auth, no root login
-- **sysctl hardening** — network, kernel, and filesystem protections
+- **sysctl hardening** — network, kernel, and filesystem protections, including persistent IPv4/IPv6 forwarding
 - **Core dump disabling** — via sysctl and systemd
 - **Kernel module blacklisting** — unused/dangerous protocols and filesystems
 - **`/tmp` as noexec tmpfs** — prevents code execution from `/tmp`
