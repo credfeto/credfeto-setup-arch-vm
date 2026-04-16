@@ -817,6 +817,8 @@ sysctl_set net.ipv4.conf.all.rp_filter              2
 # Persist IP forwarding so routed traffic (Docker containers, VMs) can reach external networks.
 # Docker enables this at runtime but does not persist it; a sysctl reload would revert it.
 sysctl_set net.ipv4.ip_forward                      1
+sysctl_set net.ipv6.conf.all.forwarding             1
+sysctl_set net.ipv6.conf.default.forwarding         1
 sysctl_set net.ipv4.conf.all.accept_redirects       0
 sysctl_set net.ipv4.conf.default.accept_redirects   0
 sysctl_set net.ipv4.conf.all.secure_redirects       0
