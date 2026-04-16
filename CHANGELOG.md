@@ -34,6 +34,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Improve ASLR entropy via vm.mmap_rnd_bits=32 and vm.mmap_rnd_compat_bits=16
 - Persist net.ipv6.conf.all.forwarding=1 and net.ipv6.conf.default.forwarding=1 for routed Docker/VM traffic
 - Block newly connected USB devices after boot via kernel.deny_new_usb=1 to prevent BadUSB attacks on a headless server VM
+- Add mitigations=auto to GRUB to explicitly enable all applicable CPU vulnerability mitigations (Spectre, Meltdown, MDS, etc.)
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
