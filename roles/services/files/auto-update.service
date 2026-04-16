@@ -1,8 +1,0 @@
-[Unit]
-Description=Run arch-update auto check
-After=network-online.target
-
-[Service]
-Type=oneshot
-User=autoupdate
-ExecStart=/usr/local/bin/auto-update
