@@ -68,6 +68,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Docker daemon.json: set firewall-backend to nftables so Docker uses nftables for its NAT/filtering rules, consistent with the system firewall (firewalld running in nftables mode)
 - Clarify TCP timestamps comment: document PAWS-bypass mitigation and relationship with net.ipv4.tcp_rfc1337=1
 - Pass -H flag to sudo when running ansible-pull as autoupdate user so HOME is set correctly
+- Run sysctl role before docker role so ip_forward and bridge sysctls are set before Docker starts
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
