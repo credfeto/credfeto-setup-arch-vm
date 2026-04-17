@@ -224,6 +224,19 @@
     sysctl_file: /etc/sysctl.d/10-net.ipv6.conf.default.accept_ra.conf
     reload: true
 
+- name: Load br_netfilter module (required before bridge sysctl can be set)
+  community.general.modprobe:
+    name: br_netfilter
+    state: present
+
+- name: Persist br_netfilter module loading across reboots
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/br_netfilter.conf
+    content: "br_netfilter\n"
+    owner: root
+    group: root
+    mode: "0644"
+
 - name: Set net.bridge.bridge-nf-call-iptables
   ansible.posix.sysctl:
     name: net.bridge.bridge-nf-call-iptables

@@ -59,6 +59,16 @@ Before starting any work:
 - Do not pick up issues already assigned to someone else.
 - Do not work on issues labelled `on-hold`.
 
+## One Active Branch at a Time
+
+**Never start work on a new issue or branch while a PR is open.** This is an absolute rule:
+
+- Only one branch and one PR may be open at any time.
+- Do not create a new branch until the current PR is **merged** (not just opened, not just approved — fully merged into `main`).
+- Do not do preparatory work, stage commits, or push anything to a second branch while waiting for a PR to merge.
+- If a new issue is raised while a PR is open, note it and wait.
+- This applies even if the new issue seems quick or unrelated — stacked branches create conflicts and confusion.
+
 ## Multi-Agent Implementation and Review Pattern
 
 All implementation work uses a two-agent loop:

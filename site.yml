@@ -7,9 +7,9 @@
   roles:
     - packages
     - users
-    - docker
     - sysctl
     - proc
+    - docker
     - grub
     - ssh
     - firewall
