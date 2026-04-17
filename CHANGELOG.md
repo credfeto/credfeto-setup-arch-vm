@@ -6,9 +6,6 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 -->
 
 ## [Unreleased]
-### Fixed
-- Replace unsupported `ignore_errors` task keyword (incorrectly indented inside `ansible.posix.sysctl` module params) with the module's own `ignoreerrors: true` parameter for `kernel.kexec_load_disabled` and `kernel.deny_new_usb` tasks
-
 ### Added
 - Git workflow instructions: never-squash-commits rule to preserve the full commit history however messy the path
 - AI instructions: mandatory git identity and GPG signing check before any commit — abort if identity is `andy@nanoclaw.ai` or GPG signing is disabled
@@ -73,6 +70,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Pass -H flag to sudo when running ansible-pull as autoupdate user so HOME is set correctly
 - Run sysctl role before docker role so ip_forward and bridge sysctls are set before Docker starts
 - Load br_netfilter module before applying net.bridge.bridge-nf-call-iptables sysctl so the setting succeeds on first provision
+- Replace unsupported ignore_errors task keyword with module's own ignoreerrors: true parameter for kernel.kexec_load_disabled and kernel.deny_new_usb sysctl tasks
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
