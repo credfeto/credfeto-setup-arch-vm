@@ -71,7 +71,7 @@ ExecStart=/usr/bin/ansible-pull -U https://github.com/credfeto/credfeto-setup-ar
 StandardOutput=journal
 StandardError=journal
 ProtectSystem=strict
-ProtectHome=yes
+ProtectHome=read-only
 NoNewPrivileges=yes
 ProtectKernelTunables=yes
 ProtectKernelModules=yes
@@ -82,6 +82,7 @@ PrivateTmp=yes
 CapabilityBoundingSet=
 AmbientCapabilities=
 PrivateNetwork=yes
+RestrictAddressFamilies=AF_INET AF_INET6
 ReadOnlyPaths=/
 InaccessiblePaths=/boot /etc /root /usr /var /lib /bin /sbin /opt /srv"
 

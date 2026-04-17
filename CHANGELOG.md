@@ -96,6 +96,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - ansible-pull timer changed from 6-hourly to hourly (OnUnitActiveSec=1h)
 - autoupdate sudoers broadened from NOPASSWD:/usr/bin/pacman to NOPASSWD:ALL so ansible-pull can become root for all configuration tasks
 - security: add checks to prevent overwriting existing config files
+- security: tighten home and network access restrictions in systemd service
 ### Removed
 - Remove criu and pigz packages — neither is used or configured by the script
 - Remove curl-based security script in favour of ansible-pull timer
