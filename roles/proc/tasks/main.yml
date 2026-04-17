@@ -1,0 +1,54 @@
+---
+- name: Create proc system group
+  ansible.builtin.group:
+    name: proc
+    system: true
+    state: present
+
+- name: Write systemd-logind proc group drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/systemd-logind.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Write systemd-logind proc group drop-in
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/systemd-logind.service.d/proc-group.conf
+    content: |
+      [Service]
+      SupplementaryGroups=proc
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart systemd-logind
+
+- name: Write proc mount hidepid drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/proc.mount.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Write proc mount hidepid drop-in
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/proc.mount.d/hidepid.conf
+    content: |
+      [Mount]
+      Options=nosuid,nodev,noexec,hidepid=2,gid=proc
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Remount /proc with hidepid=2 live
+  ansible.posix.mount:
+    path: /proc
+    src: proc
+    fstype: proc
+    opts: nosuid,nodev,noexec,hidepid=2,gid=proc
+    state: remounted

@@ -25,9 +25,23 @@ ok "ansible and git installed"
 if id autoupdate > /dev/null 2>&1; then
     ok "autoupdate user already exists"
 else
-    useradd --system --no-create-home --shell /usr/sbin/nologin autoupdate \
+    useradd --system --create-home --home-dir /home/autoupdate --shell /usr/sbin/nologin autoupdate \
         || die "Could not create autoupdate user"
     ok "autoupdate user created"
+fi
+
+# ── Ensure autoupdate home and .ansible/tmp exist with correct ownership ──────
+if [ ! -d /home/autoupdate ]; then
+    mkdir -p /home/autoupdate || die "Could not create /home/autoupdate"
+    chown autoupdate:autoupdate /home/autoupdate || die "Could not chown /home/autoupdate"
+    chmod 750 /home/autoupdate || die "Could not chmod /home/autoupdate"
+    ok "/home/autoupdate created"
+fi
+if [ ! -d /home/autoupdate/.ansible/tmp ]; then
+    mkdir -p /home/autoupdate/.ansible/tmp || die "Could not create /home/autoupdate/.ansible/tmp"
+    chown -R autoupdate:autoupdate /home/autoupdate/.ansible || die "Could not chown /home/autoupdate/.ansible"
+    chmod 700 /home/autoupdate/.ansible/tmp || die "Could not chmod /home/autoupdate/.ansible/tmp"
+    ok "/home/autoupdate/.ansible/tmp created"
 fi
 
 # ── Sudoers for autoupdate (NOPASSWD: ALL for ansible-pull) ──────────────────
