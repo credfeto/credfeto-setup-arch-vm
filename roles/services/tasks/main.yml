@@ -1,38 +1,29 @@
 ---
-# auto-update wrapper script
-- name: Install auto-update wrapper script
-  ansible.builtin.copy:
-    src: auto-update
-    dest: /usr/local/bin/auto-update
-    owner: root
-    group: root
-    mode: "0755"
-
-# auto-update service + timer
-- name: Install auto-update.service unit
-  ansible.builtin.copy:
-    src: auto-update.service
-    dest: /etc/systemd/system/auto-update.service
-    owner: root
-    group: root
-    mode: "0644"
-  notify: Reload systemd
-
-- name: Install auto-update.timer unit
-  ansible.builtin.copy:
-    src: auto-update.timer
-    dest: /etc/systemd/system/auto-update.timer
-    owner: root
-    group: root
-    mode: "0644"
-  notify: Reload systemd
-
-- name: Enable and start auto-update timer
+# Cleanup legacy auto-update service if present
+- name: Disable auto-update timer if present
   ansible.builtin.systemd:
     name: auto-update.timer
-    enabled: true
-    state: started
-    daemon_reload: true
+    enabled: false
+    state: stopped
+    daemon_reload: false
+  failed_when: false
+
+- name: Remove auto-update.timer unit
+  ansible.builtin.file:
+    path: /etc/systemd/system/auto-update.timer
+    state: absent
+  notify: Reload systemd
+
+- name: Remove auto-update.service unit
+  ansible.builtin.file:
+    path: /etc/systemd/system/auto-update.service
+    state: absent
+  notify: Reload systemd
+
+- name: Remove auto-update script
+  ansible.builtin.file:
+    path: /usr/local/bin/auto-update
+    state: absent
 
 # paccache-cleanup service + timer
 - name: Install paccache-cleanup.service unit

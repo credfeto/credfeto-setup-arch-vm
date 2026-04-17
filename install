@@ -1,140 +1,37 @@
 #!/bin/sh
-# Bootstrap script: install Ansible + Git, create autoupdate user,
-# write and enable the ansible-pull service + timer, then run ansible-pull
-# once immediately to apply full configuration via site.yml.
+# Bootstrap script: install Ansible + Git, install Galaxy collections, then
+# run ansible-pull once to apply full configuration via site.yml.
 #
-# After the first run, ansible-pull fires hourly via the timer and drives
-# all further configuration — this script is only needed for initial setup.
+# The playbook handles all further setup (autoupdate user, sudoers,
+# ansible-pull service and timer).  After the first run, ansible-pull fires
+# hourly via the timer and drives all further configuration.
+# This script is only needed for the initial setup.
 
 set -e
 
 die() { printf '\033[0;31m✗\033[0m %s\n' "$*" >&2; exit 1; }
 ok()  { printf '\033[0;32m✓\033[0m %s\n' "$*"; }
-skip() { printf '\033[0;33m-\033[0m %s\n' "$*"; }
 
 # ── Root check ────────────────────────────────────────────────────────────────
 [ "$(id -u)" = "0" ] || die "This script must be run as root"
 ok "Running as root"
 
-# ── Install Ansible + Git ──────────────────────────────────────────────────────
+# ── Install Ansible + Git ─────────────────────────────────────────────────────
 echo "Installing ansible and git..."
 pacman -S --needed --noconfirm ansible git || die "Could not install ansible and git"
 ok "ansible and git installed"
 
-# ── Create autoupdate system user ─────────────────────────────────────────────
-if id autoupdate > /dev/null 2>&1; then
-    ok "autoupdate user already exists"
-else
-    useradd --system --create-home --home-dir /home/autoupdate --shell /usr/sbin/nologin autoupdate \
-        || die "Could not create autoupdate user"
-    ok "autoupdate user created"
-fi
+# ── Install Ansible Galaxy collections ───────────────────────────────────────
+echo "Installing Ansible Galaxy collections..."
+ansible-galaxy collection install community.general ansible.posix \
+    || die "Could not install Ansible Galaxy collections"
+ok "Ansible Galaxy collections installed"
 
-# ── Ensure autoupdate home and .ansible/tmp exist with correct ownership ──────
-if [ ! -d /home/autoupdate ]; then
-    mkdir -p /home/autoupdate || die "Could not create /home/autoupdate"
-    chown autoupdate:autoupdate /home/autoupdate || die "Could not chown /home/autoupdate"
-    chmod 750 /home/autoupdate || die "Could not chmod /home/autoupdate"
-    ok "/home/autoupdate created"
-fi
-if [ ! -d /home/autoupdate/.ansible/tmp ]; then
-    mkdir -p /home/autoupdate/.ansible/tmp || die "Could not create /home/autoupdate/.ansible/tmp"
-    chown -R autoupdate:autoupdate /home/autoupdate/.ansible || die "Could not chown /home/autoupdate/.ansible"
-    chmod 700 /home/autoupdate/.ansible/tmp || die "Could not chmod /home/autoupdate/.ansible/tmp"
-    ok "/home/autoupdate/.ansible/tmp created"
-fi
-
-# ── Sudoers for autoupdate (NOPASSWD: ALL for ansible-pull) ──────────────────
-SUDOERS_FILE="/etc/sudoers.d/autoupdate"
-SUDOERS_CONTENT="autoupdate ALL=(ALL) NOPASSWD: ALL"
-if [ -f "${SUDOERS_FILE}" ] && grep -Fxq "${SUDOERS_CONTENT}" "${SUDOERS_FILE}"; then
-    skip "sudoers file already configured for autoupdate"
-else
-    printf '%s\n' "${SUDOERS_CONTENT}" > "${SUDOERS_FILE}" \
-        || die "Could not write ${SUDOERS_FILE}"
-    chmod 440 "${SUDOERS_FILE}" || die "Could not chmod ${SUDOERS_FILE}"
-    visudo -c -f "${SUDOERS_FILE}" || die "Invalid sudoers file ${SUDOERS_FILE}"
-    ok "sudoers written for autoupdate"
-fi
-
-# ── ansible-pull.service ──────────────────────────────────────────────────────
-SERVICE_FILE="/etc/systemd/system/ansible-pull.service"
-SERVICE_CONTENT="[Unit]
-Description=Ansible Pull - automatic system configuration update
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=oneshot
-User=autoupdate
-ExecStart=/usr/bin/ansible-pull -U https://github.com/credfeto/credfeto-setup-arch-vm.git -C main site.yml
-StandardOutput=journal
-StandardError=journal
-ProtectSystem=strict
-ProtectHome=yes
-NoNewPrivileges=yes
-ProtectKernelTunables=yes
-ProtectKernelModules=yes
-ProtectControlGroups=yes
-RestrictRealtime=yes
-RestrictSUIDSGID=yes
-PrivateTmp=yes
-CapabilityBoundingSet=
-AmbientCapabilities=
-PrivateNetwork=yes
-ReadOnlyPaths=/
-InaccessiblePaths=/boot /etc /root /usr /var /lib /bin /sbin /opt /srv"
-
-if [ -f "${SERVICE_FILE}" ]; then
-    CURRENT_CONTENT=$(cat "${SERVICE_FILE}")
-    if [ "${CURRENT_CONTENT}" = "${SERVICE_CONTENT}" ]; then
-        skip "ansible-pull.service already configured"
-    else
-        printf '%s\n' "${SERVICE_CONTENT}" > "${SERVICE_FILE}" || die "Could not write ${SERVICE_FILE}"
-        ok "ansible-pull.service updated"
-    fi
-else
-    printf '%s\n' "${SERVICE_CONTENT}" > "${SERVICE_FILE}" || die "Could not write ${SERVICE_FILE}"
-    ok "ansible-pull.service written"
-fi
-
-# ── ansible-pull.timer (hourly) ───────────────────────────────────────────────
-TIMER_FILE="/etc/systemd/system/ansible-pull.timer"
-TIMER_CONTENT="[Unit]
-Description=Run ansible-pull every hour to apply latest system configuration
-Requires=ansible-pull.service
-
-[Timer]
-OnBootSec=1min
-OnUnitActiveSec=1h
-RandomizedDelaySec=5min
-Persistent=true
-
-[Install]
-WantedBy=timers.target"
-
-if [ -f "${TIMER_FILE}" ]; then
-    CURRENT_CONTENT=$(cat "${TIMER_FILE}")
-    if [ "${CURRENT_CONTENT}" = "${TIMER_CONTENT}" ]; then
-        skip "ansible-pull.timer already configured"
-    else
-        printf '%s\n' "${TIMER_CONTENT}" > "${TIMER_FILE}" || die "Could not write ${TIMER_FILE}"
-        ok "ansible-pull.timer updated"
-    fi
-else
-    printf '%s\n' "${TIMER_CONTENT}" > "${TIMER_FILE}" || die "Could not write ${TIMER_FILE}"
-    ok "ansible-pull.timer written"
-fi
-
-# ── Enable timer ──────────────────────────────────────────────────────────────
-systemctl daemon-reload || die "Could not reload systemd daemon"
-systemctl enable --now ansible-pull.timer || die "Could not enable ansible-pull.timer"
-ok "ansible-pull.timer enabled"
-
-# ── Run ansible-pull once immediately ─────────────────────────────────────────
+# ── Run ansible-pull to apply full configuration ─────────────────────────────
 echo "Running ansible-pull to apply full configuration..."
-sudo -H -u autoupdate /usr/bin/ansible-pull \
+ansible-pull \
     -U https://github.com/credfeto/credfeto-setup-arch-vm.git \
-    -C main site.yml \
+    -C main \
+    site.yml \
     || die "ansible-pull failed"
 ok "ansible-pull completed successfully"
