@@ -133,7 +133,7 @@ ok "ansible-pull.timer enabled"
 
 # ── Run ansible-pull once immediately ─────────────────────────────────────────
 echo "Running ansible-pull to apply full configuration..."
-sudo -u autoupdate /usr/bin/ansible-pull \
+sudo -H -u autoupdate /usr/bin/ansible-pull \
     -U https://github.com/credfeto/credfeto-setup-arch-vm.git \
     -C main site.yml \
     || die "ansible-pull failed"
