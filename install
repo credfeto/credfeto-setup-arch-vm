@@ -11,10 +11,50 @@ set -e
 
 die() { printf '\033[0;31m✗\033[0m %s\n' "$*" >&2; exit 1; }
 ok()  { printf '\033[0;32m✓\033[0m %s\n' "$*"; }
+skip() { printf '\033[0;33m➜\033[0m %s\n' "$*"; }
 
 # ── Root check ────────────────────────────────────────────────────────────────
 [ "$(id -u)" = "0" ] || die "This script must be run as root"
 ok "Running as root"
+
+# ── Strengthen sysctl hardening ───────────────────────────────────────────────
+echo "Applying sysctl hardening..."
+SYSCTL_CONF="/etc/sysctl.d/99-custom-hardening.conf"
+if [ ! -f "$SYSCTL_CONF" ]; then
+    cat > "$SYSCTL_CONF" <<EOF
+# Kernel security settings
+kernel.dmesg_restrict=1
+kernel.kptr_restrict=2
+kernel.yama.ptrace_scope=1
+
+# Network hardening
+net.ipv4.conf.all.rp_filter=1
+net.ipv4.conf.default.rp_filter=1
+net.ipv4.conf.all.accept_redirects=0
+net.ipv4.conf.default.accept_redirects=0
+net.ipv4.conf.all.send_redirects=0
+net.ipv4.conf.default.send_redirects=0
+net.ipv4.conf.all.accept_source_route=0
+net.ipv4.conf.default.accept_source_route=0
+net.ipv6.conf.all.accept_redirects=0
+net.ipv6.conf.default.accept_redirects=0
+net.ipv6.conf.all.accept_source_route=0
+net.ipv6.conf.default.accept_source_route=0
+
+# Filesystem hardening
+fs.protected_hardlinks=1
+fs.protected_symlinks=1
+EOF
+    sysctl --system || die "Failed to apply sysctl settings"
+    ok "Sysctl hardening applied"
+else
+    skip "Sysctl hardening already applied"
+fi
+
+# ── Tighten file and directory permissions ───────────────────────────────────
+echo "Tightening file and directory permissions..."
+chmod 700 /root || die "Failed to set permissions on /root"
+ok "Permissions on /root tightened"
 
 # ── Install Ansible + Git ─────────────────────────────────────────────────────
 echo "Installing ansible and git..."
@@ -35,3 +75,30 @@ ansible-pull \
     site.yml \
     || die "ansible-pull failed"
 ok "ansible-pull completed successfully"
+
+# ── Configure ansible-pull systemd service ───────────────────────────────────
+echo "Configuring ansible-pull systemd service..."
+SERVICE_DIR="/etc/systemd/system/ansible-pull.service.d"
+SERVICE_CONF="$SERVICE_DIR/security.conf"
+if [ ! -f "$SERVICE_CONF" ]; then
+    mkdir -p "$SERVICE_DIR" || die "Failed to create directory $SERVICE_DIR"
+    cat > "$SERVICE_CONF" <<EOF
+[Service]
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+NoNewPrivileges=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_SYS_TIME
+PrivateNetwork=yes
+ReadOnlyPaths=/
+EOF
+    systemctl daemon-reload || die "Failed to reload systemd daemon"
+    ok "ansible-pull systemd service security configuration applied"
+else
+    skip "ansible-pull systemd service security configuration already applied"
+fi
