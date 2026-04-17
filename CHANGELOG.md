@@ -6,6 +6,9 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 -->
 
 ## [Unreleased]
+### Fixed
+- Replace unsupported `ignore_errors` task keyword (incorrectly indented inside `ansible.posix.sysctl` module params) with the module's own `ignoreerrors: true` parameter for `kernel.kexec_load_disabled` and `kernel.deny_new_usb` tasks
+
 ### Added
 - Git workflow instructions: never-squash-commits rule to preserve the full commit history however messy the path
 - AI instructions: mandatory git identity and GPG signing check before any commit — abort if identity is `andy@nanoclaw.ai` or GPG signing is disabled

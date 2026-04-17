@@ -26,7 +26,7 @@
     value: "1"
     sysctl_file: /etc/sysctl.d/10-kernel.kexec_load_disabled.conf
     reload: true
-    ignore_errors: true  # noqa: ignore-errors - key may not exist in hardened kernel
+    ignoreerrors: true
 
 - name: Set kernel.kptr_restrict
   ansible.posix.sysctl:
@@ -334,7 +334,7 @@
     value: "1"
     sysctl_file: /etc/sysctl.d/10-kernel.deny_new_usb.conf
     reload: true
-    ignore_errors: true  # noqa: ignore-errors - key may not exist in all kernels
+    ignoreerrors: true
 
 - name: Set net.ipv4.tcp_sack
   ansible.posix.sysctl:
