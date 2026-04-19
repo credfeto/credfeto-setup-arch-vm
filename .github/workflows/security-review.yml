@@ -1,7 +1,7 @@
---- # Automated security analysis of the install script using GitHub Copilot (GitHub Models).
-# Analyses the script for security improvements, removes outdated measures, and ensures
-# all systemd services are properly sandboxed. Opens a PR with any changes found.
-name: "Security: Analyse Install Script"
+--- # Automated security analysis of the Ansible configuration using GitHub Copilot (GitHub Models).
+# Analyses the ansible roles for security improvements and opens issues tagged 'AI-Work'
+# describing the work to be done rather than making changes directly.
+name: "Security: Analyse Ansible Config"
 
 on:
   push:
@@ -9,7 +9,8 @@ on:
       - main
       - 'dev/workflow/security-review/**'
     paths:
-      - 'install'
+      - 'site.yml'
+      - 'roles/**'
       - '.github/workflows/security-review.yml'
   schedule:
     - cron: '0 3 * * 0'  # Every Sunday at 03:00 UTC (quiet time)
@@ -27,8 +28,8 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
+      issues: write
       models: read
 
     steps:
@@ -39,115 +40,97 @@ jobs:
           clean: true
           fetch-depth: 0
           fetch-tags: true
-          token: ${{secrets.SOURCE_PUSH_TOKEN}}
 
-      - name: "Install shellcheck and checkbashisms"
+      - name: "Gather ansible role files"
+        id: gather
         run: |
-          NEED_INSTALL=""
-          dpkg -s shellcheck >/dev/null 2>&1 || NEED_INSTALL="${NEED_INSTALL} shellcheck"
-          dpkg -s devscripts >/dev/null 2>&1 || NEED_INSTALL="${NEED_INSTALL} devscripts"
-          if [ -n "${NEED_INSTALL}" ]; then
-            sudo apt-get update -qq
-            # shellcheck disable=SC2086
-            sudo apt-get install -y --no-install-recommends ${NEED_INSTALL}
-          fi
+          ROLE_FILES=$(find roles -name "*.yml" | sort | tr '\n' ' ')
+          echo "role_files=${ROLE_FILES}" >> "${GITHUB_OUTPUT}"
 
-      - name: "Analyse install script with GitHub Copilot"
+      - name: "Analyse ansible config with GitHub Copilot"
         id: analyse
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ROLE_FILES: ${{ steps.gather.outputs.role_files }}
         run: |
           python3 - << 'PYEOF'
           import json
           import os
-          import subprocess
           import sys
           import urllib.error
           import urllib.request
 
-          import re as _re
-
-          SCRIPT_PATH = "install"
           token = os.environ["GITHUB_TOKEN"]
+          role_files_str = os.environ.get("ROLE_FILES", "").strip()
+          role_files = [f for f in role_files_str.split() if f]
 
-          with open(SCRIPT_PATH, "r") as f:
-              script_content = f.read()
+          if not role_files:
+              print("No ansible role files found; nothing to analyse.")
+              github_output = os.environ.get("GITHUB_OUTPUT", "")
+              if github_output:
+                  with open(github_output, "a") as fh:
+                      fh.write("findings_json=[]\n")
+              sys.exit(0)
 
-          # Pre-process: replace `local var` / `local var=val` with bare assignment.
-          # `local` is a bashism (SC3043); remove it before sending to the model so
-          # it cannot preserve existing occurrences.
-          script_content = _re.sub(r'(?m)^\s*local ([a-zA-Z_][a-zA-Z0-9_]*)(=)', lambda m: m.group(0).replace('local ', ''), script_content)
-          script_content = _re.sub(r'(?m)^(\s*)local ([a-zA-Z_][a-zA-Z0-9_]*)$', r'\1\2=', script_content)
+          # Collect all role file contents
+          role_content_parts = []
+          for path in role_files:
+              try:
+                  with open(path, "r") as fh:
+                      content = fh.read()
+                  role_content_parts.append(f"=== {path} ===\n{content}")
+              except OSError:
+                  pass
+
+          all_content = "\n\n".join(role_content_parts)
+          # Truncate to avoid token limits (~80k chars is roughly 20k tokens)
+          if len(all_content) > 80000:
+              all_content = all_content[:80000] + "\n\n... (truncated)"
 
           system_prompt = """\
-          You are a Linux security expert specialising in Arch Linux, systemd hardening, and POSIX shell scripting.
+          You are a Linux security expert specialising in Arch Linux, Ansible, systemd hardening,
+          and infrastructure-as-code security review.
 
-          Analyse the provided POSIX sh install script and apply the following improvements:
+          You will be given the contents of an Ansible configuration (roles and tasks) for an
+          Arch Linux VM. Your task is to identify specific, actionable security improvements and
+          report them as a JSON array of findings.
 
-          1. SECURITY ADDITIONS — apply if they will not break existing functionality:
-             - Strengthen sysctl hardening (kernel, network, filesystem parameters).
-             - Tighten file and directory permissions where appropriate.
-             - Add missing service-level security options.
+          For each finding produce a JSON object with these fields:
+            - "title": a short (max 72 chars) issue title suitable for a GitHub issue
+            - "body": a detailed GitHub-flavoured Markdown description of the finding, including:
+                * What the current configuration does (or omits)
+                * Why it is a security concern
+                * The specific change(s) needed in the Ansible role(s)
+                * File path(s) and task name(s) affected
+                * Any relevant CVEs, advisories, or authoritative references
 
-          2. SECURITY REMOVALS — remove if no longer valid or best-practice:
-             - Deprecated, redundant, or counterproductive security settings.
-             - Settings that conflict with modern Linux security models.
+          Categories to consider:
+          1. MISSING HARDENING — sysctl values, kernel parameters, or file permissions that
+             should be set but are absent.
+          2. OUTDATED OR COUNTERPRODUCTIVE SETTINGS — values that are deprecated, redundant,
+             conflict with modern Linux security models, or break Docker/container networking.
+          3. SYSTEMD SERVICE SANDBOXING — for services whose configuration the roles manage,
+             identify missing sandboxing options (PrivateTmp, ProtectSystem, NoNewPrivileges,
+             CapabilityBoundingSet, etc.). Do NOT recommend drop-ins for services that are only
+             installed via the package manager and left at upstream defaults; those are the
+             package maintainer's responsibility.
+          4. SSH HARDENING — missing or weak SSH server configuration options.
+          5. FIREWALL / NETWORK — missing firewall rules or overly permissive network settings.
+          6. ANSIBLE BEST PRACTICES — tasks that are not idempotent, use deprecated modules,
+             or have insecure file permissions in copy/template tasks.
 
-          3. SYSTEMD SERVICE SANDBOXING — only for services that the script itself configures
-             (i.e. services whose config the script writes). Do NOT add drop-ins for services
-             that are installed solely via the package manager and left at their upstream defaults.
-             The upstream package maintainer is responsible for the security posture of those
-             services. Adding drop-ins on top of package-managed services risks breaking them
-             in ways that are hard to diagnose and maintain.
+          Constraints:
+            - Docker bridge networking (docker0, br-*) must not be broken.
+            - Do NOT recommend kernel.unprivileged_userns_clone=0 — it breaks rootless containers.
+            - Only flag real, specific issues; do not invent theoretical problems.
+            - Each finding must be independently actionable.
+            - If there is nothing to flag in a category, omit it — do not pad with noise.
 
-             Exception: a drop-in MAY be added for a package-managed service ONLY when ALL of
-             the following are true:
-               a) There is a documented, specific, credible security risk with the upstream default.
-               b) The fix cannot be achieved by configuration alone (e.g. a sysctl or conf file).
-               c) The drop-in setting is well-understood and cannot break the service.
-             When an exception applies, the drop-in MUST include an inline comment citing the
-             source (CVE, upstream issue URL, or authoritative advisory URL) that justifies it,
-             and that source MUST also be referenced in the commit message.
-
-             For services the script DOES configure, add a drop-in at
-             /etc/systemd/system/<service>.d/security.conf using a HEREDOC.
-             The drop-in must be written idempotently (check file content before writing, use ok/skip).
-             Apply only what each service legitimately needs; do not over-restrict:
-              - PrivateTmp=yes
-              - ProtectSystem=strict (or full where possible)
-              - ProtectHome=yes (or read-only where appropriate)
-              - NoNewPrivileges=yes
-              - ProtectKernelTunables=yes
-              - ProtectKernelModules=yes
-              - ProtectControlGroups=yes
-              - RestrictRealtime=yes
-              - RestrictSUIDSGID=yes
-              - CapabilityBoundingSet= (list only what is required)
-              - AmbientCapabilities= (only if the service needs ambient caps)
-              - PrivateNetwork=yes or RestrictAddressFamilies= (where the service has no network needs)
-              - ReadWritePaths= / ReadOnlyPaths= / InaccessiblePaths= (restrict filesystem access)
-
-          4. HARD CONSTRAINTS — never violate these:
-             - The script MUST start with the shebang line `#!/bin/sh` as the very first line — no blank lines, no comments, nothing before it.
-             - The script MUST remain POSIX sh compatible; no bash-specific syntax.
-             - The script MUST pass `shellcheck --shell=sh` with zero errors or warnings.
-             - The script MUST pass `checkbashisms` with zero errors or warnings.
-             - The script MUST remain idempotent; every write must be guarded by a content check.
-             - Do NOT use `local` — it is not defined in POSIX sh (SC3043). Use uniquely-named global variables instead.
-             - Do NOT use `[[` or `]]` — use `[` and `]` only.
-             - Do NOT use `function` keyword — define functions as `name() {`.
-             - Do NOT use bash arrays or associative arrays.
-             - Do NOT use process substitution `<(...)` or `>(...)`.
-             - Do NOT use `source` — use `.` instead.
-             - Do NOT use `echo -e` — use `printf` instead.
-             - Do NOT add kernel.unprivileged_userns_clone=0 — this breaks Docker and rootless containers.
-             - Do NOT add any sysctl or setting that breaks Docker bridge networking (docker0, br-*).
-             - Use ok/skip/die output helpers for all status messages — never plain echo for status.
-             - Section header progress lines (e.g. echo "Configuring X...") before long operations are acceptable.
-
-          Return ONLY the complete modified script — no explanation, no markdown code fences, no surrounding text.
-          The very first characters of your response MUST be `#!/bin/sh`.
-          If no changes are needed, return the script exactly as provided.
+          Return ONLY a valid JSON array (possibly empty). No markdown fences, no explanation,
+          no text before or after the array.
+          Example minimal response: []
+          Example single-item response:
+          [{"title": "sysctl: enable TCP SYN cookies", "body": "## Finding\\n..."}]
           """
 
           def call_model(messages):
@@ -173,228 +156,157 @@ jobs:
                   sys.exit(1)
               return result["choices"][0]["message"]["content"]
 
-          def clean_response(raw):
+          def clean_json_response(raw):
               text = raw.strip()
+              # Strip markdown fences if present
               if text.startswith("```"):
                   lines = text.splitlines()
                   start = 1
                   end = len(lines) - 1 if lines[-1].strip() == "```" else len(lines)
                   text = "\n".join(lines[start:end])
-              return text.rstrip("\n") + "\n"
+              return text.strip()
 
-          def validate(text):
-              """Returns (ok, errors) where errors is a combined string from shellcheck+checkbashisms."""
-              import tempfile
-              with tempfile.NamedTemporaryFile(mode="w", suffix=".sh", delete=False) as tmp:
-                  tmp.write(text)
-                  tmp_path = tmp.name
-              errors = []
-              try:
-                  sc = subprocess.run(["shellcheck", "--shell=sh", tmp_path], capture_output=True, text=True)
-                  if sc.returncode != 0:
-                      errors.append(sc.stdout.replace(tmp_path, "install"))
-                  cb = subprocess.run(["checkbashisms", tmp_path], capture_output=True, text=True)
-                  if cb.returncode != 0:
-                      errors.append((cb.stdout + cb.stderr).replace(tmp_path, "install"))
-              finally:
-                  import os as _os
-                  _os.unlink(tmp_path)
-              return (len(errors) == 0), "\n".join(errors)
-
-          MAX_ATTEMPTS = 3
-          initial_messages = [
+          messages = [
               {"role": "system", "content": system_prompt},
               {
                   "role": "user",
                   "content": (
-                      "Analyse and improve this Arch Linux install script. "
-                      "Apply all security improvements described in your instructions.\n\n"
-                      + script_content
+                      "Analyse the following Ansible configuration for an Arch Linux VM "
+                      "and return a JSON array of security findings:\n\n"
+                      + all_content
                   ),
               },
           ]
 
-          modified = None
-          for attempt in range(1, MAX_ATTEMPTS + 1):
-              print(f"Attempt {attempt}/{MAX_ATTEMPTS}: calling model...")
-              if attempt == 1:
-                  messages = initial_messages
-              # (retry messages are set at the bottom of the loop)
-              raw = call_model(messages)
-              candidate = clean_response(raw)
+          print("Calling model to analyse ansible config...")
+          raw = call_model(messages)
+          cleaned = clean_json_response(raw)
 
-              if not candidate.strip():
-                  print(f"Attempt {attempt}: model response is empty; aborting.", file=sys.stderr)
-                  sys.exit(1)
-              if not candidate.lstrip().startswith("#!"):
-                  print(f"Attempt {attempt}: response does not start with shebang.", file=sys.stderr)
-                  if attempt == MAX_ATTEMPTS:
-                      sys.exit(1)
-                  # Fresh compact retry — don't accumulate large history.
-                  messages = [
-                      {"role": "system", "content": system_prompt},
-                      {
-                          "role": "user",
-                          "content": (
-                              "The following script does not start with '#!/bin/sh'. "
-                              "Return ONLY the corrected script — the very first characters must be '#!/bin/sh'.\n\n"
-                              + candidate
-                          ),
-                      },
-                  ]
-                  continue
+          try:
+              findings = json.loads(cleaned)
+          except json.JSONDecodeError as exc:
+              print(f"Failed to parse model response as JSON: {exc}", file=sys.stderr)
+              print(f"Raw response (first 500 chars): {cleaned[:500]}", file=sys.stderr)
+              sys.exit(1)
 
-              ok, errors = validate(candidate)
-              if ok:
-                  modified = candidate
-                  break
+          if not isinstance(findings, list):
+              print("Model response is not a JSON array; aborting.", file=sys.stderr)
+              sys.exit(1)
 
-              print(f"Attempt {attempt}: validation failed:\n{errors}", file=sys.stderr)
-              if attempt == MAX_ATTEMPTS:
-                  print("All attempts exhausted; refusing to overwrite install script.", file=sys.stderr)
-                  sys.exit(1)
+          # Validate each finding has required fields
+          validated = []
+          for item in findings:
+              if isinstance(item, dict) and "title" in item and "body" in item:
+                  validated.append({"title": str(item["title"]), "body": str(item["body"])})
+              else:
+                  print(f"Skipping malformed finding: {item}", file=sys.stderr)
 
-              # Fresh compact retry with only the failing candidate + errors.
-              # Avoids doubling token usage by not re-including the original script.
-              messages = [
-                  {"role": "system", "content": system_prompt},
-                  {
-                      "role": "user",
-                      "content": (
-                          "The following script failed validation. "
-                          "Fix ALL listed errors and return the complete corrected script. "
-                          "Do not introduce any new errors.\n\n"
-                          "Errors:\n" + errors + "\n\nScript:\n" + candidate
-                      ),
-                  },
-              ]
-
-          with open(SCRIPT_PATH, "w") as f:
-              f.write(modified)
-
-          # Detect whether the model produced any changes.
-          diff_proc = subprocess.run(
-              ["git", "diff", "--quiet", SCRIPT_PATH], capture_output=True
-          )
-          has_changes = diff_proc.returncode != 0
-
-          # Generate a descriptive summary of what actually changed.
-          commit_title = "security: harden install script"
-          if has_changes:
-              diff_text = subprocess.run(
-                  ["git", "diff", SCRIPT_PATH], capture_output=True, text=True
-              ).stdout
-              # Truncate diff to avoid token limits.
-              if len(diff_text) > 4000:
-                  diff_text = diff_text[:4000] + "\n... (truncated)"
-              summary_messages = [
-                  {
-                      "role": "system",
-                      "content": (
-                          "You summarise shell script diffs into a single conventional-commit subject line. "
-                          "Format: 'security: <concise description of what was changed and why>'. "
-                          "Maximum 72 characters. No full stop at the end. No markdown."
-                      ),
-                  },
-                  {
-                      "role": "user",
-                      "content": f"Summarise this diff in one conventional-commit subject line:\n\n{diff_text}",
-                  },
-              ]
-              raw_title = call_model(summary_messages).strip().splitlines()[0].strip()
-              # Sanitise: strip any accidental markdown or quotes.
-              raw_title = raw_title.strip('`\'"')
-              if raw_title:
-                  commit_title = raw_title
+          print(f"Found {len(validated)} security finding(s).")
+          for i, f in enumerate(validated, 1):
+              print(f"  {i}. {f['title']}")
 
           github_output = os.environ.get("GITHUB_OUTPUT", "")
           if github_output:
-              with open(github_output, "a") as f:
-                  f.write(f"has_changes={'true' if has_changes else 'false'}\n")
-                  f.write(f"commit_title={commit_title}\n")
-
-          if has_changes:
-              print(f"Security improvements identified — changes written to install script.")
-              print(f"Commit title: {commit_title}")
-          else:
-              print("No security improvements needed — install script is already up to date.")
+              # Use a delimiter to safely write multi-line JSON to GITHUB_OUTPUT
+              with open(github_output, "a") as fh:
+                  fh.write("findings_json<<FINDINGS_EOF\n")
+                  fh.write(json.dumps(validated))
+                  fh.write("\nFINDINGS_EOF\n")
           PYEOF
 
-      - name: "Install dotnet and build tools"
-        if: steps.analyse.outputs.has_changes == 'true'
-        uses: ./.github/actions/build-tools
-        with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NUGET_PUBLIC_RESTORE_FEED: ${{ vars.NUGET_PUBLIC_RESTORE_FEED || 'https://api.nuget.org/v3/index.json' }}
-
-      - name: "Update CHANGELOG.md"
-        if: steps.analyse.outputs.has_changes == 'true'
-        uses: ./.github/actions/dotnet-tool-run
-        with:
-          WORKING_DIRECTORY: ${{ github.workspace }}
-          TOOL_NAME: changelog
-          TOOL_ARGUMENTS: "-f CHANGELOG.md -a Changed -m \"${{ steps.analyse.outputs.commit_title }}\""
-
-      - name: "Commit and push changes"
-        id: push
-        if: steps.analyse.outputs.has_changes == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          BASE_SHA=$(git rev-parse origin/main)
-          BRANCH="security/install-script-$(date -u +%Y%m%d-%H%M%S)"
-          git checkout -b "${BRANCH}" origin/main
-          git add install CHANGELOG.md
-          git commit \
-            -m "${{ steps.analyse.outputs.commit_title }}" \
-            -m "" \
-            -m "Automated security review via GitHub Copilot (GitHub Models API)." \
-            -m "" \
-            -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
-          git push origin "${BRANCH}"
-
-          {
-            echo "base_sha=${BASE_SHA}"
-            echo "head_sha=$(git rev-parse HEAD)"
-            echo "branch=${BRANCH}"
-          } >> "${GITHUB_OUTPUT}"
-
-      - name: "Generate PR description from diff"
-        id: describe
-        if: steps.analyse.outputs.has_changes == 'true'
-        uses: ./.github/actions/generate-pr-description
-        with:
-          base_sha: ${{ steps.push.outputs.base_sha }}
-          head_sha: ${{ steps.push.outputs.head_sha }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: "Create PR"
-        if: steps.analyse.outputs.has_changes == 'true'
+      - name: "Create issues for findings"
+        if: steps.analyse.outputs.findings_json != '[]' && steps.analyse.outputs.findings_json != ''
         env:
-          GH_TOKEN: ${{ github.token }}
-          DESCRIPTION: ${{ steps.describe.outputs.description }}
-          BRANCH: ${{ steps.push.outputs.branch }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FINDINGS_JSON: ${{ steps.analyse.outputs.findings_json }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
-          BODY=$(python3 - << 'PYEOF'
-          import os, re
-          template  = open('.github/PULL_REQUEST_TEMPLATE.md').read().rstrip()
-          desc      = os.environ.get('DESCRIPTION', '').strip()
-          auto_mark = '<!-- description-auto-generated-by-copilot -->'
-          maintained = '<!-- maintained-by-copilot -->'
-          if desc:
-              body = re.sub(
-                  r'(^#{1,3}\s+Description\s*\n)([\s\S]*?)(?=\n#{1,3}\s|$)',
-                  lambda m: f"{m.group(1)}{desc}\n\n{auto_mark}\n\n",
-                  template, flags=re.MULTILINE)
-          else:
-              body = template
-          print(body + f'\n\n{maintained}')
-          PYEOF
-          )
+          python3 - << 'PYEOF'
+          import json
+          import os
+          import sys
+          import urllib.error
+          import urllib.request
 
-          gh pr create \
-            --base main \
-            --head "${BRANCH}" \
-            --title "${{ steps.analyse.outputs.commit_title }}" \
-            --body "${BODY}"
+          token = os.environ["GH_TOKEN"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+          findings_raw = os.environ.get("FINDINGS_JSON", "[]").strip()
+
+          try:
+              findings = json.loads(findings_raw)
+          except json.JSONDecodeError:
+              print("No valid findings JSON; skipping issue creation.")
+              sys.exit(0)
+
+          if not findings:
+              print("No findings to create issues for.")
+              sys.exit(0)
+
+          # Fetch existing open issues with label AI-Work to avoid duplicates
+          def api_request(method, path, data=None):
+              url = f"https://api.github.com/repos/{repo}/{path}"
+              body = json.dumps(data).encode("utf-8") if data is not None else None
+              req = urllib.request.Request(
+                  url,
+                  data=body,
+                  method=method,
+                  headers={
+                      "Authorization": f"Bearer {token}",
+                      "Accept": "application/vnd.github+json",
+                      "X-GitHub-Api-Version": "2022-11-28",
+                      "Content-Type": "application/json",
+                  },
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as response:
+                      return json.loads(response.read().decode("utf-8"))
+              except urllib.error.HTTPError as exc:
+                  body_text = exc.read().decode("utf-8", errors="replace")
+                  print(f"GitHub API error {exc.code} on {method} {path}: {body_text}", file=sys.stderr)
+                  return None
+
+          # Ensure the AI-Work label exists (create it if absent)
+          existing_label = api_request("GET", "labels/AI-Work")
+          if existing_label is None:
+              print("Creating 'AI-Work' label...")
+              api_request("POST", "labels", {
+                  "name": "AI-Work",
+                  "color": "7057ff",
+                  "description": "Work identified by automated AI security review",
+              })
+
+          # Fetch existing open issues labelled AI-Work (first page — 100 issues max)
+          existing_issues = api_request("GET", "issues?labels=AI-Work&state=open&per_page=100") or []
+          existing_titles = {issue["title"].strip() for issue in existing_issues}
+
+          created = 0
+          skipped = 0
+          for finding in findings:
+              title = finding["title"].strip()
+              body = finding["body"].strip()
+
+              if title in existing_titles:
+                  print(f"Skipping duplicate issue: {title}")
+                  skipped += 1
+                  continue
+
+              issue_body = (
+                  body
+                  + "\n\n---\n"
+                  + "_This issue was created automatically by the security review workflow "
+                  + "(`security-review.yml`) using GitHub Copilot (GitHub Models API)._"
+              )
+
+              result = api_request("POST", "issues", {
+                  "title": title,
+                  "body": issue_body,
+                  "labels": ["AI-Work"],
+              })
+              if result and "number" in result:
+                  print(f"Created issue #{result['number']}: {title}")
+                  created += 1
+              else:
+                  print(f"Failed to create issue: {title}", file=sys.stderr)
+
+          print(f"Done: {created} issue(s) created, {skipped} duplicate(s) skipped.")
+          PYEOF
