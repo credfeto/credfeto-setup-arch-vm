@@ -101,6 +101,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - autoupdate sudoers broadened from NOPASSWD:/usr/bin/pacman to NOPASSWD:ALL so ansible-pull can become root for all configuration tasks
 - security: add checks to prevent overwriting existing config files
 - Simplify install script to bootstrap only: install ansible+git, install Galaxy collections, run ansible-pull once — all further configuration (user, sudoers, service, timer) is now managed exclusively by the playbook
+- security: add sysctl hardening, tighten permissions, and secure systemd configs
 ### Removed
 - Remove criu and pigz packages — neither is used or configured by the script
 - Remove curl-based security script in favour of ansible-pull timer
