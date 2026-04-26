@@ -3,7 +3,7 @@ description: 'Rules for editing the install script — idempotency, style, and t
 applyTo: '**'
 ---
 
-> **Index:** `.ai-instructions` is the index of all instruction files in this repository.
+[Back to Local Instructions Index](index.md)
 
 # Install Script Guidelines
 

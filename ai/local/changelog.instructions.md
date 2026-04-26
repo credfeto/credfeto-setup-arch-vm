@@ -3,44 +3,22 @@ description: 'Rules for maintaining CHANGELOG.md using the credfeto.changelog.cm
 applyTo: '**'
 ---
 
-> **Index:** `.ai-instructions` is the index of all instruction files in this repository.
+[Back to Local Instructions Index](index.md)
 
 # Changelog Guidelines
 
-**Always use `credfeto.changelog.cmd` to update `CHANGELOG.md`.** Never edit it manually.
+> The global [documentation.instructions.md](../global/documentation.instructions.md) covers the general CHANGELOG rules (never edit manually, use `Credfeto.Changelog.Cmd`, command syntax for adding and removing entries). The rules below are additional rules specific to this repository.
 
-## Setup
+## Valid Change Types
 
-The tool is a .NET global tool. Install once if not present:
-
-```sh
-dotnet tool install -g Credfeto.Changelog.Cmd
-```
-
-## Adding an Entry
-
-Use `dotnet changelog` — no PATH changes needed:
-
-```sh
-dotnet changelog -f CHANGELOG.md -a <Type> -m "<message>"
-```
-
-Valid types: `Added`, `Fixed`, `Changed`, `Removed`, `Deployment Changes`
-
-Always run the tool **before** committing and include the updated `CHANGELOG.md` in the same commit.
+Valid types for this repository: `Added`, `Fixed`, `Changed`, `Removed`, `Deployment Changes`
 
 ### Examples
 
-Adding
 ```sh
 dotnet changelog -f CHANGELOG.md -a Fixed -m "Enable pkgstats.timer via symlink for static unit"
 dotnet changelog -f CHANGELOG.md -a Added -m "Configure reflector for automatic mirror ranking"
 dotnet changelog -f CHANGELOG.md -a Changed -m "Switch firewall backend from iptables to nftables"
-```
-
-Removing
-```sh
-dotnet changelog -f CHANGELOG.md -r Changed -m "Switch firewall backend from iptables to nftables"
 ```
 
 ## Rules
@@ -59,7 +37,7 @@ An entry is required for every commit that changes **what the script installs, c
 
 ### When NOT to add an entry
 
-- Changes to AI instructions or `.github/instructions/` files
+- Changes to AI instructions or `ai/` files
 - Changes to CI/GitHub Actions workflows
 - Internal refactoring that produces **identical system behaviour** (e.g., variable renames, restructuring without output change)
 - Typo or comment-only fixes that do not affect script output or system state

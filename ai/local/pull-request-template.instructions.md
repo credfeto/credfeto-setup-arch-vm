@@ -3,7 +3,7 @@ description: 'Rules for pull request descriptions — template usage and automat
 applyTo: '**'
 ---
 
-> **Index:** `.ai-instructions` is the index of all instruction files in this repository.
+[Back to Local Instructions Index](index.md)
 
 # Pull Request Template
 

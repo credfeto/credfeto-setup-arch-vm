@@ -1,24 +1,22 @@
 # AI Instructions
 
-This file is the index of all AI instructions for this repository.
+Create AI instructions in markdown files in the [Local AI Memory](ai/local) folder. This file maintains an index of the instruction files in that folder — keep it up-to-date when adding or removing them.
 
-**Before starting any work, re-read all instruction files listed below — they may have changed since your last session.**
+Before performing any work, read this file and all files in the [Global AI Memory](ai/global) and [Local AI Memory](ai/local) folder to make sure memory is correct. If there are any inconsistencies between local memory and this file, stop and ask for clarification.
 
-**Read and apply ALL of the following instruction files before making any changes:**
+* [Global](ai/global/index.md) is the master list of all global instructions that should be maintained in the git@github.com:credfeto/cs-template.git repo.
+* [Local](ai/local/index.md) is the master list of all local instructions that should be maintained in repo other than the git@github.com:credfeto/cs-template.git repo.
 
-| File | Purpose |
-|---|---|
-| [arch-linux.instructions.md](.github/instructions/arch-linux.instructions.md) | Arch Linux administration, pacman workflows, rolling-release best practices |
-| [git-workflow.instructions.md](.github/instructions/git-workflow.instructions.md) | Branching strategy, commit format, PR rules |
-| [install-script.instructions.md](.github/instructions/install-script.instructions.md) | Idempotency, script style, shellcheck, scope |
-| [docker-compatibility.instructions.md](.github/instructions/docker-compatibility.instructions.md) | Settings that must never break Docker |
-| [output-formatting.instructions.md](.github/instructions/output-formatting.instructions.md) | ok / skip / die indicators and colours |
-| [changelog.instructions.md](.github/instructions/changelog.instructions.md) | Updating CHANGELOG.md with credfeto.changelog.cmd |
-| [github-actions.instructions.md](.github/instructions/github-actions.instructions.md) | Rules for GitHub Actions workflow files — linting, shell scripts, GitHub Models API |
+Precedence is given to local instructions over global instructions.
 
-When adding a new rule:
-- Add it to the most relevant file in `.github/instructions/`.
-- If no existing file fits, create a new `<topic>.instructions.md` file there.
-- Update this index table to include any new file.
+## Management Rules
 
-When you discover something that should be remembered for future work (a tool to use, a pattern to follow, a gotcha to avoid), add it to the most relevant `.github/instructions/` file immediately and include it in the same commit as the change that prompted it.
+- Whenever an instruction to remember to do something is given, update the appropriate memory file and this index.
+- Whenever adding a new rule, check all existing instruction files and the index for consistency — update anything that conflicts with, duplicates, or is made stale by the new rule.
+- Whenever these files change, re-evaluate memory against it.
+- If there is a massive difference between memory and these files, stop and ask for clarification.
+- If a memory file's description diverges from the source code, update it to reflect the changes.
+- Re-organise the sections in the memory file whenever the current file set no longer works.
+- Whenever rebasing from main, take the the current branch's changes, but merge the changes in from main into the current fileset.
+- Whenever starting work - re-read all these files and use this as a basis for how the work is performed.
+- This file (.ai-instructions) should only be edited in git@github.com:credfeto/cs-template.git.

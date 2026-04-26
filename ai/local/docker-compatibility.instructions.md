@@ -3,7 +3,7 @@ description: 'Rules ensuring all configuration is compatible with Docker.'
 applyTo: '**'
 ---
 
-> **Index:** `.ai-instructions` is the index of all instruction files in this repository.
+[Back to Local Instructions Index](index.md)
 
 # Docker Compatibility
 

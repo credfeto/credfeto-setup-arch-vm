@@ -3,7 +3,7 @@ description: 'Output formatting rules for the install script — coloured indica
 applyTo: '**'
 ---
 
-> **Index:** `.ai-instructions` is the index of all instruction files in this repository.
+[Back to Local Instructions Index](index.md)
 
 # Output Formatting
 

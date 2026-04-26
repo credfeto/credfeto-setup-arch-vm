@@ -3,7 +3,7 @@ description: 'Rules for writing and modifying GitHub Actions workflow files.'
 applyTo: '**'
 ---
 
-> **Index:** `.ai-instructions` is the index of all instruction files in this repository.
+[Back to Local Instructions Index](index.md)
 
 # GitHub Actions Workflow Guidelines
 
