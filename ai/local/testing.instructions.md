@@ -38,3 +38,13 @@ ansible-playbook -i arch-vm-test.lan, site.yml --tags <role>
 ```
 
 The `test` user has `sudo` access, so any task requiring privilege escalation will work without additional configuration.
+
+## Permissions
+
+This VM is exclusively for testing. Feel free to:
+
+- Reboot it at any time to verify persistent changes survive a restart.
+- Break and reconfigure it as needed to reproduce or diagnose issues.
+- Make destructive changes (reinstall packages, wipe config files, etc.) to test idempotency and recovery.
+
+There is no need to ask permission before rebooting or making significant changes to this VM.
