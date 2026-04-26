@@ -23,3 +23,4 @@ This is an index of local instructions that apply to just this project.
 | [changelog.instructions.md](changelog.instructions.md) | Repo-specific changelog rules: install-script audience, when to add/skip entries, valid types including Deployment Changes |
 | [github-actions.instructions.md](github-actions.instructions.md) | Super-linter checks required, shell script pitfalls (SC2129, pipefail), GitHub Models API endpoint |
 | [pull-request-template.instructions.md](pull-request-template.instructions.md) | PR body structure, auto-generated description via composite action, maintain-pr-description workflow rules |
+| [testing.instructions.md](testing.instructions.md) | Test VM at arch-vm-test.lan (user: test, sudo), when and how to validate Ansible role and install script changes |
