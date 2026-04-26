@@ -48,3 +48,11 @@ This VM is exclusively for testing. Feel free to:
 - Make destructive changes (reinstall packages, wipe config files, etc.) to test idempotency and recovery.
 
 There is no need to ask permission before rebooting or making significant changes to this VM.
+
+## Cleanup After Testing
+
+After testing is complete, **revert the VM to its pre-test state** so it is clean for the next test run:
+
+- Undo any manual config changes made during testing.
+- If the playbook was applied, re-run it after reverting to confirm idempotency.
+- If the VM state is uncertain or too messy to cleanly revert, reboot it and re-run the playbook from scratch to restore a known-good baseline.
