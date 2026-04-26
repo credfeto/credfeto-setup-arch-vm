@@ -28,6 +28,38 @@
     state: present
     extra_args: "--noconfirm --needed"
 
+- name: Remove any unmanaged chaotic-aur section from pacman.conf
+  ansible.builtin.shell:
+    cmd: |
+      python3 -c "
+      with open('/etc/pacman.conf') as f:
+          lines = f.readlines()
+      in_managed = False
+      new_lines = []
+      i = 0
+      while i < len(lines):
+          if '# BEGIN ANSIBLE MANAGED BLOCK - chaotic-aur' in lines[i]:
+              in_managed = True
+          if '# END ANSIBLE MANAGED BLOCK - chaotic-aur' in lines[i]:
+              in_managed = False
+          if not in_managed and lines[i].strip() == '[chaotic-aur]':
+              i += 1
+              while i < len(lines) and lines[i].startswith(('Include = ', 'CacheServer = ')):
+                  i += 1
+              continue
+          new_lines.append(lines[i])
+          i += 1
+      if new_lines != lines:
+          with open('/etc/pacman.conf', 'w') as f:
+              f.writelines(new_lines)
+          print('changed')
+      else:
+          print('ok')
+      "
+    executable: /bin/bash
+  register: chaotic_cleanup
+  changed_when: "'changed' in chaotic_cleanup.stdout"
+
 - name: Add Chaotic AUR repository to pacman.conf
   ansible.builtin.blockinfile:
     path: /etc/pacman.conf

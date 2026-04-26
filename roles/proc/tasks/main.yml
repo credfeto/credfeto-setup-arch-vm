@@ -45,10 +45,14 @@
     mode: "0644"
   notify: Reload systemd
 
+- name: Check if /proc already has hidepid configured
+  ansible.builtin.command:
+    cmd: findmnt /proc --output OPTIONS -n
+  register: proc_mount_opts
+  changed_when: false
+
 - name: Remount /proc with hidepid=2 live
-  ansible.posix.mount:
-    path: /proc
-    src: proc
-    fstype: proc
-    opts: nosuid,nodev,noexec,hidepid=2,gid=proc
-    state: remounted
+  ansible.builtin.command:
+    cmd: mount -o remount,nosuid,nodev,noexec,hidepid=2,gid=proc /proc
+  changed_when: true
+  when: "'hidepid' not in proc_mount_opts.stdout"
