@@ -21,3 +21,9 @@ The following must **never** be added:
 | Setting | Reason |
 |---|---|
 | `kernel.unprivileged_userns_clone=0` | Breaks Docker networking and rootless containers |
+
+## Firewalld and Docker
+
+firewalld's `filter_FORWARD` chain (priority `filter+10`) runs after Docker's own nft rules (priority `filter`). New outbound connections from containers hit the public zone's empty `filter_FWD_public_allow` chain and are rejected.
+
+To allow Docker containers to reach LAN hosts, the `172.16.0.0/12` subnet (covers all default Docker bridge ranges) must be assigned as a source to the `docker` firewalld zone, which has `target: ACCEPT`. This is managed by the `firewall` role and must not be removed.

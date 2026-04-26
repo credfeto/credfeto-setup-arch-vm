@@ -62,3 +62,11 @@
     permanent: true
     state: enabled
   notify: Reload firewalld
+
+- name: Assign Docker bridge subnet to docker zone (allows container outbound forwarding)
+  ansible.posix.firewalld:
+    zone: docker
+    source: 172.16.0.0/12
+    permanent: true
+    state: enabled
+  notify: Reload firewalld
