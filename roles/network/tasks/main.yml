@@ -1,6 +1,11 @@
 ---
 # The eth0.network file is only written on first run (when it doesn't already exist).
 # It captures the current IP/GW at bootstrap time; subsequent runs leave it alone.
+- name: Check if systemd-networkd configuration already exists
+  ansible.builtin.stat:
+    path: /etc/systemd/network/eth0.network
+  register: eth0_network_stat
+
 - name: Detect primary network interface
   ansible.builtin.shell:
     cmd: |
@@ -9,7 +14,9 @@
     executable: /bin/bash
   register: network_nic
   changed_when: false
-  when: not ansible_check_mode
+  when:
+    - not ansible_check_mode
+    - not eth0_network_stat.stat.exists
 
 - name: Detect IPv4 address
   ansible.builtin.shell:
@@ -21,6 +28,7 @@
   changed_when: false
   when:
     - not ansible_check_mode
+    - not eth0_network_stat.stat.exists
     - network_nic.stdout | length > 0
 
 - name: Detect IPv4 gateway
@@ -33,6 +41,7 @@
   changed_when: false
   when:
     - not ansible_check_mode
+    - not eth0_network_stat.stat.exists
     - network_nic.stdout | length > 0
 
 - name: Detect IPv6 address
@@ -45,6 +54,7 @@
   changed_when: false
   when:
     - not ansible_check_mode
+    - not eth0_network_stat.stat.exists
     - network_nic.stdout | length > 0
 
 - name: Detect IPv6 gateway
@@ -57,6 +67,7 @@
   changed_when: false
   when:
     - not ansible_check_mode
+    - not eth0_network_stat.stat.exists
     - network_nic.stdout | length > 0
 
 - name: Write systemd-networkd configuration for primary interface
@@ -68,6 +79,7 @@
     mode: "0644"
   when:
     - not ansible_check_mode
+    - not eth0_network_stat.stat.exists
     - network_nic.stdout | length > 0
     - network_ipv4.stdout | length > 0
 
