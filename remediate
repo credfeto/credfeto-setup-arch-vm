@@ -1,0 +1,95 @@
+#!/bin/sh
+# Remediation script for issues identified and fixed in April 2026.
+#
+# Fixes applied:
+#   1. Wrong /25 subnet mask in /etc/systemd/network/eth0.network → corrected
+#      to /24 and applied live so all hosts on 192.168.x.0/24 are reachable.
+#   2. Duplicate [chaotic-aur] section in /etc/pacman.conf → unmanaged copy
+#      removed, leaving only the Ansible-managed block.
+#
+# Safe to re-run — all checks are idempotent.
+# Must be run as root.
+
+set -e
+
+die()  { printf '\033[0;31m✗\033[0m %s\n' "$*" >&2; exit 1; }
+ok()   { printf '\033[0;32m✓\033[0m %s\n' "$*"; }
+skip() { printf '\033[0;33m–\033[0m %s\n' "$*"; }
+
+[ "$(id -u)" = "0" ] || die "This script must be run as root"
+
+# ── Fix 1: /25 subnet mask ────────────────────────────────────────────────────
+NETFILE="/etc/systemd/network/eth0.network"
+
+if [ -f "${NETFILE}" ]; then
+    if grep -q '/25' "${NETFILE}"; then
+        # Determine the current IP to fix (in case it differs from the address line)
+        OLD=$(grep '^Address=' "${NETFILE}" | head -1)
+        NEW=$(echo "${OLD}" | sed 's|/25|/24|')
+        sed -i 's|/25|/24|' "${NETFILE}"
+        ok "Fixed subnet mask in ${NETFILE}: ${OLD} → ${NEW}"
+
+        # Apply live: remove the /25 address and add /24
+        IFACE=$(grep '^Name=' "${NETFILE}" | head -1 | cut -d= -f2)
+        IP25=$(echo "${OLD}" | sed 's|Address=||')
+        IP24=$(echo "${IP25}" | sed 's|/25|/24|')
+        if ip addr show dev "${IFACE}" | grep -q "${IP25}"; then
+            ip addr del "${IP25}" dev "${IFACE}" 2>/dev/null || true
+            ip addr add "${IP24}" dev "${IFACE}" || die "Failed to add ${IP24} on ${IFACE}"
+            ok "Applied live: ${IP25} → ${IP24} on ${IFACE}"
+        else
+            skip "Live address already correct on ${IFACE}"
+        fi
+
+        networkctl reload || die "networkctl reload failed"
+        ok "networkctl reloaded"
+    else
+        skip "Subnet mask in ${NETFILE} is already correct (no /25 found)"
+    fi
+else
+    skip "${NETFILE} does not exist — skipping subnet fix"
+fi
+
+# ── Fix 2: duplicate [chaotic-aur] in pacman.conf ────────────────────────────
+PACMANCONF="/etc/pacman.conf"
+
+if grep -q '^\[chaotic-aur\]' "${PACMANCONF}"; then
+    # Count how many [chaotic-aur] sections exist
+    COUNT=$(grep -c '^\[chaotic-aur\]' "${PACMANCONF}")
+    if [ "${COUNT}" -gt 1 ]; then
+        python3 - "${PACMANCONF}" <<'EOF'
+import sys
+
+path = sys.argv[1]
+with open(path) as f:
+    lines = f.readlines()
+
+in_managed = False
+new_lines = []
+i = 0
+while i < len(lines):
+    if '# BEGIN ANSIBLE MANAGED BLOCK - chaotic-aur' in lines[i]:
+        in_managed = True
+    if '# END ANSIBLE MANAGED BLOCK - chaotic-aur' in lines[i]:
+        in_managed = False
+    # Remove unmanaged [chaotic-aur] blocks (outside the ansible-managed block)
+    if not in_managed and lines[i].strip() == '[chaotic-aur]':
+        i += 1
+        while i < len(lines) and lines[i].startswith(('Include = ', 'CacheServer = ')):
+            i += 1
+        continue
+    new_lines.append(lines[i])
+    i += 1
+
+with open(path, 'w') as f:
+    f.writelines(new_lines)
+EOF
+        ok "Removed duplicate [chaotic-aur] section from ${PACMANCONF}"
+    else
+        skip "Only one [chaotic-aur] section found in ${PACMANCONF} — no duplicate to remove"
+    fi
+else
+    skip "No [chaotic-aur] section found in ${PACMANCONF} — skipping"
+fi
+
+ok "Remediation complete"
