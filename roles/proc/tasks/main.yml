@@ -52,7 +52,10 @@
   changed_when: false
 
 - name: Remount /proc with hidepid=2 live
-  ansible.builtin.command:
-    cmd: mount -o remount,nosuid,nodev,noexec,hidepid=2,gid=proc /proc
-  changed_when: true
+  ansible.posix.mount:
+    path: /proc
+    src: proc
+    fstype: proc
+    opts: nosuid,nodev,noexec,hidepid=2,gid=proc
+    state: remounted
   when: "'hidepid' not in proc_mount_opts.stdout"

@@ -1,73 +1,79 @@
 ---
-# The eth0.network file is only written on first run (when it doesn't already exist).
-# It captures the current IP/GW at bootstrap time; subsequent runs leave it alone.
+# eth0.network is written only on the first run (file absent).
+# It captures the current IP/GW at bootstrap time; subsequent runs
+# leave it untouched.
 - name: Check if systemd-networkd configuration already exists
   ansible.builtin.stat:
     path: /etc/systemd/network/eth0.network
-  register: eth0_network_stat
+  register: network_eth0_stat
 
 - name: Detect primary network interface
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      ip -o link show | awk '/^[0-9]+: (eth|enp|ens)/{sub(/:$/, "", $2); print $2; exit}'
+      ip -o link show | awk \
+        '/^[0-9]+: (eth|enp|ens)/{sub(/:$/, "", $2); print $2; exit}'
     executable: /bin/bash
   register: network_nic
   changed_when: false
   when:
     - not ansible_check_mode
-    - not eth0_network_stat.stat.exists
+    - not network_eth0_stat.stat.exists
 
 - name: Detect IPv4 address
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      ip -o -4 addr show dev {{ network_nic.stdout }} scope global | awk 'NR==1{print $4}'
+      ip -o -4 addr show dev {{ network_nic.stdout }} scope global \
+        | awk 'NR==1{print $4}'
     executable: /bin/bash
   register: network_ipv4
   changed_when: false
   when:
     - not ansible_check_mode
-    - not eth0_network_stat.stat.exists
+    - not network_eth0_stat.stat.exists
     - network_nic.stdout | length > 0
 
 - name: Detect IPv4 gateway
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      ip -4 route show default dev {{ network_nic.stdout }} | awk 'NR==1{print $3}'
+      ip -4 route show default dev {{ network_nic.stdout }} \
+        | awk 'NR==1{print $3}'
     executable: /bin/bash
   register: network_gw4
   changed_when: false
   when:
     - not ansible_check_mode
-    - not eth0_network_stat.stat.exists
+    - not network_eth0_stat.stat.exists
     - network_nic.stdout | length > 0
 
 - name: Detect IPv6 address
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      ip -o -6 addr show dev {{ network_nic.stdout }} scope global | awk 'NR==1{print $4}'
+      ip -o -6 addr show dev {{ network_nic.stdout }} scope global \
+        | awk 'NR==1{print $4}'
     executable: /bin/bash
   register: network_ipv6
   changed_when: false
   when:
     - not ansible_check_mode
-    - not eth0_network_stat.stat.exists
+    - not network_eth0_stat.stat.exists
     - network_nic.stdout | length > 0
 
 - name: Detect IPv6 gateway
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      ip -6 route show default dev {{ network_nic.stdout }} 2>/dev/null | awk 'NR==1{print $3}'
+      ip -6 route show default dev {{ network_nic.stdout }} \
+        2>/dev/null | awk 'NR==1{print $3}'
     executable: /bin/bash
   register: network_gw6
   changed_when: false
   when:
     - not ansible_check_mode
-    - not eth0_network_stat.stat.exists
+    - not network_eth0_stat.stat.exists
     - network_nic.stdout | length > 0
 
 - name: Write systemd-networkd configuration for primary interface
@@ -79,7 +85,7 @@
     mode: "0644"
   when:
     - not ansible_check_mode
-    - not eth0_network_stat.stat.exists
+    - not network_eth0_stat.stat.exists
     - network_nic.stdout | length > 0
     - network_ipv4.stdout | length > 0
 
