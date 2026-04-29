@@ -1,5 +1,4 @@
----
-profile: production
-warn_list:
-  - yaml[truthy]
-skip_list: []
+exclude_paths:
+  - .pre-commit-config.yaml
+  - .github/
+  - src/
