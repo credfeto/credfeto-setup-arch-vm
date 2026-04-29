@@ -2,13 +2,17 @@
 - name: Configure pacman cache server
   ansible.builtin.lineinfile:
     path: /etc/pacman.conf
-    line: "CacheServer = https://pacman.markridgwell.com/repo/archlinux/$repo/os/$arch"
+    line: >-
+      CacheServer =
+      https://pacman.markridgwell.com/repo/archlinux/$repo/os/$arch
     insertafter: "^Include = /etc/pacman.d/mirrorlist$"
     state: present
 
 - name: Receive Chaotic AUR signing key
   ansible.builtin.command:
-    cmd: pacman-key --recv-key 3056513887B78AEB --keyserver hkps://keyserver.ubuntu.com
+    cmd: >-
+      pacman-key --recv-key 3056513887B78AEB
+      --keyserver hkps://keyserver.ubuntu.com
   changed_when: true
 
 - name: Locally sign Chaotic AUR key
@@ -24,7 +28,7 @@
 
 - name: Install Chaotic AUR mirrorlist
   community.general.pacman:
-    name: https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst
+    name: https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst  # yamllint disable-line rule:line-length
     state: present
     extra_args: "--noconfirm --needed"
 
@@ -44,7 +48,8 @@
               in_managed = False
           if not in_managed and lines[i].strip() == '[chaotic-aur]':
               i += 1
-              while i < len(lines) and lines[i].startswith(('Include = ', 'CacheServer = ')):
+              while (i < len(lines) and
+                     lines[i].startswith(('Include = ', 'CacheServer = '))):
                   i += 1
               continue
           new_lines.append(lines[i])
@@ -57,8 +62,8 @@
           print('ok')
       "
     executable: /bin/bash
-  register: chaotic_cleanup
-  changed_when: "'changed' in chaotic_cleanup.stdout"
+  register: packages_chaotic_cleanup
+  changed_when: "'changed' in packages_chaotic_cleanup.stdout"
 
 - name: Add Chaotic AUR repository to pacman.conf
   ansible.builtin.blockinfile:
@@ -100,7 +105,7 @@
     name: linux-firmware
     state: absent
     extra_args: "--noconfirm"
-  ignore_errors: true # noqa: ignore-errors - package may not be installed
+  ignore_errors: true  # noqa: ignore-errors - package may not be installed
 
 - name: Remove orphaned packages
   ansible.builtin.shell:
