@@ -3,6 +3,8 @@ Description=Remove unused docker images weekly
 
 [Timer]
 OnCalendar=weekly
+RandomizedDelaySec=1h
+AccuracySec=1s
 Persistent=true
 
 [Install]
