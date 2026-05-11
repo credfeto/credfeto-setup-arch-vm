@@ -8,6 +8,7 @@
     - packages
     - users
     - sysctl
+    - kernel_modules
     - proc
     - docker
     - grub

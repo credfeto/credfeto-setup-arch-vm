@@ -1,0 +1,61 @@
+---
+# Blacklist kernel modules affected by Dirty Frag (CVE-2026-43284, CVE-2026-43500).
+# esp4/esp6 are the IPsec ESP variants; rxrpc is the AFS RxRPC variant.
+# Reference: https://www.phoronix.com/news/Dirty-Frag-Linux
+
+- name: Capture currently loaded modules
+  ansible.builtin.command:
+    cmd: lsmod
+  register: lsmod_output
+  changed_when: false
+
+- name: Blacklist esp4 (Dirty Frag CVE-2026-43284)
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/blacklist-dirtyfrag-esp4.conf
+    content: |
+      # Dirty Frag CVE-2026-43284 — disable IPsec ESP (IPv4)
+      blacklist esp4
+      install esp4 /bin/false
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Unload esp4 if currently loaded
+  community.general.modprobe:
+    name: esp4
+    state: absent
+  when: "'esp4' in lsmod_output.stdout"
+
+- name: Blacklist esp6 (Dirty Frag CVE-2026-43284)
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/blacklist-dirtyfrag-esp6.conf
+    content: |
+      # Dirty Frag CVE-2026-43284 — disable IPsec ESP (IPv6)
+      blacklist esp6
+      install esp6 /bin/false
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Unload esp6 if currently loaded
+  community.general.modprobe:
+    name: esp6
+    state: absent
+  when: "'esp6' in lsmod_output.stdout"
+
+- name: Blacklist rxrpc (Dirty Frag CVE-2026-43500)
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/blacklist-dirtyfrag-rxrpc.conf
+    content: |
+      # Dirty Frag CVE-2026-43500 — disable AFS RxRPC
+      blacklist rxrpc
+      install rxrpc /bin/false
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Unload rxrpc if currently loaded
+  community.general.modprobe:
+    name: rxrpc
+    state: absent
+  when: "'rxrpc' in lsmod_output.stdout"
