@@ -6,7 +6,7 @@
 - name: Capture currently loaded modules
   ansible.builtin.command:
     cmd: lsmod
-  register: lsmod_output
+  register: kernel_modules_lsmod_output
   changed_when: false
 
 - name: Blacklist esp4 (Dirty Frag CVE-2026-43284)
@@ -24,7 +24,7 @@
   community.general.modprobe:
     name: esp4
     state: absent
-  when: "'esp4' in lsmod_output.stdout"
+  when: "'esp4' in kernel_modules_lsmod_output.stdout"
 
 - name: Blacklist esp6 (Dirty Frag CVE-2026-43284)
   ansible.builtin.copy:
@@ -41,7 +41,7 @@
   community.general.modprobe:
     name: esp6
     state: absent
-  when: "'esp6' in lsmod_output.stdout"
+  when: "'esp6' in kernel_modules_lsmod_output.stdout"
 
 - name: Blacklist rxrpc (Dirty Frag CVE-2026-43500)
   ansible.builtin.copy:
@@ -58,4 +58,4 @@
   community.general.modprobe:
     name: rxrpc
     state: absent
-  when: "'rxrpc' in lsmod_output.stdout"
+  when: "'rxrpc' in kernel_modules_lsmod_output.stdout"
