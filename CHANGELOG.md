@@ -6,6 +6,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 -->
 
 ## [Unreleased]
+### Security
 ### Added
 - Git workflow instructions: never-squash-commits rule to preserve the full commit history however messy the path
 - AI instructions: mandatory git identity and GPG signing check before any commit — abort if identity is `andy@nanoclaw.ai` or GPG signing is disabled
@@ -43,6 +44,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - ansible-lint job added to pull-request.yml CI workflow
 - requirements.yml listing ansible.posix and community.general collections
 - Mount /proc with hidepid=2 and gid=proc to prevent cross-user process visibility
+- Blacklist kernel modules esp4, esp6, and rxrpc affected by Dirty Frag (CVE-2026-43284, CVE-2026-43500) to prevent local privilege escalation
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
@@ -108,7 +110,6 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Remove curl-based security script in favour of ansible-pull timer
 - auto-update bash script, service, and timer — superseded by the packages role running pacman -Syyu on every hourly ansible-pull run
 ### Deployment Changes
-
 <!--
 Releases that have at least been deployed to staging, BUT NOT necessarily released to live.  Changes should be moved from [Unreleased] into here as they are merged into the appropriate release branch
 -->
