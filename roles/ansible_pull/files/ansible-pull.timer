@@ -6,6 +6,7 @@ Requires=ansible-pull.service
 OnBootSec=1min
 OnUnitActiveSec=1h
 RandomizedDelaySec=5min
+AccuracySec=1s
 Persistent=true
 
 [Install]
