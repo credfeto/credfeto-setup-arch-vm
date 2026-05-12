@@ -1,0 +1,36 @@
+---
+- name: Get system boot time
+  ansible.builtin.shell:
+    cmd: date -d "$(uptime -s)" +%s
+    executable: /bin/bash
+  register: reboot_boot_time_result
+  changed_when: false
+
+- name: Stat kernel image
+  ansible.builtin.stat:
+    path: /boot/vmlinuz-linux-hardened
+    get_checksum: false
+  register: reboot_vmlinuz_stat
+
+- name: Stat GRUB config
+  ansible.builtin.stat:
+    path: /boot/grub/grub.cfg
+    get_checksum: false
+  register: reboot_grubcfg_stat
+
+- name: Determine whether a reboot is needed
+  ansible.builtin.set_fact:
+    reboot_needed: >-
+      {{
+        (reboot_vmlinuz_stat.stat.exists and
+         reboot_vmlinuz_stat.stat.mtime | int > reboot_boot_time_result.stdout | int)
+        or
+        (reboot_grubcfg_stat.stat.exists and
+         reboot_grubcfg_stat.stat.mtime | int > reboot_boot_time_result.stdout | int)
+      }}
+
+- name: Schedule reboot 60 s after Ansible run when kernel or boot config changed
+  ansible.builtin.command:
+    cmd: systemd-run --on-active=60 systemctl reboot
+  when: reboot_needed | bool
+  changed_when: true
