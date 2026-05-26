@@ -75,6 +75,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Load br_netfilter module before applying net.bridge.bridge-nf-call-iptables sysctl so the setting succeeds on first provision
 - Replace unsupported ignore_errors task keyword with module's own ignoreerrors: true parameter for kernel.kexec_load_disabled and kernel.deny_new_usb sysctl tasks
 - Ensure docker firewalld zone exists on fresh VM before assigning Docker bridge subnet
+- Run mkinitcpio -P after GRUB config changes to ensure initramfs stays in sync
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
