@@ -46,6 +46,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Mount /proc with hidepid=2 and gid=proc to prevent cross-user process visibility
 - Blacklist kernel modules esp4, esp6, and rxrpc affected by Dirty Frag (CVE-2026-43284, CVE-2026-43500) to prevent local privilege escalation
 - Schedule reboot 60 s after Ansible run when kernel image or GRUB config changed since last boot
+- Ensure user 'markr' exists with sudo NOPASSWD, SSH-only login, and authorized SSH keys from GitHub
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
