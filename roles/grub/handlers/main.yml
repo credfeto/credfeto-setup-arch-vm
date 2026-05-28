@@ -3,3 +3,10 @@
   ansible.builtin.command:
     cmd: grub-mkconfig -o /boot/grub/grub.cfg
   changed_when: true
+  listen: boot-config-changed
+
+- name: Regenerate initramfs
+  ansible.builtin.command:
+    cmd: mkinitcpio -P
+  changed_when: true
+  listen: boot-config-changed
