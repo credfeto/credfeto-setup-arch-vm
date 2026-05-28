@@ -37,3 +37,36 @@
   ansible.builtin.file:
     path: /etc/sudoers.d/01_markr
     state: absent
+
+- name: Create markr user
+  ansible.builtin.user:
+    name: markr
+    create_home: true
+    home: /home/markr
+    shell: /bin/bash
+    state: present
+    password: "{{ lookup('ansible.builtin.password', '/dev/null', length=32, chars=['ascii_letters', 'digits', 'punctuation']) | password_hash('sha512') }}"
+    update_password: on_create
+
+- name: Ensure markr home directory has correct ownership
+  ansible.builtin.file:
+    path: /home/markr
+    state: directory
+    owner: markr
+    group: markr
+    mode: "0750"
+
+- name: Write sudoers file for markr (NOPASSWD ALL)
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/markr
+    content: "markr ALL=(ALL) NOPASSWD: ALL\n"
+    owner: root
+    group: root
+    mode: "0440"
+    validate: visudo -c -f %s
+
+- name: Add authorized SSH keys for markr from GitHub
+  ansible.posix.authorized_key:
+    user: markr
+    state: present
+    key: https://github.com/credfeto.keys
