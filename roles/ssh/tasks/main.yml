@@ -127,6 +127,25 @@
     mode: "0600"
   notify: Reload sshd
 
+# Key lookup
+- name: Configure sshd AuthorizedKeysCommand
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-authorizedkeyscommand.conf
+    content: "AuthorizedKeysCommand /usr/bin/curl -s https://keys.markridgwell.com/keys/%H/%u\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
+- name: Configure sshd AuthorizedKeysCommandUser
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-authorizedkeyscommanduser.conf
+    content: "AuthorizedKeysCommandUser nobody\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
 # Session
 - name: Configure sshd X11Forwarding
   ansible.builtin.copy:
