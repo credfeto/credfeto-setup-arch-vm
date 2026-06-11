@@ -86,6 +86,7 @@
       - ansible
       - apparmor
       - audit
+      - curl
       - docker
       - docker-buildx
       - docker-compose
