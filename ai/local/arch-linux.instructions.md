@@ -21,9 +21,22 @@ Use these instructions when writing guidance, scripts, or documentation for Arch
 
 - Use `pacman -Syu` for full system upgrades; avoid partial upgrades.
 - Inspect packages with `pacman -Qi`, `pacman -Ql`, and `pacman -Ss`.
-- Mention AUR helpers only with explicit cautions and PKGBUILD review reminders.
 - Use `paccache -r` (from `pacman-contrib`) to prune the package cache, keeping the 3 most recent versions per package.
 - Schedule `paccache -r` via a weekly systemd timer to prevent unbounded cache growth.
+
+## AUR Helpers — PROHIBITED
+
+**Never install or recommend AUR helpers** (yay, yay-bin, paru, paru-bin, pikaur, trizen, aurutils, aura, bauerbill, pakku, pamac-aur, or any equivalent).
+
+AUR helpers automate PKGBUILD execution from user-submitted sources. Recent AUR supply chain attacks have demonstrated that malicious PKGBUILDs can be pushed to the AUR and executed silently by helpers before any human review. The attack surface is unacceptable on managed systems.
+
+If any AUR helper is found installed it **must be removed** immediately via `pacman -Rs`.
+
+The Ansible role at `roles/packages/tasks/main.yml` enforces this by explicitly removing known AUR helper packages on every run.
+
+### Permitted exception — Chaotic AUR
+
+**Chaotic AUR is permitted** and is the only community repository approved for use. Packages in Chaotic AUR are pre-built by a maintained automated pipeline and externally reviewed, unlike raw AUR PKGBUILDs. Chaotic AUR is configured via `pacman.conf` and the signed keyring — **never** via an AUR helper.
 
 ## Configuration & Services
 
