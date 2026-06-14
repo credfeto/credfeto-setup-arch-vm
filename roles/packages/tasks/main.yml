@@ -101,6 +101,24 @@
     state: present
     extra_args: "--noconfirm --needed"
 
+- name: Remove AUR helpers (prohibited due to supply chain attack risk)
+  community.general.pacman:
+    name:
+      - yay
+      - yay-bin
+      - paru
+      - paru-bin
+      - pikaur
+      - trizen
+      - aurutils
+      - aura
+      - bauerbill
+      - pakku
+      - pamac-aur
+    state: absent
+    extra_args: "--noconfirm"
+  ignore_errors: true  # noqa: ignore-errors - packages may not be installed
+
 - name: Remove linux-firmware (not needed on VMs)
   community.general.pacman:
     name: linux-firmware
