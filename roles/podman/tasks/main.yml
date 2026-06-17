@@ -16,3 +16,11 @@
     group: root
     mode: "0644"
   when: container_runtime == 'podman'
+
+- name: Enable kernel.unprivileged_userns_clone for Podman rootless containers
+  ansible.posix.sysctl:
+    name: kernel.unprivileged_userns_clone
+    value: "1"
+    sysctl_file: /etc/sysctl.d/10-kernel.unprivileged_userns_clone.conf
+    reload: true
+  when: container_runtime == 'podman'

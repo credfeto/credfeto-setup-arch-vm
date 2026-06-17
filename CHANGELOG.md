@@ -51,6 +51,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Podman as the default container runtime for new VMs (controlled by container_runtime variable)
 - Podman registries mirror configuration via /etc/containers/registries.conf
 - podman-cleanup.timer to prune unused Podman images weekly
+- Enable kernel.unprivileged_userns_clone=1 when Podman is installed for rootless container support
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
