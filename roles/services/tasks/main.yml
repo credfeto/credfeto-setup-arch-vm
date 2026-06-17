@@ -51,7 +51,7 @@
     state: started
     daemon_reload: true
 
-# docker-cleanup service + timer
+# docker-cleanup service + timer (Docker runtime only)
 - name: Install docker-cleanup.service unit
   ansible.builtin.copy:
     src: docker-cleanup.service
@@ -60,6 +60,7 @@
     group: root
     mode: "0644"
   notify: Reload systemd
+  when: container_runtime == 'docker'
 
 - name: Install docker-cleanup.timer unit
   ansible.builtin.copy:
@@ -69,6 +70,7 @@
     group: root
     mode: "0644"
   notify: Reload systemd
+  when: container_runtime == 'docker'
 
 - name: Enable and start docker-cleanup timer
   ansible.builtin.systemd:
@@ -76,6 +78,36 @@
     enabled: true
     state: started
     daemon_reload: true
+  when: container_runtime == 'docker'
+
+# podman-cleanup service + timer (Podman runtime only)
+- name: Install podman-cleanup.service unit
+  ansible.builtin.copy:
+    src: podman-cleanup.service
+    dest: /etc/systemd/system/podman-cleanup.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+  when: container_runtime == 'podman'
+
+- name: Install podman-cleanup.timer unit
+  ansible.builtin.copy:
+    src: podman-cleanup.timer
+    dest: /etc/systemd/system/podman-cleanup.timer
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+  when: container_runtime == 'podman'
+
+- name: Enable and start podman-cleanup timer
+  ansible.builtin.systemd:
+    name: podman-cleanup.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: container_runtime == 'podman'
 
 # pkgstats timer (ships with the pkgstats package)
 - name: Enable and start pkgstats timer

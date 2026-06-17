@@ -6,6 +6,7 @@
     owner: root
     group: root
     mode: "0755"
+  when: container_runtime == 'docker'
 
 - name: Configure Docker daemon
   ansible.builtin.copy:
@@ -15,12 +16,14 @@
     group: root
     mode: "0644"
   notify: Restart docker
+  when: container_runtime == 'docker'
 
 - name: Remove legacy Docker systemd security drop-in
   ansible.builtin.file:
     path: /etc/systemd/system/docker.service.d/security.conf
     state: absent
   notify: Reload systemd
+  when: container_runtime == 'docker'
 
 - name: Enable and start docker.socket
   ansible.builtin.systemd:
@@ -28,9 +31,11 @@
     enabled: true
     state: started
     daemon_reload: true
+  when: container_runtime == 'docker'
 
 - name: Enable and start docker service
   ansible.builtin.systemd:
     name: docker
     enabled: true
     state: started
+  when: container_runtime == 'docker'

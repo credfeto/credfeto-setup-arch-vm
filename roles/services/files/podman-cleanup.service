@@ -1,0 +1,14 @@
+[Unit]
+Description=Remove unused podman images
+
+[Service]
+Type=oneshot
+ExecStart=podman image prune --all --force
+ProtectSystem=full
+ProtectHome=true
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictSUIDSGID=true

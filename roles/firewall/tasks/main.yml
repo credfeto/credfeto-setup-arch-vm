@@ -75,7 +75,7 @@
     state: enabled
   notify: Reload firewalld
 
-# On a fresh VM the docker zone may not exist yet — create it explicitly.
+# Docker zone — only needed when container_runtime is docker.
 # Docker uses the nftables backend and does not register a firewalld zone.
 - name: Check if docker firewalld zone exists
   ansible.builtin.command:
@@ -83,23 +83,24 @@
   register: firewall_docker_zone_check
   changed_when: false
   failed_when: false
+  when: container_runtime == 'docker'
 
 - name: Create docker firewalld zone
   ansible.builtin.command:
     cmd: firewall-cmd --permanent --new-zone=docker
-  when: firewall_docker_zone_check.rc != 0
+  when: container_runtime == 'docker' and firewall_docker_zone_check.rc != 0
   changed_when: true
 
 - name: Set docker zone target to ACCEPT
   ansible.builtin.command:
     cmd: firewall-cmd --permanent --zone=docker --set-target=ACCEPT
-  when: firewall_docker_zone_check.rc != 0
+  when: container_runtime == 'docker' and firewall_docker_zone_check.rc != 0
   changed_when: true
 
 - name: Reload firewalld to activate docker zone
   ansible.builtin.command:
     cmd: firewall-cmd --reload
-  when: firewall_docker_zone_check.rc != 0
+  when: container_runtime == 'docker' and firewall_docker_zone_check.rc != 0
   changed_when: true
 
 - name: Assign Docker bridge subnet to docker zone
@@ -109,3 +110,4 @@
     permanent: true
     state: enabled
   notify: Reload firewalld
+  when: container_runtime == 'docker'
