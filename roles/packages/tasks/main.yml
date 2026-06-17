@@ -87,9 +87,6 @@
       - apparmor
       - audit
       - curl
-      - docker
-      - docker-buildx
-      - docker-compose
       - fail2ban
       - firewalld
       - git
@@ -100,6 +97,26 @@
       - reflector
     state: present
     extra_args: "--noconfirm --needed"
+
+- name: Install Docker and companions
+  community.general.pacman:
+    name:
+      - docker
+      - docker-buildx
+      - docker-compose
+    state: present
+    extra_args: "--noconfirm --needed"
+  when: container_runtime == 'docker'
+
+- name: Install Podman and companions
+  community.general.pacman:
+    name:
+      - podman
+      - podman-compose
+      - buildah
+    state: present
+    extra_args: "--noconfirm --needed"
+  when: container_runtime == 'podman'
 
 - name: Remove AUR helpers (prohibited due to supply chain attack risk)
   community.general.pacman:

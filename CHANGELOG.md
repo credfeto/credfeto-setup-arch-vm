@@ -48,6 +48,9 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Schedule reboot 60 s after Ansible run when kernel image or GRUB config changed since last boot
 - Ensure user 'markr' exists with sudo NOPASSWD, SSH-only login, and authorized SSH keys from GitHub
 - Configure sshd AuthorizedKeysCommand to look up SSH public keys from keys.markridgwell.com
+- Podman as the default container runtime for new VMs (controlled by container_runtime variable)
+- Podman registries mirror configuration via /etc/containers/registries.conf
+- podman-cleanup.timer to prune unused Podman images weekly
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
@@ -110,6 +113,8 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Simplify install script to bootstrap only: install ansible+git, install Galaxy collections, run ansible-pull once — all further configuration (user, sudoers, service, timer) is now managed exclusively by the playbook
 - security-review: rewrite workflow to analyse Ansible role YAML files (`roles/**/tasks/main.yml`, `site.yml`) instead of the install shell script; security findings are now reported as GitHub issues labelled `AI-Work` rather than opening pull requests with direct code changes; added `AI-Work` label definition to `.github/labels.yml`
 - Randomise systemd timer offsets to prevent simultaneous runs across VMs
+- Docker packages (docker-buildx, docker-compose) only installed when container_runtime is set to docker
+- Docker firewalld zone only created when container_runtime is set to docker
 ### Removed
 - Remove criu and pigz packages — neither is used or configured by the script
 - Remove curl-based security script in favour of ansible-pull timer

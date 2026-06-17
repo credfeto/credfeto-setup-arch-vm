@@ -11,6 +11,7 @@
     - kernel_modules
     - proc
     - docker
+    - podman
     - grub
     - ssh
     - firewall
