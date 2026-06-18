@@ -116,6 +116,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Randomise systemd timer offsets to prevent simultaneous runs across VMs
 - Docker packages (docker-buildx, docker-compose) only installed when container_runtime is set to docker
 - Docker firewalld zone only created when container_runtime is set to docker
+- Explicitly set insecure = false on the Podman registry mirror to enforce HTTPS, matching the docker registry-mirrors configuration
 ### Removed
 - Remove criu and pigz packages — neither is used or configured by the script
 - Remove curl-based security script in favour of ansible-pull timer
