@@ -24,3 +24,40 @@
     sysctl_file: /etc/sysctl.d/10-kernel.unprivileged_userns_clone.conf
     reload: true
   when: container_runtime == 'podman'
+
+- name: Deploy Podman security audit script
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/scripts/podman-security-audit.sh"
+    dest: /usr/local/bin/podman-security-audit.sh
+    owner: root
+    group: root
+    mode: "0755"
+  when: container_runtime == 'podman'
+
+- name: Install podman-security-audit.service unit
+  ansible.builtin.copy:
+    src: podman-security-audit.service
+    dest: /etc/systemd/system/podman-security-audit.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+  when: container_runtime == 'podman'
+
+- name: Install podman-security-audit.timer unit
+  ansible.builtin.copy:
+    src: podman-security-audit.timer
+    dest: /etc/systemd/system/podman-security-audit.timer
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+  when: container_runtime == 'podman'
+
+- name: Enable and start podman-security-audit timer
+  ansible.builtin.systemd:
+    name: podman-security-audit.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: container_runtime == 'podman'

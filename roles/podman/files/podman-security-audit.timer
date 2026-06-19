@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Podman container security audit
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=1h
+AccuracySec=1s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

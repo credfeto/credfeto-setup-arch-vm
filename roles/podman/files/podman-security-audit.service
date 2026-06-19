@@ -1,0 +1,16 @@
+[Unit]
+Description=Podman container security audit
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/podman-security-audit.sh
+ProtectSystem=full
+ProtectHome=true
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
