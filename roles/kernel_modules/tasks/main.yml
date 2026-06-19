@@ -59,3 +59,276 @@
     name: rxrpc
     state: absent
   when: "'rxrpc' in kernel_modules_lsmod_output.stdout"
+
+# ---------------------------------------------------------------------------
+# Unused high-risk network protocols (equivalent to ModuleJail conservative)
+# ---------------------------------------------------------------------------
+
+- name: Blacklist unused high-risk network protocols (DCCP, SCTP, RDS, TIPC, n_hdlc)
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/blacklist-unused-protocols.conf
+    content: |
+      # Unused network protocols — high LPE attack surface, not needed on a server VM
+      blacklist dccp
+      install dccp /bin/false
+      blacklist dccp_ipv4
+      install dccp_ipv4 /bin/false
+      blacklist dccp_ipv6
+      install dccp_ipv6 /bin/false
+      blacklist sctp
+      install sctp /bin/false
+      blacklist rds
+      install rds /bin/false
+      blacklist rds_tcp
+      install rds_tcp /bin/false
+      blacklist tipc
+      install tipc /bin/false
+      blacklist n_hdlc
+      install n_hdlc /bin/false
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Unload dccp if currently loaded
+  community.general.modprobe:
+    name: dccp
+    state: absent
+  when: "'dccp' in kernel_modules_lsmod_output.stdout"
+
+- name: Unload dccp_ipv4 if currently loaded
+  community.general.modprobe:
+    name: dccp_ipv4
+    state: absent
+  when: "'dccp_ipv4' in kernel_modules_lsmod_output.stdout"
+
+- name: Unload dccp_ipv6 if currently loaded
+  community.general.modprobe:
+    name: dccp_ipv6
+    state: absent
+  when: "'dccp_ipv6' in kernel_modules_lsmod_output.stdout"
+
+- name: Unload sctp if currently loaded
+  community.general.modprobe:
+    name: sctp
+    state: absent
+  when: "'sctp' in kernel_modules_lsmod_output.stdout"
+
+- name: Unload rds if currently loaded
+  community.general.modprobe:
+    name: rds
+    state: absent
+  when: "'rds' in kernel_modules_lsmod_output.stdout"
+
+- name: Unload rds_tcp if currently loaded
+  community.general.modprobe:
+    name: rds_tcp
+    state: absent
+  when: "'rds_tcp' in kernel_modules_lsmod_output.stdout"
+
+- name: Unload tipc if currently loaded
+  community.general.modprobe:
+    name: tipc
+    state: absent
+  when: "'tipc' in kernel_modules_lsmod_output.stdout"
+
+- name: Unload n_hdlc if currently loaded
+  community.general.modprobe:
+    name: n_hdlc
+    state: absent
+  when: "'n_hdlc' in kernel_modules_lsmod_output.stdout"
+
+# ---------------------------------------------------------------------------
+# Amateur radio and legacy packet radio protocols
+# ---------------------------------------------------------------------------
+
+- name: Blacklist amateur radio and legacy packet radio protocols
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/blacklist-amateur-radio.conf
+    content: |
+      # Amateur radio protocols — absent on a server VM
+      blacklist ax25
+      install ax25 /bin/false
+      blacklist netrom
+      install netrom /bin/false
+      blacklist rose
+      install rose /bin/false
+      blacklist x25
+      install x25 /bin/false
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Unload ax25 if currently loaded
+  community.general.modprobe:
+    name: ax25
+    state: absent
+  when: "'ax25' in kernel_modules_lsmod_output.stdout"
+
+- name: Unload netrom if currently loaded
+  community.general.modprobe:
+    name: netrom
+    state: absent
+  when: "'netrom' in kernel_modules_lsmod_output.stdout"
+
+- name: Unload rose if currently loaded
+  community.general.modprobe:
+    name: rose
+    state: absent
+  when: "'rose' in kernel_modules_lsmod_output.stdout"
+
+- name: Unload x25 if currently loaded
+  community.general.modprobe:
+    name: x25
+    state: absent
+  when: "'x25' in kernel_modules_lsmod_output.stdout"
+
+# ---------------------------------------------------------------------------
+# Other niche and legacy network protocols
+# ---------------------------------------------------------------------------
+
+- name: Blacklist other niche and legacy network protocols
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/blacklist-legacy-protocols.conf
+    content: |
+      # Niche/legacy network protocols — absent on a server VM
+      blacklist af_802154
+      install af_802154 /bin/false
+      blacklist can
+      install can /bin/false
+      blacklist ipx
+      install ipx /bin/false
+      blacklist appletalk
+      install appletalk /bin/false
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Unload af_802154 if currently loaded
+  community.general.modprobe:
+    name: af_802154
+    state: absent
+  when: "'af_802154' in kernel_modules_lsmod_output.stdout"
+
+- name: Unload can if currently loaded
+  community.general.modprobe:
+    name: can
+    state: absent
+  when: "'can' in kernel_modules_lsmod_output.stdout"
+
+- name: Unload ipx if currently loaded
+  community.general.modprobe:
+    name: ipx
+    state: absent
+  when: "'ipx' in kernel_modules_lsmod_output.stdout"
+
+- name: Unload appletalk if currently loaded
+  community.general.modprobe:
+    name: appletalk
+    state: absent
+  when: "'appletalk' in kernel_modules_lsmod_output.stdout"
+
+# ---------------------------------------------------------------------------
+# Legacy filesystems not used on a server VM
+# ---------------------------------------------------------------------------
+
+- name: Blacklist unused legacy filesystems
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/blacklist-legacy-filesystems.conf
+    content: |
+      # Legacy filesystems — not mounted on a server VM
+      blacklist cramfs
+      install cramfs /bin/false
+      blacklist freevxfs
+      install freevxfs /bin/false
+      blacklist jffs2
+      install jffs2 /bin/false
+      blacklist hfs
+      install hfs /bin/false
+      blacklist hfsplus
+      install hfsplus /bin/false
+      blacklist udf
+      install udf /bin/false
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Unload cramfs if currently loaded
+  community.general.modprobe:
+    name: cramfs
+    state: absent
+  when: "'cramfs' in kernel_modules_lsmod_output.stdout"
+
+- name: Unload freevxfs if currently loaded
+  community.general.modprobe:
+    name: freevxfs
+    state: absent
+  when: "'freevxfs' in kernel_modules_lsmod_output.stdout"
+
+- name: Unload jffs2 if currently loaded
+  community.general.modprobe:
+    name: jffs2
+    state: absent
+  when: "'jffs2' in kernel_modules_lsmod_output.stdout"
+
+- name: Unload hfs if currently loaded
+  community.general.modprobe:
+    name: hfs
+    state: absent
+  when: "'hfs' in kernel_modules_lsmod_output.stdout"
+
+- name: Unload hfsplus if currently loaded
+  community.general.modprobe:
+    name: hfsplus
+    state: absent
+  when: "'hfsplus' in kernel_modules_lsmod_output.stdout"
+
+- name: Unload udf if currently loaded
+  community.general.modprobe:
+    name: udf
+    state: absent
+  when: "'udf' in kernel_modules_lsmod_output.stdout"
+
+# ---------------------------------------------------------------------------
+# Hardware absent in a VM (Bluetooth, USB storage, kernel test devices)
+# ---------------------------------------------------------------------------
+
+- name: Blacklist VM-absent hardware modules (Bluetooth, USB storage, vivid)
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/blacklist-vm-absent-hardware.conf
+    content: |
+      # Hardware not present in a server VM
+      blacklist bluetooth
+      install bluetooth /bin/false
+      blacklist btusb
+      install btusb /bin/false
+      blacklist usb_storage
+      install usb_storage /bin/false
+      blacklist vivid
+      install vivid /bin/false
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Unload bluetooth if currently loaded
+  community.general.modprobe:
+    name: bluetooth
+    state: absent
+  when: "'bluetooth' in kernel_modules_lsmod_output.stdout"
+
+- name: Unload btusb if currently loaded
+  community.general.modprobe:
+    name: btusb
+    state: absent
+  when: "'btusb' in kernel_modules_lsmod_output.stdout"
+
+- name: Unload usb_storage if currently loaded
+  community.general.modprobe:
+    name: usb_storage
+    state: absent
+  when: "'usb_storage' in kernel_modules_lsmod_output.stdout"
+
+- name: Unload vivid if currently loaded
+  community.general.modprobe:
+    name: vivid
+    state: absent
+  when: "'vivid' in kernel_modules_lsmod_output.stdout"
