@@ -54,6 +54,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Enable kernel.unprivileged_userns_clone=1 when Podman is installed for rootless container support
 - Blacklist unused kernel modules to reduce LPE attack surface (DCCP, SCTP, RDS, TIPC, legacy protocols, unused filesystems)
 - Daily Podman container security audit: shellcheck-clean POSIX sh script checks each running container for privileged mode, root user, writable rootfs, CAP_SYS_ADMIN, host network, and missing memory/PID limits; wired to a systemd timer via Ansible
+- Quadlet-based systemd integration for Podman: nginx container with NoNewPrivileges=yes and ProtectSystem=strict hardening, system-level Quadlet directory, and lingering enabled for markr
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
