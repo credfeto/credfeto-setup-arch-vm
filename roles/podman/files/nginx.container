@@ -1,0 +1,22 @@
+[Unit]
+Description=Nginx web server managed by Quadlet
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=docker.io/library/nginx:alpine
+ContainerName=nginx
+PublishPort=127.0.0.1:8080:80
+
+[Service]
+Restart=always
+TimeoutStartSec=300
+NoNewPrivileges=yes
+ProtectHome=yes
+ProtectSystem=strict
+PrivateTmp=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+
+[Install]
+WantedBy=multi-user.target
