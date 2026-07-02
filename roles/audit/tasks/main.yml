@@ -28,6 +28,7 @@
 
       # Log all execve calls (who ran what)
       -a always,exit -F arch=b64 -S execve -k exec
+      -a always,exit -F arch=b32 -S execve -k exec
 
       # Monitor authentication files
       -w /etc/passwd -p wa -k auth
@@ -43,12 +44,16 @@
       # Monitor kernel module loading
       -a always,exit -F arch=b64 -S init_module -S finit_module -k modules
       -a always,exit -F arch=b64 -S delete_module -k modules
+      -a always,exit -F arch=b32 -S init_module -S finit_module -k modules
+      -a always,exit -F arch=b32 -S delete_module -k modules
 
       # Monitor mount operations
       -a always,exit -F arch=b64 -S mount -S umount2 -k mounts
+      -a always,exit -F arch=b32 -S mount -S umount2 -k mounts
 
       # Monitor time changes
       -a always,exit -F arch=b64 -S adjtimex -S settimeofday -S clock_settime -k time
+      -a always,exit -F arch=b32 -S adjtimex -S settimeofday -S clock_settime -k time
 
       # Monitor firewall config
       -w /etc/firewalld/ -p wa -k firewall
