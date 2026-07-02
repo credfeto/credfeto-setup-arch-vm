@@ -1,0 +1,72 @@
+---
+- name: Install audit package
+  community.general.pacman:
+    name: audit
+    state: present
+    extra_args: "--noconfirm --needed"
+
+- name: Ensure /etc/audit/rules.d directory exists
+  ansible.builtin.file:
+    path: /etc/audit/rules.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Write hardening audit rules
+  ansible.builtin.copy:
+    dest: /etc/audit/rules.d/hardening.rules
+    owner: root
+    group: root
+    mode: "0640"
+    content: |
+      # Delete all existing rules on load
+      -D
+
+      # Set buffer size (increase if audit backlog warnings appear)
+      -b 8192
+
+      # Log all execve calls (who ran what)
+      -a always,exit -F arch=b64 -S execve -k exec
+      -a always,exit -F arch=b32 -S execve -k exec
+
+      # Monitor authentication files
+      -w /etc/passwd -p wa -k auth
+      -w /etc/shadow -p wa -k auth
+      -w /etc/group -p wa -k auth
+      -w /etc/sudoers -p wa -k auth
+      -w /etc/sudoers.d/ -p wa -k auth
+
+      # Monitor SSH config changes
+      -w /etc/ssh/sshd_config -p wa -k sshd
+      -w /etc/ssh/sshd_config.d/ -p wa -k sshd
+
+      # Monitor kernel module loading
+      -a always,exit -F arch=b64 -S init_module -S finit_module -k modules
+      -a always,exit -F arch=b64 -S delete_module -k modules
+      -a always,exit -F arch=b32 -S init_module -S finit_module -k modules
+      -a always,exit -F arch=b32 -S delete_module -k modules
+
+      # Monitor mount operations
+      -a always,exit -F arch=b64 -S mount -S umount2 -k mounts
+      -a always,exit -F arch=b32 -S mount -S umount2 -k mounts
+
+      # Monitor time changes
+      -a always,exit -F arch=b64 -S adjtimex -S settimeofday -S clock_settime -k time
+      -a always,exit -F arch=b32 -S adjtimex -S settimeofday -S clock_settime -k time
+
+      # Monitor firewall config
+      -w /etc/firewalld/ -p wa -k firewall
+
+      # Monitor Docker config
+      -w /etc/docker/ -p wa -k docker
+
+      # Make rules immutable (requires reboot to change)
+      -e 2
+  notify: Restart auditd
+
+- name: Enable and start auditd service
+  ansible.builtin.systemd:
+    name: auditd
+    enabled: true
+    state: started

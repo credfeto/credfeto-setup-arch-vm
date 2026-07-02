@@ -1,0 +1,11 @@
+---
+- name: Restart auditd
+  ansible.builtin.systemd:
+    name: auditd
+    state: restarted
+  # Once -e 2 (immutable) rules are active in the running kernel, auditd cannot
+  # reload changed rules without a reboot. If this handler fires after -e 2 is
+  # set, the restart may fail at the augenrules step. The failure is expected
+  # and intentional: the existing rules remain enforced and a reboot is required
+  # to apply the new rule set.
+  failed_when: false
