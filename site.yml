@@ -19,4 +19,5 @@
     - apparmor
     - services
     - ansible_pull
+    - audit
     - reboot
