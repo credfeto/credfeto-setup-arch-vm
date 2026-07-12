@@ -3,9 +3,9 @@ description: 'Rules for maintaining CHANGELOG.md using the credfeto.changelog.cm
 applyTo: '**'
 ---
 
-[Back to Local Instructions Index](index.md)
-
 # Changelog Guidelines
+
+[Back to Local Instructions Index](index.md)
 
 > The global [documentation.instructions.md](../global/documentation.instructions.md) covers the general CHANGELOG rules (never edit manually, use `Credfeto.Changelog.Cmd`, command syntax for adding and removing entries). The rules below are additional rules specific to this repository.
 
@@ -28,7 +28,7 @@ An entry is required for every commit that changes **what the script installs, c
 ### When to add an entry
 
 | Section | Use when… |
-|---|---|
+| --- | --- |
 | `Added` | A new package, service, configuration, or security control is introduced |
 | `Fixed` | Incorrect or broken behaviour in the script is corrected |
 | `Changed` | Existing behaviour is altered (different config values, restructured setup, etc.) |

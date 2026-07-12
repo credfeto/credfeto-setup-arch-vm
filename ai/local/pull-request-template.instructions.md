@@ -3,9 +3,9 @@ description: 'Rules for pull request descriptions — template usage and automat
 applyTo: '**'
 ---
 
-[Back to Local Instructions Index](index.md)
-
 # Pull Request Template
+
+[Back to Local Instructions Index](index.md)
 
 **Every PR opened by an automated workflow must use `.github/PULL_REQUEST_TEMPLATE.md`** as its body structure, with the Description section filled in by Copilot.
 
@@ -80,29 +80,30 @@ When updating a PR body (not creating it for the first time), apply the same log
 > in sync with that workflow — the workflow is the authoritative source of truth for update
 > behaviour.
 
-1. **Only manage bodies that contain `<!-- maintained-by-copilot -->`.**  
+1. **Only manage bodies that contain `<!-- maintained-by-copilot -->`.**
    If the marker is absent, do not touch the PR body.
 
-2. **Apply the template when the body is empty or still the bare template.**  
+2. **Apply the template when the body is empty or still the bare template.**
    Compare the current body (after stripping both markers) against the content of
    `PULL_REQUEST_TEMPLATE.md`. If they match, or the body is blank, reset to:
-   ```
+
+   ```text
    <template content>
 
    <!-- maintained-by-copilot -->
    ```
 
-3. **Never replace a manually-written description.**  
+3. **Never replace a manually-written description.**
    If the `# Description` section has real content and the
    `<!-- description-auto-generated-by-copilot -->` marker is absent, leave the section
    unchanged.
 
-4. **The updated body must always conform to `PULL_REQUEST_TEMPLATE.md`.**  
+4. **The updated body must always conform to `PULL_REQUEST_TEMPLATE.md`.**
    Never write a PR body whose structure does not match the template — all sections
    (`# Description`, `# How Has This Been Tested`, `# Types of changes`,
    `## Deployment Configuration Changes`, `# Checklist`) must be present.
 
-5. **Re-generate the description via the composite action, do not hand-write it.**  
+5. **Re-generate the description via the composite action, do not hand-write it.**
    Call `./.github/actions/generate-pr-description` with the PR's `base_sha` and
    `head_sha`, then insert the output into the `# Description` section followed by
    `<!-- description-auto-generated-by-copilot -->`.

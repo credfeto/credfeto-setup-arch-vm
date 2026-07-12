@@ -3,9 +3,9 @@ description: 'Guidance for Arch Linux administration, pacman workflows, and roll
 applyTo: '**'
 ---
 
-[Back to Local Instructions Index](index.md)
-
 # Arch Linux Administration Guidelines
+
+[Back to Local Instructions Index](index.md)
 
 Use these instructions when writing guidance, scripts, or documentation for Arch Linux systems.
 

@@ -18,7 +18,7 @@ Sets up an Arch Linux VM with Docker, Git, and supporting tooling. The `install`
 curl -sSL https://raw.githubusercontent.com/credfeto/credfeto-setup-arch-vm/refs/heads/main/install | sh
 ```
 
-also 
+also
 
 /etc/systemd/network/eth0.conf
 

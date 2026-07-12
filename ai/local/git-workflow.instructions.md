@@ -3,9 +3,9 @@ description: 'Git branching, commit, and PR rules for this repository.'
 applyTo: '**'
 ---
 
-[Back to Local Instructions Index](index.md)
-
 # Git Workflow
+
+[Back to Local Instructions Index](index.md)
 
 > The global [git.instructions.md](../global/git.instructions.md) and [task-workflow.instructions.md](../global/task-workflow.instructions.md) cover identity checks, branching strategy, Conventional Commits format, issue/PR assignment, and the multi-agent pattern. The rules below are additional rules specific to this repository.
 
@@ -17,7 +17,8 @@ applyTo: '**'
 - **Monitor CI after every push** — after pushing, check the PR's CI status; if any check fails, read the failure logs, fix the cause locally, re-run tests, and push again; report to the user if CI fails 3 times on the same PR without resolution.
 - **One commit per review comment** — when addressing PR review comments, each individual comment must be resolved in its own separate commit; do not batch multiple review comments into one commit.
 - Always include the Co-authored-by trailer:
-  ```
+
+  ```text
   Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
   ```
 
@@ -29,4 +30,3 @@ applyTo: '**'
 
 - PRs must be reviewed by at least one other maintainer before merging.
 - All changes must be tested and verified before merging.
-
