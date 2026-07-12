@@ -3,16 +3,16 @@ description: 'Output formatting rules for the install script — coloured indica
 applyTo: '**'
 ---
 
-[Back to Local Instructions Index](index.md)
-
 # Output Formatting
+
+[Back to Local Instructions Index](index.md)
 
 The `install` script uses three helper functions for all status output. Plain `echo` must not be used for status messages.
 
 ## Indicators
 
 | Function | Symbol | Colour | When to use |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `ok "message"` | ✓ | Green | A setting was successfully applied or written |
 | `skip "message"` | ● | Yellow | A setting was already correct — no change needed |
 | `die "message"` | ✗ | Red | A fatal error occurred — prints to stderr and exits |

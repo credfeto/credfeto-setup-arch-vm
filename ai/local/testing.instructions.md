@@ -3,9 +3,9 @@ description: 'Rules for testing changes to the Ansible roles and install script.
 applyTo: '**'
 ---
 
-[Back to Local Instructions Index](index.md)
-
 # Testing Guidelines
+
+[Back to Local Instructions Index](index.md)
 
 ## Test VM
 

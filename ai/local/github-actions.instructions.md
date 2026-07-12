@@ -3,9 +3,9 @@ description: 'Rules for writing and modifying GitHub Actions workflow files.'
 applyTo: '**'
 ---
 
-[Back to Local Instructions Index](index.md)
-
 # GitHub Actions Workflow Guidelines
+
+[Back to Local Instructions Index](index.md)
 
 ## Linting Requirements
 

@@ -15,7 +15,7 @@ This is an index of local instructions that apply to just this project.
 ## Instruction Files
 <!-- Locally Maintained -->
 | File | Description |
-|------|-------------|
+| --- | --- |
 | [arch-linux.instructions.md](arch-linux.instructions.md) | Arch Linux administration, pacman workflows, rolling-release best practices, kernel and systemd specifics |
 | [git-workflow.instructions.md](git-workflow.instructions.md) | Repo-specific commit rules: no empty commits, no squash, delete branches on PR close, CI monitoring, co-authored-by trailer |
 | [install-script.instructions.md](install-script.instructions.md) | Idempotency, hardening scope, live-and-persistent change pattern, POSIX sh style, shellcheck/checkbashisms |
