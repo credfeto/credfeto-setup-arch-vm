@@ -1,0 +1,19 @@
+---
+# Single source of truth for the fleet's nameservers. Consumed by:
+# - templates/resolv.conf.j2 (static /etc/resolv.conf on dns-?? hosts)
+# - templates/eth0.network.j2 (per-link DNS= for systemd-networkd)
+# - templates/resolved-dns.conf.j2 (global DNS= for systemd-resolved,
+#   on every other host)
+network_nameservers_ipv4:
+  - "192.168.42.101"
+  - "192.168.42.102"
+  - "192.168.42.103"
+  - "192.168.42.104"
+  - "192.168.42.105"
+
+network_nameservers_ipv6:
+  - "2a02:8010:61d5:42::101"
+  - "2a02:8010:61d5:42::102"
+  - "2a02:8010:61d5:42::103"
+  - "2a02:8010:61d5:42::104"
+  - "2a02:8010:61d5:42::105"

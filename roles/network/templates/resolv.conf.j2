@@ -1,0 +1,23 @@
+# search .: no default search domain (treat all lookups as already fully qualified)
+search .
+
+# IPv6
+{% for ns in network_nameservers_ipv6 %}
+nameserver {{ ns }}
+{% endfor %}
+
+# IPv4
+{% for ns in network_nameservers_ipv4 %}
+nameserver {{ ns }}
+{% endfor %}
+
+# edns0: allow DNS responses larger than 512 bytes (needed for DNSSEC etc.)
+# trust-ad: trust the AD (Authenticated Data) flag from these nameservers,
+# i.e. treat their DNSSEC validation as authoritative
+# rotate: round-robin across the listed nameservers instead of always using the first
+# timeout:1 attempts:1: fail over to the next nameserver faster
+# single-request-reopen: use separate sockets for A/AAAA queries to avoid firewall/NAT stalls
+#
+# Note: glibc only honours the first 3 "nameserver" lines; entries beyond that
+# are kept here for documentation/other resolvers but are ignored by glibc itself.
+options edns0 trust-ad rotate timeout:1 attempts:1 single-request-reopen

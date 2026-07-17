@@ -1,0 +1,6 @@
+# Global fallback nameserver list for systemd-resolved. Queried in parallel
+# with whatever per-link DNS servers systemd-networkd has set (see
+# eth0.network's DNS= lines), so this stays correct even on hosts where
+# eth0.network was left untouched (manual multi-address exception).
+[Resolve]
+DNS={{ (network_nameservers_ipv4 + network_nameservers_ipv6) | join(' ') }}

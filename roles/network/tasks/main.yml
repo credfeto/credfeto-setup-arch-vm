@@ -1,11 +1,48 @@
 ---
-# eth0.network is written only on the first run (file absent).
-# It captures the current IP/GW at bootstrap time; subsequent runs
-# leave it untouched.
+# DNS server hosts (dns-01, dns-02, ...) must not point their own resolver at
+# systemd-resolved's upstream list: that list includes the DNS servers
+# themselves, so a resolved restart/crash on one of these boxes would leave
+# it unable to resolve anything, including itself. They get the plain static
+# templated /etc/resolv.conf below instead. ansible_hostname is the real
+# machine hostname; inventory_hostname is always "localhost" here
+# (hosts: localhost).
+- name: Determine if this host is a DNS server
+  ansible.builtin.set_fact:
+    network_is_dns_server: "{{ ansible_hostname is match('^dns-[0-9]{2}$') }}"
+
+# eth0.network is normally re-applied on every run, so IP/GW/DNS changes
+# made in this role reach hosts that already have the file. The one
+# exception: if the existing file has more than one Address= for a family
+# (someone manually added a second IPv4/IPv6 address on that host), we leave
+# it alone rather than clobber the manual addition, since the template only
+# ever writes a single address per family.
 - name: Check if systemd-networkd configuration already exists
   ansible.builtin.stat:
     path: /etc/systemd/network/eth0.network
   register: network_eth0_stat
+
+- name: Read existing eth0.network Address lines
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      grep -E '^Address=' /etc/systemd/network/eth0.network || true
+    executable: /bin/bash
+  register: network_eth0_addresses
+  changed_when: false
+  when:
+    - not ansible_check_mode
+    - network_eth0_stat.stat.exists
+
+- name: Determine whether to (re)write eth0.network
+  ansible.builtin.set_fact:
+    network_write_eth0: >-
+      {{
+        not network_eth0_stat.stat.exists or
+        (
+          (network_eth0_addresses.stdout_lines | default([]) | select('search', ':') | list | length <= 1) and
+          (network_eth0_addresses.stdout_lines | default([]) | reject('search', ':') | list | length <= 1)
+        )
+      }}
 
 - name: Detect primary network interface
   ansible.builtin.shell:
@@ -18,7 +55,7 @@
   changed_when: false
   when:
     - not ansible_check_mode
-    - not network_eth0_stat.stat.exists
+    - network_write_eth0
 
 - name: Detect IPv4 address
   ansible.builtin.shell:
@@ -31,7 +68,7 @@
   changed_when: false
   when:
     - not ansible_check_mode
-    - not network_eth0_stat.stat.exists
+    - network_write_eth0
     - network_nic.stdout | length > 0
 
 - name: Detect IPv4 gateway
@@ -45,7 +82,7 @@
   changed_when: false
   when:
     - not ansible_check_mode
-    - not network_eth0_stat.stat.exists
+    - network_write_eth0
     - network_nic.stdout | length > 0
 
 - name: Detect IPv6 address
@@ -59,7 +96,7 @@
   changed_when: false
   when:
     - not ansible_check_mode
-    - not network_eth0_stat.stat.exists
+    - network_write_eth0
     - network_nic.stdout | length > 0
 
 - name: Detect IPv6 gateway
@@ -73,7 +110,7 @@
   changed_when: false
   when:
     - not ansible_check_mode
-    - not network_eth0_stat.stat.exists
+    - network_write_eth0
     - network_nic.stdout | length > 0
 
 - name: Write systemd-networkd configuration for primary interface
@@ -85,18 +122,55 @@
     mode: "0644"
   when:
     - not ansible_check_mode
-    - not network_eth0_stat.stat.exists
+    - network_write_eth0
     - network_nic.stdout | length > 0
     - network_ipv4.stdout | length > 0
 
+# DNS servers get the static file directly (glibc only reads the first 3
+# nameserver lines; see the comments in templates/resolv.conf.j2). Every
+# other host uses systemd-resolved instead, which has no such limit.
 - name: Write /etc/resolv.conf
-  ansible.builtin.copy:
-    src: resolv.conf
+  ansible.builtin.template:
+    src: resolv.conf.j2
     dest: /etc/resolv.conf
     owner: root
     group: root
     mode: "0644"
+  when: network_is_dns_server
+
+- name: Ensure /etc/systemd/resolved.conf.d exists
+  ansible.builtin.file:
+    path: /etc/systemd/resolved.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: not network_is_dns_server
+
+- name: Write systemd-resolved global DNS server list
+  ansible.builtin.template:
+    src: resolved-dns.conf.j2
+    dest: /etc/systemd/resolved.conf.d/10-dns-servers.conf
+    owner: root
+    group: root
+    mode: "0644"
+  when: not network_is_dns_server
+  notify: Restart systemd-resolved
+
+- name: Enable and start systemd-resolved
+  ansible.builtin.systemd:
+    name: systemd-resolved
+    enabled: true
+    state: started
+  when: not network_is_dns_server
+
+- name: Point /etc/resolv.conf at systemd-resolved's stub
+  ansible.builtin.file:
+    src: /run/systemd/resolve/stub-resolv.conf
+    dest: /etc/resolv.conf
+    state: link
     force: true
+  when: not network_is_dns_server
 
 - name: Reload networkctl
   ansible.builtin.command:
