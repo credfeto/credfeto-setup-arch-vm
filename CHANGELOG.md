@@ -90,6 +90,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Run mkinitcpio -P after GRUB config changes to ensure initramfs stays in sync
 - Static /etc/resolv.conf on dns-?? hosts interleaves IPv6/IPv4 nameservers (offset so adjacent lines are never the same physical host) instead of listing all IPv6 first, so glibc's 3-line limit still gives 3 different hosts instead of only IPv6 ones
 - Exclude temporary and deprecated-flagged addresses from IPv4/IPv6 detection on the primary interface, so a rotating privacy-extension or expiring address never gets pinned into a static Address= line in eth0.network
+- AI instructions: pull-request-template.instructions.md no longer describes the deleted maintain-pr-description.yml automation as live; documents the actual hand-written PR description process instead
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script

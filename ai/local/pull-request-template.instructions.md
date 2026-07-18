@@ -1,5 +1,5 @@
 ---
-description: 'Rules for pull request descriptions — template usage and automated description generation.'
+description: 'Rules for pull request descriptions — template usage and description writing.'
 applyTo: '**'
 ---
 
@@ -7,111 +7,38 @@ applyTo: '**'
 
 [Back to Local Instructions Index](index.md)
 
-**Every PR opened by an automated workflow must use `.github/PULL_REQUEST_TEMPLATE.md`** as its body structure, with the Description section filled in by Copilot.
+**Every PR must use `.github/PULL_REQUEST_TEMPLATE.md`** as its body structure.
 
-## How to generate the description
+## Current state: no automated description generation
 
-Before creating a PR, call the shared `generate-pr-description` composite action with the
-base and head SHAs. It diffs the two commits via the GitHub API and uses GitHub Copilot
-(GitHub Models) to write a concise description:
+There is no live automation that generates or maintains PR descriptions in this repo.
+`.github/workflows/maintain-pr-description.yml` was deleted from `main` on 2026-06-17
+(commit `bead402`, "Removed: Obsolete workflow") and nothing currently calls it. The
+`generate-pr-description` composite action (`.github/actions/generate-pr-description/`)
+still exists in the repo but is orphaned — no workflow references it, so it never runs.
 
-```yaml
-- name: "Generate PR description"
-  id: describe
-  uses: ./.github/actions/generate-pr-description
-  with:
-    base_sha: ${{ steps.push.outputs.base_sha }}
-    head_sha: ${{ steps.push.outputs.head_sha }}
-    github_token: ${{ secrets.GITHUB_TOKEN }}
-```
+Do not assume a `<!-- maintained-by-copilot -->` marker in a PR body means anything is
+actively managing it — nothing is. Do not add that marker, or the
+`<!-- description-auto-generated-by-copilot -->` marker, to a body you write by hand;
+they would falsely imply automated maintenance that doesn't exist.
 
 ## How to compose the PR body
 
-Read the template, fill the `# Description` section with the generated text, and pass the
-complete body to `gh pr create --body`:
+Read `.github/PULL_REQUEST_TEMPLATE.md` and fill in every section yourself:
 
-```sh
-BODY=$(python3 - << 'PYEOF'
-import os, re
-template = open('.github/PULL_REQUEST_TEMPLATE.md').read().rstrip()
-desc = os.environ.get('DESCRIPTION', '').strip()
-marker = '<!-- description-auto-generated-by-copilot -->'
-maintained = '<!-- maintained-by-copilot -->'
-if desc:
-    body = re.sub(
-        r'(^#{1,3}\s+Description\s*\n)([\s\S]*?)(?=\n#{1,3}\s|$)',
-        lambda m: f"{m.group(1)}{desc}\n\n{marker}\n\n",
-        template, flags=re.MULTILINE)
-else:
-    body = template
-print(body + f'\n\n{maintained}')
-PYEOF
-)
-gh pr create --base main --head "${BRANCH}" --title "..." --body "${BODY}"
-```
+- `# Description`: hand-write a concise summary of what changed and why, from the diff
+  and commit messages.
+- `# How Has This Been Tested`: describe what was actually done (or explicitly note it
+  wasn't, e.g. a test VM being unavailable) — never tick a box that doesn't reflect reality.
+- `# Types of changes`, `## Deployment Configuration Changes`, `# Checklist`: fill in
+  based on the actual change.
 
-## Requirements for the calling job
+The body must always conform to the template's structure — never a freeform body, and
+never omit a section defined in the template.
 
-```yaml
-permissions:
-  pull-requests: write
-  contents: read
-  models: read
-```
+## If the automation is ever restored
 
-## Creating a PR
-
-When explicitly creating a pull request (e.g. via `gh pr create`), the body **must**:
-
-- Be built from `PULL_REQUEST_TEMPLATE.md` as its base structure — never supply a freeform body.
-- Include all sections defined in the template (`# Description`, `# How Has This Been Tested`,
-  `# Types of changes`, `## Deployment Configuration Changes`, `# Checklist`).
-- Have the `# Description` section filled with a generated description (via the composite action)
-  and the `<!-- description-auto-generated-by-copilot -->` marker.
-- End with the `<!-- maintained-by-copilot -->` marker so subsequent workflow runs can manage it.
-
-## Updating an Existing PR Description
-
-When updating a PR body (not creating it for the first time), apply the same logic used by
-`.github/workflows/maintain-pr-description.yml`.
-
-> **Important:** If the logic in `maintain-pr-description.yml` is ever changed, this instruction
-> file **must** be updated to reflect that new logic. These rules are derived from and must stay
-> in sync with that workflow — the workflow is the authoritative source of truth for update
-> behaviour.
-
-1. **Only manage bodies that contain `<!-- maintained-by-copilot -->`.**
-   If the marker is absent, do not touch the PR body.
-
-2. **Apply the template when the body is empty or still the bare template.**
-   Compare the current body (after stripping both markers) against the content of
-   `PULL_REQUEST_TEMPLATE.md`. If they match, or the body is blank, reset to:
-
-   ```text
-   <template content>
-
-   <!-- maintained-by-copilot -->
-   ```
-
-3. **Never replace a manually-written description.**
-   If the `# Description` section has real content and the
-   `<!-- description-auto-generated-by-copilot -->` marker is absent, leave the section
-   unchanged.
-
-4. **The updated body must always conform to `PULL_REQUEST_TEMPLATE.md`.**
-   Never write a PR body whose structure does not match the template — all sections
-   (`# Description`, `# How Has This Been Tested`, `# Types of changes`,
-   `## Deployment Configuration Changes`, `# Checklist`) must be present.
-
-5. **Re-generate the description via the composite action, do not hand-write it.**
-   Call `./.github/actions/generate-pr-description` with the PR's `base_sha` and
-   `head_sha`, then insert the output into the `# Description` section followed by
-   `<!-- description-auto-generated-by-copilot -->`.
-
-## Rules
-
-- Never hardcode a static PR body — always compose from the template with a generated description.
-- Generate the description **before** creating the PR so the body is complete at creation time.
-- The repo must be checked out before calling the action (local composite action at `./.github/actions/generate-pr-description`).
-- For `maintain-pr-description.yml`: call the action then update the PR body inline using the `description` output.
-- When updating a PR description, never produce a body that omits or restructures the sections defined in `PULL_REQUEST_TEMPLATE.md`.
+If `maintain-pr-description.yml` (or an equivalent) is reintroduced, update this file to
+describe its actual logic — the workflow, not this file, is the source of truth for how
+descriptions get generated/maintained. Until then, this file describes the manual process
+above.
