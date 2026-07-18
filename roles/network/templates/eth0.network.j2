@@ -1,27 +1,41 @@
+# Match: apply this file only to the detected primary interface (whatever
+# it's actually named - eth0/enp*/ens* - "eth0.network" is just the filename).
 [Match]
 Name={{ network_nic.stdout }}
 
 [Link]
+# RequiredForOnline=routable: systemd-networkd-wait-online waits for this
+# link to have a routable address before considering the system "online".
 RequiredForOnline=routable
 
 [Network]
-DNS=192.168.42.251 192.168.42.252 192.168.42.253 192.168.42.254
-DNS=2a02:8010:61d5:42::251 2a02:8010:61d5:42::252 2a02:8010:61d5:42::253 2a02:8010:61d5:42::254
+# No per-link DNS= here: the fleet's nameservers are configured once, globally,
+# in /etc/systemd/resolved.conf.d/10-dns-servers.conf (see resolved-dns.conf.j2)
+# for every host that uses systemd-resolved. dns-?? hosts don't use resolved at
+# all (static /etc/resolv.conf instead), so a per-link DNS= here would just be
+# dead config on them; duplicating it here for every other host would only add
+# a second, redundant source of the same servers with no extra redundancy.
 
-[Address]
-Address={{ network_ipv4.stdout }}
+# IPv6AcceptRA=no: the sysctl role already sets net.ipv6.conf.default.accept_ra=0
+# fleet-wide, but systemd-networkd overrides that per-interface with its own
+# default (effectively "yes" for a non-forwarding host) once it manages a
+# link. Pinning it here explicitly makes sure RA acceptance actually stays
+# off on this interface instead of silently being re-enabled by networkd.
+IPv6AcceptRA=no
+
+# Address=: one line per detected address (there can be more than one per
+# family - e.g. a manually added secondary address - hence the loops below
+# rather than a single line).
+{% for addr in network_ipv4.stdout_lines %}
+Address={{ addr }}
+{% endfor %}
 {% if network_gw4.stdout | length > 0 %}
-
-[Route]
 Gateway={{ network_gw4.stdout }}
 {% endif %}
-{% if network_ipv6.stdout | length > 0 %}
-
-[Address]
-Address={{ network_ipv6.stdout }}
-{% endif %}
+{% for addr in network_ipv6.stdout_lines %}
+Address={{ addr }}
+{% endfor %}
 {% if network_gw6.stdout | length > 0 %}
 
-[Route]
 Gateway={{ network_gw6.stdout }}
 {% endif %}

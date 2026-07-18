@@ -1,0 +1,29 @@
+# search .: no default search domain (treat all lookups as already fully qualified)
+search .
+
+# glibc only honours the first 3 "nameserver" lines (entries beyond that are
+# kept for documentation/other resolvers but ignored by glibc itself), so the
+# IPv4/IPv6 lists are interleaved rather than listed family-by-family -
+# otherwise the first 3 lines would all be one family. The IPv4 list is
+# additionally rotated by a fixed offset of 2 so that adjacent lines never
+# belong to the same physical nameserver host (network_nameservers_ipv4[n] and
+# network_nameservers_ipv6[n] are the same host) - that way losing any one
+# host still leaves the first 3 lines pointing at 3 different hosts. An offset
+# of 2 satisfies that for any list length >= 3 (not just today's 5), since it
+# never equals 0 or 1; it only needs revisiting if the lists ever shrink below
+# 3 entries. The two lists must stay the same length - see the "nameserver
+# lists must be the same length" assertion in tasks/main.yml - otherwise the
+# zip() below would silently drop whichever family's trailing entries.
+{% set network_ipv4_interleaved = network_nameservers_ipv4[2:] + network_nameservers_ipv4[:2] %}
+{% for ns6, ns4 in network_nameservers_ipv6 | zip(network_ipv4_interleaved) %}
+nameserver {{ ns6 }}
+nameserver {{ ns4 }}
+{% endfor %}
+
+# edns0: allow DNS responses larger than 512 bytes (needed for DNSSEC etc.)
+# trust-ad: trust the AD (Authenticated Data) flag from these nameservers,
+# i.e. treat their DNSSEC validation as authoritative
+# rotate: round-robin across the listed nameservers instead of always using the first
+# timeout:1 attempts:1: fail over to the next nameserver faster
+# single-request-reopen: use separate sockets for A/AAAA queries to avoid firewall/NAT stalls
+options edns0 trust-ad rotate timeout:1 attempts:1 single-request-reopen
