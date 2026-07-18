@@ -1,6 +1,16 @@
 # Global fallback nameserver list for systemd-resolved. Queried in parallel
 # with whatever per-link DNS servers systemd-networkd has set (see
-# eth0.network's DNS= lines), so this stays correct even on hosts where
-# eth0.network was left untouched (manual multi-address exception).
+# eth0.network's DNS= lines).
 [Resolve]
 DNS={{ (network_nameservers_ipv4 + network_nameservers_ipv6) | join(' ') }}
+
+# allow-downgrade: validate DNSSEC when upstream supports it, without hard-failing
+# resolution fleet-wide if a zone's DNSSEC is broken (DNSSEC=yes would do that).
+DNSSEC=allow-downgrade
+
+# LLMNR/mDNS are unauthenticated broadcast name resolution protocols and a
+# spoofing vector; unneeded since every host resolves via the nameservers above.
+LLMNR=no
+MulticastDNS=no
+
+Cache=yes

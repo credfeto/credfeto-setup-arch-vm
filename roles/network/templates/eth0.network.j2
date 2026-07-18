@@ -1,21 +1,38 @@
+# Match: apply this file only to the detected primary interface (whatever
+# it's actually named - eth0/enp*/ens* - "eth0.network" is just the filename).
 [Match]
 Name={{ network_nic.stdout }}
 
 [Link]
+# RequiredForOnline=routable: systemd-networkd-wait-online waits for this
+# link to have a routable address before considering the system "online".
 RequiredForOnline=routable
 
 [Network]
+# DNS=: per-link nameservers, queried in parallel with the global list in
+# /etc/systemd/resolved.conf.d/10-dns-servers.conf (see resolved-dns.conf.j2).
 DNS={{ network_nameservers_ipv4 | join(' ') }}
 DNS={{ network_nameservers_ipv6 | join(' ') }}
 
-Address={{ network_ipv4.stdout }}
+# IPv6AcceptRA=no: the sysctl role already sets net.ipv6.conf.default.accept_ra=0
+# fleet-wide, but systemd-networkd overrides that per-interface with its own
+# default (effectively "yes" for a non-forwarding host) once it manages a
+# link. Pinning it here explicitly makes sure RA acceptance actually stays
+# off on this interface instead of silently being re-enabled by networkd.
+IPv6AcceptRA=no
+
+# Address=: one line per detected address (there can be more than one per
+# family - e.g. a manually added secondary address - hence the loops below
+# rather than a single line).
+{% for addr in network_ipv4.stdout_lines %}
+Address={{ addr }}
+{% endfor %}
 {% if network_gw4.stdout | length > 0 %}
 Gateway={{ network_gw4.stdout }}
 {% endif %}
-{% if network_ipv6.stdout | length > 0 %}
-
-Address={{ network_ipv6.stdout }}
-{% endif %}
+{% for addr in network_ipv6.stdout_lines %}
+Address={{ addr }}
+{% endfor %}
 {% if network_gw6.stdout | length > 0 %}
 
 Gateway={{ network_gw6.stdout }}

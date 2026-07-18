@@ -55,6 +55,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Blacklist unused kernel modules to reduce LPE attack surface (DCCP, SCTP, RDS, TIPC, legacy protocols, unused filesystems)
 - Daily Podman container security audit: shellcheck-clean POSIX sh script checks each running container for privileged mode, root user, writable rootfs, CAP_SYS_ADMIN, host network, and missing memory/PID limits; wired to a systemd timer via Ansible
 - Configure auditd with kernel syscall auditing rules for security monitoring
+- Pin IPv6AcceptRA=no on the primary interface so systemd-networkd doesn't override the sysctl role's RA-acceptance hardening for that link
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
@@ -85,6 +86,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Replace unsupported ignore_errors task keyword with module's own ignoreerrors: true parameter for kernel.kexec_load_disabled and kernel.deny_new_usb sysctl tasks
 - Ensure docker firewalld zone exists on fresh VM before assigning Docker bridge subnet
 - Run mkinitcpio -P after GRUB config changes to ensure initramfs stays in sync
+- Static /etc/resolv.conf on dns-?? hosts interleaves IPv6/IPv4 nameservers (offset so adjacent lines are never the same physical host) instead of listing all IPv6 first, so glibc's 3-line limit still gives 3 different hosts instead of only IPv6 ones
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
@@ -120,11 +122,15 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Docker packages (docker-buildx, docker-compose) only installed when container_runtime is set to docker
 - Docker firewalld zone only created when container_runtime is set to docker
 - Explicitly set insecure = false on the Podman registry mirror to enforce HTTPS, matching the docker registry-mirrors configuration
+- Route DNS via systemd-resolved (fleet-wide DNS=, DNSSEC=allow-downgrade, LLMNR/MulticastDNS disabled) instead of a static /etc/resolv.conf, except on dns-?? hosts which keep the static file so a systemd-resolved restart/crash can't cut them off from their own upstream nameservers
+- Renumber fleet nameservers from 192.168.42.251-254 / 2a02:8010:61d5:42::251-254 (4 servers) to 192.168.42.101-105 / 2a02:8010:61d5:42::101-105 (5 servers)
+- eth0.network now writes an Address= line for every address detected on the primary interface per IPv4/IPv6 family, instead of only the first, so hosts with a manually added secondary address are handled without being skipped
 ### Removed
 - Remove criu and pigz packages — neither is used or configured by the script
 - Remove curl-based security script in favour of ansible-pull timer
 - auto-update bash script, service, and timer — superseded by the packages role running pacman -Syyu on every hourly ansible-pull run
 ### Deployment Changes
+- Already-provisioned hosts have /etc/resolv.conf replaced (static file on dns-?? hosts, symlink to systemd-resolved's stub on every other host) and systemd-resolved restarted on their next ansible-pull run
 <!--
 Releases that have at least been deployed to staging, BUT NOT necessarily released to live.  Changes should be moved from [Unreleased] into here as they are merged into the appropriate release branch
 -->

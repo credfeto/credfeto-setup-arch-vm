@@ -10,40 +10,11 @@
   ansible.builtin.set_fact:
     network_is_dns_server: "{{ ansible_hostname is match('^dns-[0-9]{2}$') }}"
 
-# eth0.network is normally re-applied on every run, so IP/GW/DNS changes
-# made in this role reach hosts that already have the file. The one
-# exception: if the existing file has more than one Address= for a family
-# (someone manually added a second IPv4/IPv6 address on that host), we leave
-# it alone rather than clobber the manual addition, since the template only
-# ever writes a single address per family.
-- name: Check if systemd-networkd configuration already exists
-  ansible.builtin.stat:
-    path: /etc/systemd/network/eth0.network
-  register: network_eth0_stat
-
-- name: Read existing eth0.network Address lines
-  ansible.builtin.shell:
-    cmd: |
-      set -o pipefail
-      grep -E '^Address=' /etc/systemd/network/eth0.network || true
-    executable: /bin/bash
-  register: network_eth0_addresses
-  changed_when: false
-  when:
-    - not ansible_check_mode
-    - network_eth0_stat.stat.exists
-
-- name: Determine whether to (re)write eth0.network
-  ansible.builtin.set_fact:
-    network_write_eth0: >-
-      {{
-        not network_eth0_stat.stat.exists or
-        (
-          (network_eth0_addresses.stdout_lines | default([]) | select('search', ':') | list | length <= 1) and
-          (network_eth0_addresses.stdout_lines | default([]) | reject('search', ':') | list | length <= 1)
-        )
-      }}
-
+# eth0.network is re-applied on every run, so IP/GW/DNS changes made in this
+# role reach hosts that already have the file. All addresses on the primary
+# interface are detected (not just the first per family) and written back,
+# sorted for a stable ordering, so hosts with multiple IPv4/IPv6 addresses
+# are handled without clobbering anything.
 - name: Detect primary network interface
   ansible.builtin.shell:
     cmd: |
@@ -53,22 +24,19 @@
     executable: /bin/bash
   register: network_nic
   changed_when: false
-  when:
-    - not ansible_check_mode
-    - network_write_eth0
+  when: not ansible_check_mode
 
-- name: Detect IPv4 address
+- name: Detect IPv4 addresses
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
       ip -o -4 addr show dev {{ network_nic.stdout }} scope global \
-        | awk 'NR==1{print $4}'
+        | awk '{print $4}' | sort -V
     executable: /bin/bash
   register: network_ipv4
   changed_when: false
   when:
     - not ansible_check_mode
-    - network_write_eth0
     - network_nic.stdout | length > 0
 
 - name: Detect IPv4 gateway
@@ -82,21 +50,19 @@
   changed_when: false
   when:
     - not ansible_check_mode
-    - network_write_eth0
     - network_nic.stdout | length > 0
 
-- name: Detect IPv6 address
+- name: Detect IPv6 addresses
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
       ip -o -6 addr show dev {{ network_nic.stdout }} scope global \
-        | awk 'NR==1{print $4}'
+        | awk '{print $4}' | sort -V
     executable: /bin/bash
   register: network_ipv6
   changed_when: false
   when:
     - not ansible_check_mode
-    - network_write_eth0
     - network_nic.stdout | length > 0
 
 - name: Detect IPv6 gateway
@@ -110,7 +76,6 @@
   changed_when: false
   when:
     - not ansible_check_mode
-    - network_write_eth0
     - network_nic.stdout | length > 0
 
 - name: Write systemd-networkd configuration for primary interface
@@ -122,7 +87,6 @@
     mode: "0644"
   when:
     - not ansible_check_mode
-    - network_write_eth0
     - network_nic.stdout | length > 0
     - network_ipv4.stdout | length > 0
 
