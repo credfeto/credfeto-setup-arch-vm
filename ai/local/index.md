@@ -23,5 +23,5 @@ This is an index of local instructions that apply to just this project.
 | [output-formatting.instructions.md](output-formatting.instructions.md) | ok / skip / die helper functions and coloured indicators for the install script |
 | [changelog.instructions.md](changelog.instructions.md) | Repo-specific changelog rules: install-script audience, when to add/skip entries, valid types including Deployment Changes |
 | [github-actions.instructions.md](github-actions.instructions.md) | Super-linter checks required, shell script pitfalls (SC2129, pipefail), GitHub Models API endpoint |
-| [pull-request-template.instructions.md](pull-request-template.instructions.md) | PR body structure; description is hand-written (no live auto-generation - the workflow was removed) |
+| [pull-request-template.instructions.md](pull-request-template.instructions.md) | PR body structure; description is hand-written |
 | [testing.instructions.md](testing.instructions.md) | Test VM at arch-vm-test.lan (user: test, sudo), when and how to validate Ansible role and install script changes |
