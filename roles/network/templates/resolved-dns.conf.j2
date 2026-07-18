@@ -1,7 +1,7 @@
 # Global nameserver list for systemd-resolved (the only DNS= source - see the
 # comment in eth0.network.j2 for why there's no per-link DNS= as well).
 [Resolve]
-DNS={{ (network_nameservers_ipv4 + network_nameservers_ipv6) | join(' ') }}
+DNS={{ (network_nameservers_ipv6 + network_nameservers_ipv4) | join(' ') }}
 
 # Domains=~.: route every lookup through the nameservers above and, per the
 # leading "~", use them only for routing rather than for suffixing unqualified

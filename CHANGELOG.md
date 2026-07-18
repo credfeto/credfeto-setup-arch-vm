@@ -129,6 +129,8 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Renumber fleet nameservers from 192.168.42.251-254 / 2a02:8010:61d5:42::251-254 (4 servers) to 192.168.42.101-105 / 2a02:8010:61d5:42::101-105 (5 servers)
 - eth0.network now writes an Address= line for every address detected on the primary interface per IPv4/IPv6 family, instead of only the first, so hosts with a manually added secondary address are handled without being skipped
 - Remove the redundant per-link DNS= from eth0.network; the fleet nameservers are now configured in exactly one place (the global systemd-resolved drop-in) instead of twice for every non-dns-?? host
+- Derive the fleet nameserver IPv4/IPv6 address lists from a single list of host suffixes plus fixed prefixes, instead of two independently hand-maintained lists, so they can no longer drift out of sync in length or content
+- Order systemd-resolved's global DNS= as IPv6 nameservers before IPv4, matching the static resolv.conf's ordering
 ### Removed
 - Remove criu and pigz packages — neither is used or configured by the script
 - Remove curl-based security script in favour of ansible-pull timer
