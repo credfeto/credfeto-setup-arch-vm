@@ -9,10 +9,12 @@ Name={{ network_nic.stdout }}
 RequiredForOnline=routable
 
 [Network]
-# DNS=: per-link nameservers, queried in parallel with the global list in
-# /etc/systemd/resolved.conf.d/10-dns-servers.conf (see resolved-dns.conf.j2).
-DNS={{ network_nameservers_ipv4 | join(' ') }}
-DNS={{ network_nameservers_ipv6 | join(' ') }}
+# No per-link DNS= here: the fleet's nameservers are configured once, globally,
+# in /etc/systemd/resolved.conf.d/10-dns-servers.conf (see resolved-dns.conf.j2)
+# for every host that uses systemd-resolved. dns-?? hosts don't use resolved at
+# all (static /etc/resolv.conf instead), so a per-link DNS= here would just be
+# dead config on them; duplicating it here for every other host would only add
+# a second, redundant source of the same servers with no extra redundancy.
 
 # IPv6AcceptRA=no: the sysctl role already sets net.ipv6.conf.default.accept_ra=0
 # fleet-wide, but systemd-networkd overrides that per-interface with its own

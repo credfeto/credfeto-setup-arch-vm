@@ -56,6 +56,8 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Daily Podman container security audit: shellcheck-clean POSIX sh script checks each running container for privileged mode, root user, writable rootfs, CAP_SYS_ADMIN, host network, and missing memory/PID limits; wired to a systemd timer via Ansible
 - Configure auditd with kernel syscall auditing rules for security monitoring
 - Pin IPv6AcceptRA=no on the primary interface so systemd-networkd doesn't override the sysctl role's RA-acceptance hardening for that link
+- Set Domains=~. in the systemd-resolved global config so unqualified lookups are never suffixed with a search domain, matching the static resolv.conf's search .
+- Fail the run with a clear error if network_nameservers_ipv4 and network_nameservers_ipv6 are ever configured with different lengths, instead of silently dropping the extra entries from dns-?? hosts' resolv.conf
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
@@ -87,6 +89,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Ensure docker firewalld zone exists on fresh VM before assigning Docker bridge subnet
 - Run mkinitcpio -P after GRUB config changes to ensure initramfs stays in sync
 - Static /etc/resolv.conf on dns-?? hosts interleaves IPv6/IPv4 nameservers (offset so adjacent lines are never the same physical host) instead of listing all IPv6 first, so glibc's 3-line limit still gives 3 different hosts instead of only IPv6 ones
+- Exclude temporary and deprecated-flagged addresses from IPv4/IPv6 detection on the primary interface, so a rotating privacy-extension or expiring address never gets pinned into a static Address= line in eth0.network
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
@@ -125,6 +128,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Route DNS via systemd-resolved (fleet-wide DNS=, DNSSEC=allow-downgrade, LLMNR/MulticastDNS disabled) instead of a static /etc/resolv.conf, except on dns-?? hosts which keep the static file so a systemd-resolved restart/crash can't cut them off from their own upstream nameservers
 - Renumber fleet nameservers from 192.168.42.251-254 / 2a02:8010:61d5:42::251-254 (4 servers) to 192.168.42.101-105 / 2a02:8010:61d5:42::101-105 (5 servers)
 - eth0.network now writes an Address= line for every address detected on the primary interface per IPv4/IPv6 family, instead of only the first, so hosts with a manually added secondary address are handled without being skipped
+- Remove the redundant per-link DNS= from eth0.network; the fleet nameservers are now configured in exactly one place (the global systemd-resolved drop-in) instead of twice for every non-dns-?? host
 ### Removed
 - Remove criu and pigz packages — neither is used or configured by the script
 - Remove curl-based security script in favour of ansible-pull timer

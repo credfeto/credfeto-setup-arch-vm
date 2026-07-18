@@ -1,8 +1,14 @@
-# Global fallback nameserver list for systemd-resolved. Queried in parallel
-# with whatever per-link DNS servers systemd-networkd has set (see
-# eth0.network's DNS= lines).
+# Global nameserver list for systemd-resolved (the only DNS= source - see the
+# comment in eth0.network.j2 for why there's no per-link DNS= as well).
 [Resolve]
 DNS={{ (network_nameservers_ipv4 + network_nameservers_ipv6) | join(' ') }}
+
+# Domains=~.: route every lookup through the nameservers above and, per the
+# leading "~", use them only for routing rather than for suffixing unqualified
+# single-label names - the equivalent of the static resolv.conf's "search ."
+# (no default search domain), in case resolved is ever handed a search domain
+# from elsewhere (e.g. a future per-link Domains= from some other config).
+Domains=~.
 
 # allow-downgrade: validate DNSSEC when upstream supports it, without hard-failing
 # resolution fleet-wide if a zone's DNSSEC is broken (DNSSEC=yes would do that).

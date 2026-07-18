@@ -1,4 +1,17 @@
 ---
+# resolv.conf.j2 pairs these lists up index-for-index (same host at the same
+# index in each list) and interleaves them; a length mismatch would make
+# Jinja's zip() silently drop whichever family's trailing entries instead of
+# failing loudly, so check it up front.
+- name: Assert nameserver lists are the same length
+  ansible.builtin.assert:
+    that:
+      - network_nameservers_ipv4 | length == network_nameservers_ipv6 | length
+    fail_msg: >-
+      network_nameservers_ipv4 ({{ network_nameservers_ipv4 | length }} entries) and
+      network_nameservers_ipv6 ({{ network_nameservers_ipv6 | length }} entries) must be
+      the same length - resolv.conf.j2 pairs them up index-for-index.
+
 # DNS server hosts (dns-01, dns-02, ...) must not point their own resolver at
 # systemd-resolved's upstream list: that list includes the DNS servers
 # themselves, so a resolved restart/crash on one of these boxes would leave
@@ -15,6 +28,13 @@
 # interface are detected (not just the first per family) and written back,
 # sorted for a stable ordering, so hosts with multiple IPv4/IPv6 addresses
 # are handled without clobbering anything.
+#
+# Trade-off: this is a live snapshot, not a merge with whatever was there
+# before. If an address is transiently absent from the interface at the
+# exact moment this runs (e.g. a failover/VIP address mid-reassignment), it
+# is genuinely absent from the rewritten file, and "Reload networkctl" below
+# applies that immediately. There is no guard against this beyond the address
+# being consistently present when ansible-pull runs on its normal schedule.
 - name: Detect primary network interface
   ansible.builtin.shell:
     cmd: |
@@ -26,12 +46,19 @@
   changed_when: false
   when: not ansible_check_mode
 
+# temporary/deprecated address flags are excluded: they're inherently
+# transient (privacy-extension rotation, or already on their way out) and
+# must never be pinned into a static Address= line. Filtering is done inside
+# the single awk command (rather than a separate grep -v stage) so that
+# "every address on this link got filtered out" is empty output, not a
+# non-zero exit that set -o pipefail would turn into a task failure.
 - name: Detect IPv4 addresses
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
       ip -o -4 addr show dev {{ network_nic.stdout }} scope global \
-        | awk '{print $4}' | sort -V
+        | awk '{skip=0; for (i=5; i<=NF; i++) if ($i=="temporary" || $i=="deprecated") skip=1; if (!skip) print $4}' \
+        | sort -V
     executable: /bin/bash
   register: network_ipv4
   changed_when: false
@@ -52,12 +79,15 @@
     - not ansible_check_mode
     - network_nic.stdout | length > 0
 
+# temporary/deprecated address flags are excluded: see the comment above the
+# IPv4 equivalent task.
 - name: Detect IPv6 addresses
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
       ip -o -6 addr show dev {{ network_nic.stdout }} scope global \
-        | awk '{print $4}' | sort -V
+        | awk '{skip=0; for (i=5; i<=NF; i++) if ($i=="temporary" || $i=="deprecated") skip=1; if (!skip) print $4}' \
+        | sort -V
     executable: /bin/bash
   register: network_ipv6
   changed_when: false
