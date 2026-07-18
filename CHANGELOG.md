@@ -85,6 +85,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Replace unsupported ignore_errors task keyword with module's own ignoreerrors: true parameter for kernel.kexec_load_disabled and kernel.deny_new_usb sysctl tasks
 - Ensure docker firewalld zone exists on fresh VM before assigning Docker bridge subnet
 - Run mkinitcpio -P after GRUB config changes to ensure initramfs stays in sync
+- AI instructions: pull-request-template.instructions.md no longer describes the deleted maintain-pr-description.yml automation as live; documents the actual hand-written PR description process instead
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
