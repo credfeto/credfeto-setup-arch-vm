@@ -10,7 +10,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 
 ## [Unreleased]
 ### Security
-- Pin GitHub Actions checkout references to commit SHA (issue #180, implementation pending)
+- Pin actions/checkout references to commit SHA instead of mutable tag in ansible-lint and security-review workflows, hardening against tag repointing
 ### Added
 - Git workflow instructions: never-squash-commits rule to preserve the full commit history however messy the path
 - AI instructions: mandatory git identity and GPG signing check before any commit — abort if identity is `andy@nanoclaw.ai` or GPG signing is disabled
@@ -62,6 +62,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Pin IPv6AcceptRA=no on the primary interface so systemd-networkd doesn't override the sysctl role's RA-acceptance hardening for that link
 - Set Domains=~. in the systemd-resolved global config so unqualified lookups are never suffixed with a search domain, matching the static resolv.conf's search .
 - Fail the run with a clear error if network_nameservers_ipv4 and network_nameservers_ipv6 are ever configured with different lengths, instead of silently dropping the extra entries from dns-?? hosts' resolv.conf
+- Enable Dependabot github-actions ecosystem to keep SHA-pinned action versions up to date
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
