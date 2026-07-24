@@ -1,6 +1,9 @@
 ﻿# Changelog
 All notable changes to this project will be documented in this file.
 
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
 <!--
 Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 -->
@@ -132,6 +135,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Remove the redundant per-link DNS= from eth0.network; the fleet nameservers are now configured in exactly one place (the global systemd-resolved drop-in) instead of twice for every non-dns-?? host
 - Derive the fleet nameserver IPv4/IPv6 address lists from a single list of host suffixes plus fixed prefixes, instead of two independently hand-maintained lists, so they can no longer drift out of sync in length or content
 - Order systemd-resolved's global DNS= as IPv6 nameservers before IPv4, matching the static resolv.conf's ordering
+### Deprecated
 ### Removed
 - Remove criu and pigz packages — neither is used or configured by the script
 - Remove curl-based security script in favour of ansible-pull timer
