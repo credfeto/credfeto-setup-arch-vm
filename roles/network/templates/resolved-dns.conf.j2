@@ -10,9 +10,14 @@ DNS={{ (network_nameservers_ipv6 + network_nameservers_ipv4) | join(' ') }}
 # from elsewhere (e.g. a future per-link Domains= from some other config).
 Domains=~.
 
-# allow-downgrade: validate DNSSEC when upstream supports it, without hard-failing
-# resolution fleet-wide if a zone's DNSSEC is broken (DNSSEC=yes would do that).
-DNSSEC=allow-downgrade
+# no: the fleet's upstream nameservers advertise DNSSEC support but return
+# responses that fail validation (e.g. "no-signature" on plain DS/A/AAAA
+# lookups) rather than genuinely not supporting it, so allow-downgrade never
+# kicks in - resolved only downgrades when a server looks like it doesn't
+# support DNSSEC at all, not when it returns broken signed-looking data.
+# That turned "com IN DS: no-signature" into fleet-wide resolution failures.
+# Disable validation outright until the upstream's DNSSEC handling is fixed.
+DNSSEC=no
 
 # LLMNR/mDNS are unauthenticated broadcast name resolution protocols and a
 # spoofing vector; unneeded since every host resolves via the nameservers above.
