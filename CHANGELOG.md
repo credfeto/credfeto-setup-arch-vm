@@ -64,6 +64,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Fail the run with a clear error if network_nameservers_ipv4 and network_nameservers_ipv6 are ever configured with different lengths, instead of silently dropping the extra entries from dns-?? hosts' resolv.conf
 - Enable Dependabot github-actions ecosystem to keep SHA-pinned action versions up to date
 - Add dns-06 to the fleet nameserver list
+- Add scripts/reset-clone-identity to regenerate machine-id and SSH host keys after cloning a VM
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
