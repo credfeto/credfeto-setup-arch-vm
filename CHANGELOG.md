@@ -102,7 +102,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Stop, disable, and mask systemd-resolved on DNS server hosts to prevent it racing the real resolver for port 53 on boot
 - Fix reset-clone-identity crashing on host key types ssh-keygen -t doesn't accept directly (e.g. mldsa44-ed25519)
 - Fix AuthorizedKeysCommand using non-existent %H sshd token, which broke SSH access fleet-wide on the next sshd reload
-- Only disable IPv6 Router Advertisement acceptance when a static IPv6 gateway was detected, so segments with no static gateway don't permanently lose their IPv6 default route
+- Always accept IPv6 Router Advertisement and never freeze a static IPv6 gateway, instead of snapshotting a live route that could permanently disappear on some segments
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
