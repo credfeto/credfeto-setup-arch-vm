@@ -136,13 +136,20 @@
 # host, the first time this file is rendered fresh - it just hadn't
 # detonated yet on hosts whose sshd hadn't been reloaded since this line
 # was introduced. The real per-host hostname is baked in here at Ansible
-# render time instead (ansible_hostname, same fact used in the network
-# role's DNS-server detection) - %u is left as a genuine runtime token
-# since sshd does support per-connection username expansion.
+# render time instead - %u is left as a genuine runtime token since sshd
+# does support per-connection username expansion.
+#
+# ansible_nodename (not ansible_hostname) is used deliberately: the key
+# server expects the full dns-05.lan style value, not the domain-stripped
+# short form (ansible_hostname strips everything from the first dot -
+# that's the fact roles/network/tasks/main.yml uses for the ^dns-[0-9]{2}$
+# DNS-server check, which needs the short form; this needs the opposite).
+# ansible_nodename is the raw, unmodified /etc/hostname content - no
+# domain-stripping, no DNS lookups that could disagree with it.
 - name: Configure sshd AuthorizedKeysCommand
   ansible.builtin.copy:
     dest: /etc/ssh/sshd_config.d/10-authorizedkeyscommand.conf
-    content: "AuthorizedKeysCommand /usr/bin/curl -s https://keys.markridgwell.com/keys/{{ ansible_hostname }}/%u\n"
+    content: "AuthorizedKeysCommand /usr/bin/curl -s https://keys.markridgwell.com/keys/{{ ansible_nodename }}/%u\n"
     owner: root
     group: root
     mode: "0600"
