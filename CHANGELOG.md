@@ -63,6 +63,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Set Domains=~. in the systemd-resolved global config so unqualified lookups are never suffixed with a search domain, matching the static resolv.conf's search .
 - Fail the run with a clear error if network_nameservers_ipv4 and network_nameservers_ipv6 are ever configured with different lengths, instead of silently dropping the extra entries from dns-?? hosts' resolv.conf
 - Enable Dependabot github-actions ecosystem to keep SHA-pinned action versions up to date
+- Add dns-06 to the fleet nameserver list
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
