@@ -97,6 +97,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Exclude temporary and deprecated-flagged addresses from IPv4/IPv6 detection on the primary interface, so a rotating privacy-extension or expiring address never gets pinned into a static Address= line in eth0.network
 - AI instructions: pull-request-template.instructions.md no longer describes the deleted maintain-pr-description.yml automation as live; documents the actual hand-written PR description process instead
 - Disable DNSSEC validation in systemd-resolved fleet-wide (was allow-downgrade): upstream nameservers advertise DNSSEC support but return validation-breaking responses, causing fleet-wide DNS resolution failures
+- Stop, disable, and mask systemd-resolved on DNS server hosts to prevent it racing the real resolver for port 53 on boot
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
