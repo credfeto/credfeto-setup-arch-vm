@@ -16,12 +16,26 @@ RequiredForOnline=routable
 # dead config on them; duplicating it here for every other host would only add
 # a second, redundant source of the same servers with no extra redundancy.
 
-# IPv6AcceptRA=no: the sysctl role already sets net.ipv6.conf.default.accept_ra=0
+{% if network_gw6.stdout | length > 0 %}
+# IPv6AcceptRA=no: a static IPv6 gateway was detected on this interface (see
+# the Gateway= line derived from network_gw6 below), so RA is redundant -
+# and the sysctl role already sets net.ipv6.conf.default.accept_ra=0
 # fleet-wide, but systemd-networkd overrides that per-interface with its own
 # default (effectively "yes" for a non-forwarding host) once it manages a
 # link. Pinning it here explicitly makes sure RA acceptance actually stays
 # off on this interface instead of silently being re-enabled by networkd.
 IPv6AcceptRA=no
+{% else %}
+# IPv6AcceptRA=yes: no static IPv6 gateway was detected on this interface -
+# this segment's default route only exists via Router Advertisement (some
+# segments have no static gateway address at all, unlike others in this
+# fleet). Forcing IPv6AcceptRA=no here would kill that route with nothing to
+# fall back on, and worse: every subsequent run's "Address=" detection above
+# would then find no live default route to capture as a static Gateway=
+# either, permanently locking the host out of any IPv6 default route from
+# then on. Leave RA acceptance on for hosts that depend on it.
+IPv6AcceptRA=yes
+{% endif %}
 
 # Address=: one line per detected address (there can be more than one per
 # family - e.g. a manually added secondary address - hence the loops below
