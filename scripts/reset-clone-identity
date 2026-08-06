@@ -9,15 +9,17 @@
 # by design: do not run it on a machine you want to keep its current
 # machine-id / SSH host keys.
 #
-# SSH host keys generated match whatever this host's sshd is actually
-# configured to use (read from `sshd -T`, the effective merged config -
-# see roles/ssh/tasks/main.yml, which pins HostKey to ed25519 and rsa only).
-# `ssh-keygen -A` on its own would also generate ecdsa and the experimental
-# mldsa44-ed25519 hybrid key, neither of which sshd is told to use here -
-# dead private key material sitting on disk for no reason. If sshd hasn't
-# been configured with explicit HostKey directives yet (e.g. the ssh role
-# has never run on this host), fall back to `ssh-keygen -A` so the script
-# still produces a usable set of keys.
+# SSH host keys: always generate the full default set via `ssh-keygen -A`
+# (the only reliable way to get exotic/hybrid key types like the
+# experimental mldsa44-ed25519 right - ssh-keygen doesn't accept every
+# type it can produce via -A as a `-t` argument), then prune whichever
+# generated files this host's sshd isn't actually configured to use (read
+# from `sshd -T`, the effective merged config - see roles/ssh/tasks/main.yml,
+# which normally pins HostKey to ed25519 and rsa only). Left otherwise,
+# ecdsa/mldsa44-ed25519 would sit on disk as dead private key material for
+# no reason. If sshd has no explicit HostKey directives yet (e.g. the ssh
+# role has never run on this host), nothing is pruned and the full -A set
+# is kept.
 #
 # Out of scope: /etc/hostname and network config (eth0.network) - those are
 # host-specific and already handled by the network Ansible role or a manual
@@ -71,22 +73,22 @@ configured_host_keys=$(sshd -T 2>/dev/null | awk 'tolower($1) == "hostkey" {prin
 
 info "Regenerating SSH host keys..."
 rm -f /etc/ssh/ssh_host_* || die "Failed to remove existing SSH host keys"
+ssh-keygen -A || die "ssh-keygen -A failed"
 
-if [ -z "${configured_host_keys}" ]; then
-    info "No explicit HostKey directives found in sshd's config - falling back to 'ssh-keygen -A' (all default key types)"
-    ssh-keygen -A || die "ssh-keygen -A failed"
-else
+if [ -n "${configured_host_keys}" ]; then
+    info "Pruning host key types this host's sshd isn't configured to use..."
+    for generated_priv in /etc/ssh/ssh_host_*_key; do
+        [ -e "${generated_priv}" ] || continue
+        if printf '%s\n' "${configured_host_keys}" | grep -qxF "${generated_priv}"; then
+            continue
+        fi
+        info "  removing unused ${generated_priv}"
+        rm -f "${generated_priv}" "${generated_priv}.pub"
+    done
+
     while IFS= read -r hostkey_path; do
         [ -z "${hostkey_path}" ] && continue
-        keytype=$(basename "${hostkey_path}")
-        keytype=${keytype#ssh_host_}
-        keytype=${keytype%_key}
-        info "  ${hostkey_path} (${keytype})"
-        if [ "${keytype}" = "rsa" ]; then
-            ssh-keygen -t rsa -b 3072 -f "${hostkey_path}" -N "" -q || die "Failed to generate rsa host key at ${hostkey_path}"
-        else
-            ssh-keygen -t "${keytype}" -f "${hostkey_path}" -N "" -q || die "Failed to generate ${keytype} host key at ${hostkey_path}"
-        fi
+        [ -e "${hostkey_path}" ] || info "  warning: sshd expects ${hostkey_path} but 'ssh-keygen -A' did not generate it"
     done <<HOSTKEY_PATHS
 ${configured_host_keys}
 HOSTKEY_PATHS
