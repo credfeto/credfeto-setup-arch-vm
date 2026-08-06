@@ -34,6 +34,15 @@ RequiredForOnline=routable
 # routing is normally designed to work.
 IPv6AcceptRA=yes
 
+# IPv6PrivacyExtensions=yes: prefer a rotating temporary address (RFC 4941)
+# for outgoing connections, reducing long-term trackability of outbound
+# traffic. The static/stable address(es) pinned below via the Address=
+# loop - including any deliberately-chosen vanity form - stay present and
+# reachable for anything that needs a fixed address (inbound connections,
+# DNS records); this only changes which address gets picked as the source
+# for connections this host initiates.
+IPv6PrivacyExtensions=yes
+
 # Address=: one line per detected address (there can be more than one per
 # family - e.g. a manually added secondary address - hence the loops below
 # rather than a single line). IPv4 addressing on this fleet is genuinely
