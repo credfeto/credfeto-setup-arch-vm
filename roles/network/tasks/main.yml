@@ -132,6 +132,19 @@
     mode: "0644"
   when: network_is_dns_server
 
+# masked (not just disabled) so nothing can start it by any path - manual
+# `systemctl start`, another unit's Wants=/Requires=, or socket activation -
+# which matters here because the box's actual DNS resolver also wants port
+# 53/127.0.0.53, and a stray resolved start would race it for that port on
+# every boot.
+- name: Stop, disable and mask systemd-resolved on DNS server hosts
+  ansible.builtin.systemd:
+    name: systemd-resolved
+    state: stopped
+    enabled: false
+    masked: true
+  when: network_is_dns_server
+
 - name: Ensure /etc/systemd/resolved.conf.d exists
   ansible.builtin.file:
     path: /etc/systemd/resolved.conf.d
