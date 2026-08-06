@@ -1,0 +1,109 @@
+#!/bin/sh
+# Resets machine identity after this VM was created by cloning another one.
+# Regenerates /etc/machine-id and SSH host keys so the clone stops sharing
+# its source machine's identity (D-Bus machine-id, journald, and SSH host
+# key fingerprints all derive from these).
+#
+# Run this once, manually, right after first boot of a freshly cloned VM -
+# before it is put into service. It is destructive to the existing identity
+# by design: do not run it on a machine you want to keep its current
+# machine-id / SSH host keys.
+#
+# SSH host keys generated match whatever this host's sshd is actually
+# configured to use (read from `sshd -T`, the effective merged config -
+# see roles/ssh/tasks/main.yml, which pins HostKey to ed25519 and rsa only).
+# `ssh-keygen -A` on its own would also generate ecdsa and the experimental
+# mldsa44-ed25519 hybrid key, neither of which sshd is told to use here -
+# dead private key material sitting on disk for no reason. If sshd hasn't
+# been configured with explicit HostKey directives yet (e.g. the ssh role
+# has never run on this host), fall back to `ssh-keygen -A` so the script
+# still produces a usable set of keys.
+#
+# Out of scope: /etc/hostname and network config (eth0.network) - those are
+# host-specific and already handled by the network Ansible role or a manual
+# rename, not something this script should guess at.
+
+die() {
+    if [ -t 2 ]; then
+        printf '\n\033[31m✗\033[0m %s\n' "$*" >&2
+    else
+        printf '\n✗ %s\n' "$*" >&2
+    fi
+    exit 1
+}
+
+success() {
+    if [ -t 1 ]; then
+        printf '\n\033[32m✓\033[0m %s\n' "$*"
+    else
+        printf '\n✓ %s\n' "$*"
+    fi
+}
+
+info() {
+    if [ -t 1 ]; then
+        printf '\n\033[32m→\033[0m %s\n' "$*"
+    else
+        printf '\n→ %s\n' "$*"
+    fi
+}
+
+if [ "$(id -u)" -ne 0 ]; then
+    die "Must be run as root (try: sudo $0)"
+fi
+
+command -v systemd-machine-id-setup >/dev/null 2>&1 || die "systemd-machine-id-setup not found - this script requires systemd"
+command -v ssh-keygen >/dev/null 2>&1 || die "ssh-keygen not found - install openssh first"
+command -v sshd >/dev/null 2>&1 || die "sshd not found - install openssh-server first"
+
+old_machine_id=$(cat /etc/machine-id 2>/dev/null || printf 'none')
+
+info "Regenerating /etc/machine-id..."
+rm -f /etc/machine-id || die "Failed to remove /etc/machine-id"
+systemd-machine-id-setup || die "systemd-machine-id-setup failed"
+new_machine_id=$(cat /etc/machine-id)
+success "machine-id: ${old_machine_id} -> ${new_machine_id}"
+
+# Effective HostKey paths this host's sshd is actually configured to use,
+# taken from `sshd -T` (the merged config, not a single drop-in file) so
+# this always matches reality even if the ssh role's file layout changes.
+configured_host_keys=$(sshd -T 2>/dev/null | awk 'tolower($1) == "hostkey" {print $2}' | sort -u)
+
+info "Regenerating SSH host keys..."
+rm -f /etc/ssh/ssh_host_* || die "Failed to remove existing SSH host keys"
+
+if [ -z "${configured_host_keys}" ]; then
+    info "No explicit HostKey directives found in sshd's config - falling back to 'ssh-keygen -A' (all default key types)"
+    ssh-keygen -A || die "ssh-keygen -A failed"
+else
+    while IFS= read -r hostkey_path; do
+        [ -z "${hostkey_path}" ] && continue
+        keytype=$(basename "${hostkey_path}")
+        keytype=${keytype#ssh_host_}
+        keytype=${keytype%_key}
+        info "  ${hostkey_path} (${keytype})"
+        if [ "${keytype}" = "rsa" ]; then
+            ssh-keygen -t rsa -b 3072 -f "${hostkey_path}" -N "" -q || die "Failed to generate rsa host key at ${hostkey_path}"
+        else
+            ssh-keygen -t "${keytype}" -f "${hostkey_path}" -N "" -q || die "Failed to generate ${keytype} host key at ${hostkey_path}"
+        fi
+    done <<HOSTKEY_PATHS
+${configured_host_keys}
+HOSTKEY_PATHS
+fi
+
+if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet sshd 2>/dev/null; then
+    systemctl restart sshd || die "Failed to restart sshd - new host keys are on disk but not yet loaded"
+    success "sshd restarted with new host keys"
+else
+    info "sshd is not running under systemd here - restart it manually to load the new host keys"
+fi
+
+info "New host key fingerprints:"
+for pub in /etc/ssh/ssh_host_*.pub; do
+    [ -e "${pub}" ] || continue
+    ssh-keygen -lf "${pub}"
+done
+
+success "Clone identity reset complete."
+info "Any client with this host's old identity in known_hosts will see a host-key-changed warning on next connect - run 'ssh-keygen -R <hostname-or-ip>' on those clients."
