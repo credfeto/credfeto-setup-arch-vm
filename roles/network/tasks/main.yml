@@ -95,19 +95,6 @@
     - not ansible_check_mode
     - network_nic.stdout | length > 0
 
-- name: Detect IPv6 gateway
-  ansible.builtin.shell:
-    cmd: |
-      set -o pipefail
-      ip -6 route show default dev {{ network_nic.stdout }} \
-        2>/dev/null | awk 'NR==1{print $3}'
-    executable: /bin/bash
-  register: network_gw6
-  changed_when: false
-  when:
-    - not ansible_check_mode
-    - network_nic.stdout | length > 0
-
 - name: Write systemd-networkd configuration for primary interface
   ansible.builtin.template:
     src: eth0.network.j2

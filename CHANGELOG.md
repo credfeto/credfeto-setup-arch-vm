@@ -65,6 +65,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Enable Dependabot github-actions ecosystem to keep SHA-pinned action versions up to date
 - Add dns-06 to the fleet nameserver list
 - Add scripts/reset-clone-identity to regenerate machine-id and SSH host keys after cloning a VM
+- Enable IPv6 privacy extensions on the primary interface, so outgoing connections prefer a rotating temporary address while pinned static addresses remain reachable for anything that needs a fixed one
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
@@ -102,6 +103,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Stop, disable, and mask systemd-resolved on DNS server hosts to prevent it racing the real resolver for port 53 on boot
 - Fix reset-clone-identity crashing on host key types ssh-keygen -t doesn't accept directly (e.g. mldsa44-ed25519)
 - Fix AuthorizedKeysCommand using non-existent %H sshd token, which broke SSH access fleet-wide on the next sshd reload
+- Always accept IPv6 Router Advertisement and never freeze a static IPv6 gateway, instead of snapshotting a live route that could permanently disappear on some segments
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
