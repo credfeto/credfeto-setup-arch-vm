@@ -128,10 +128,21 @@
   notify: Reload sshd
 
 # Key lookup
+# %H is not a real sshd_config token for AuthorizedKeysCommand (the
+# documented set is %f %h %k %t %U %u - all about the connecting user;
+# %h there means home directory, not hostname, unlike client-side
+# ssh_config). Using it was a latent bug: sshd fails config validation
+# with "unknown key %H" and dies on the next reload/restart, on every
+# host, the first time this file is rendered fresh - it just hadn't
+# detonated yet on hosts whose sshd hadn't been reloaded since this line
+# was introduced. The real per-host hostname is baked in here at Ansible
+# render time instead (ansible_hostname, same fact used in the network
+# role's DNS-server detection) - %u is left as a genuine runtime token
+# since sshd does support per-connection username expansion.
 - name: Configure sshd AuthorizedKeysCommand
   ansible.builtin.copy:
     dest: /etc/ssh/sshd_config.d/10-authorizedkeyscommand.conf
-    content: "AuthorizedKeysCommand /usr/bin/curl -s https://keys.markridgwell.com/keys/%H/%u\n"
+    content: "AuthorizedKeysCommand /usr/bin/curl -s https://keys.markridgwell.com/keys/{{ ansible_hostname }}/%u\n"
     owner: root
     group: root
     mode: "0600"

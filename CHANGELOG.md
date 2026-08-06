@@ -101,6 +101,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Disable DNSSEC validation in systemd-resolved fleet-wide (was allow-downgrade): upstream nameservers advertise DNSSEC support but return validation-breaking responses, causing fleet-wide DNS resolution failures
 - Stop, disable, and mask systemd-resolved on DNS server hosts to prevent it racing the real resolver for port 53 on boot
 - Fix reset-clone-identity crashing on host key types ssh-keygen -t doesn't accept directly (e.g. mldsa44-ed25519)
+- Fix AuthorizedKeysCommand using non-existent %H sshd token, which broke SSH access fleet-wide on the next sshd reload
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
