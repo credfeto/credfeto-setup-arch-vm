@@ -104,6 +104,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Fix reset-clone-identity crashing on host key types ssh-keygen -t doesn't accept directly (e.g. mldsa44-ed25519)
 - Fix AuthorizedKeysCommand using non-existent %H sshd token, which broke SSH access fleet-wide on the next sshd reload
 - Always accept IPv6 Router Advertisement and never freeze a static IPv6 gateway, instead of snapshotting a live route that could permanently disappear on some segments
+- Make Chaotic AUR key fetch idempotent and non-fatal so a keyserver outage can no longer block the network/DNS role from applying
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script

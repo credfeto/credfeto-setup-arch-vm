@@ -8,29 +8,65 @@
     insertafter: "^Include = /etc/pacman.d/mirrorlist$"
     state: present
 
-- name: Receive Chaotic AUR signing key
+- name: Check if Chaotic AUR signing key is already trusted
   ansible.builtin.command:
-    cmd: >-
-      pacman-key --recv-key 3056513887B78AEB
-      --keyserver hkps://keyserver.ubuntu.com
-  changed_when: true
+    cmd: pacman-key --list-keys 3056513887B78AEB
+  register: packages_chaotic_key_check
+  changed_when: false
+  failed_when: false
 
-- name: Locally sign Chaotic AUR key
-  ansible.builtin.command:
-    cmd: pacman-key --lsign-key 3056513887B78AEB
-  changed_when: true
+# Everything Chaotic-AUR-specific lives in this block so a keyserver outage
+# can't take the rest of the play down with it. Before this, "Receive
+# Chaotic AUR signing key" ran unconditionally (no retries, nothing catching
+# a failure) as the very first task ahead of the network role - one bad
+# hkps://keyserver.ubuntu.com lookup aborted the whole run and the host
+# never got as far as the network role, silently going stale on DNS/network
+# config (confirmed: docker-registry.lan failed here on 690 of its last 692
+# hourly pulls). The key-presence check above means most runs skip hitting
+# the keyserver at all once the key is trusted once; the retries below give
+# a fresh host a few chances against a flaky keyserver; the rescue means
+# that if it's still down, this run just skips Chaotic AUR and moves on
+# instead of failing the play.
+- name: Set up Chaotic AUR signing key and repository
+  when: packages_chaotic_key_check.rc != 0
+  block:
+    - name: Receive Chaotic AUR signing key
+      ansible.builtin.command:
+        cmd: >-
+          pacman-key --recv-key 3056513887B78AEB
+          --keyserver hkps://keyserver.ubuntu.com
+      register: packages_chaotic_key_receive
+      until: packages_chaotic_key_receive.rc == 0
+      retries: 3
+      delay: 10
+      changed_when: true
+
+    - name: Locally sign Chaotic AUR key
+      ansible.builtin.command:
+        cmd: pacman-key --lsign-key 3056513887B78AEB
+      changed_when: true
+  rescue:
+    - name: Warn that the Chaotic AUR key could not be trusted this run
+      ansible.builtin.debug:
+        msg: >-
+          Could not receive/trust the Chaotic AUR signing key this run
+          (keyserver unreachable?). Skipping Chaotic AUR setup for now -
+          the rest of the play, including the network role, still runs.
+          This will retry automatically on the next ansible-pull.
 
 - name: Install Chaotic AUR keyring
   community.general.pacman:
     name: https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst
     state: present
     extra_args: "--noconfirm --needed"
+  when: packages_chaotic_key_check.rc == 0 or packages_chaotic_key_receive.rc | default(1) == 0
 
 - name: Install Chaotic AUR mirrorlist
   community.general.pacman:
     name: https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst  # yamllint disable-line rule:line-length
     state: present
     extra_args: "--noconfirm --needed"
+  when: packages_chaotic_key_check.rc == 0 or packages_chaotic_key_receive.rc | default(1) == 0
 
 - name: Remove any unmanaged chaotic-aur section from pacman.conf
   ansible.builtin.shell:
@@ -74,6 +110,7 @@
       Include = /etc/pacman.d/chaotic-mirrorlist
       CacheServer = https://pacman.markridgwell.com/repo/chaotic-aur/x86_64
     state: present
+  when: packages_chaotic_key_check.rc == 0 or packages_chaotic_key_receive.rc | default(1) == 0
 
 - name: Update all packages
   community.general.pacman:
