@@ -1,4 +1,4 @@
 ---
 # container_runtime controls which container engine is installed.
-# Use 'podman' for new VMs (default). Set to 'docker' for existing Docker hosts.
-container_runtime: podman
+# Use 'docker' for new VMs (default). Set to 'podman' for existing Podman hosts.
+container_runtime: docker

@@ -148,6 +148,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Derive the fleet nameserver IPv4/IPv6 address lists from a single list of host suffixes plus fixed prefixes, instead of two independently hand-maintained lists, so they can no longer drift out of sync in length or content
 - Order systemd-resolved's global DNS= as IPv6 nameservers before IPv4, matching the static resolv.conf's ordering
 - Bumped aws-actions/configure-aws-credentials from 6.2.2 to 6.2.3 (bug fixes: PackedPolicyTooLarge detection in STS tags, git credentials attached before Tag Major Version push)
+- Default container_runtime to docker instead of podman for new and existing VMs
 ### Deprecated
 ### Removed
 - Remove criu and pigz packages — neither is used or configured by the script
