@@ -13,6 +13,7 @@ Sets up an Arch Linux VM with Docker, Git, and supporting tooling. The `install`
 - **pkgstats** — weekly anonymous package statistics submission
 - **reflector** — automatic mirror ranking
 - **pacman cache pruning** — weekly `paccache -r` via systemd timer
+- **Telegraf** — reports host and (on Docker hosts) container metrics to `https://metrics.markridgwell.com`
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/credfeto/credfeto-setup-arch-vm/refs/heads/main/install | sh
