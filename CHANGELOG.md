@@ -66,6 +66,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Add dns-06 to the fleet nameserver list
 - Add scripts/reset-clone-identity to regenerate machine-id and SSH host keys after cloning a VM
 - Enable IPv6 privacy extensions on the primary interface, so outgoing connections prefer a rotating temporary address while pinned static addresses remain reachable for anything that needs a fixed one
+- Install and configure Telegraf to report host and container metrics to https://metrics.markridgwell.com
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
@@ -147,6 +148,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Derive the fleet nameserver IPv4/IPv6 address lists from a single list of host suffixes plus fixed prefixes, instead of two independently hand-maintained lists, so they can no longer drift out of sync in length or content
 - Order systemd-resolved's global DNS= as IPv6 nameservers before IPv4, matching the static resolv.conf's ordering
 - Bumped aws-actions/configure-aws-credentials from 6.2.2 to 6.2.3 (bug fixes: PackedPolicyTooLarge detection in STS tags, git credentials attached before Tag Major Version push)
+- Default container_runtime to docker instead of podman for new and existing VMs
 ### Deprecated
 ### Removed
 - Remove criu and pigz packages — neither is used or configured by the script

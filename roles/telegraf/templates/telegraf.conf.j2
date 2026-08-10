@@ -1,0 +1,54 @@
+[agent]
+  interval = "10s"
+  round_interval = true
+  metric_batch_size = 1000
+  metric_buffer_limit = 10000
+  collection_jitter = "0s"
+  flush_interval = "10s"
+  flush_jitter = "0s"
+  precision = ""
+  hostname = ""
+  omit_hostname = false
+
+[[outputs.influxdb]]
+  urls = ["https://metrics.markridgwell.com"]
+  database = "telegraf"
+  skip_database_creation = true
+  timeout = "5s"
+
+[[inputs.cpu]]
+  percpu = true
+  totalcpu = true
+  collect_cpu_time = false
+  report_active = false
+
+[[inputs.disk]]
+  ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs"]
+
+[[inputs.diskio]]
+
+[[inputs.mem]]
+
+[[inputs.net]]
+
+[[inputs.system]]
+
+{# Only rootful Docker exposes a compatible unix:///var/run/docker.sock.
+   Podman hosts have no such socket by default, so this whole block is
+   skipped there rather than deployed and left to fail every gather
+   interval; kept in sync with the container_runtime gating used throughout
+   roles/docker, roles/podman, roles/services and roles/firewall. #}
+{% if container_runtime == 'docker' %}
+[[inputs.docker]]
+  endpoint = "unix:///var/run/docker.sock"
+  gather_services = false
+  container_names = []
+  source_tag = false
+  container_name_include = []
+  container_name_exclude = []
+  timeout = "5s"
+  perdevice = true
+  total = false
+  docker_label_include = []
+  docker_label_exclude = []
+{% endif %}

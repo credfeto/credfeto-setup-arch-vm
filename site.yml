@@ -20,4 +20,5 @@
     - services
     - ansible_pull
     - audit
+    - telegraf
     - reboot

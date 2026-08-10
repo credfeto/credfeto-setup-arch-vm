@@ -1,0 +1,33 @@
+---
+- name: Install telegraf package
+  community.general.pacman:
+    name: telegraf
+    state: present
+    extra_args: "--noconfirm --needed"
+
+- name: Deploy telegraf configuration
+  ansible.builtin.template:
+    src: telegraf.conf.j2
+    dest: /etc/telegraf/telegraf.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart telegraf
+
+# The telegraf system user/group is created by the package above, so this
+# must run after the install task. Only needed when container_runtime is
+# docker: telegraf.conf's [[inputs.docker]] block (see telegraf.conf.j2) is
+# itself gated on the same condition, so there is nothing for telegraf to
+# read from the docker socket on podman hosts.
+- name: Add telegraf user to docker group for Docker stats collection
+  ansible.builtin.user:
+    name: telegraf
+    groups: docker
+    append: true
+  when: container_runtime == 'docker'
+
+- name: Enable and start telegraf service
+  ansible.builtin.systemd:
+    name: telegraf
+    enabled: true
+    state: started
