@@ -109,6 +109,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Make Chaotic AUR key fetch idempotent and non-fatal so a keyserver outage can no longer block the network/DNS role from applying
 - telegraf.service crash-looping on start because the deployed config used removed inputs.docker fields (container_names, perdevice, total) not recognised by the installed Telegraf version
 - IPv6 traffic from Docker containers was rejected by the host firewall (docker zone only matched IPv4 sources), breaking any outbound IPv6 connection a container makes - e.g. Traefik's IPv6-routed backends
+- IPv6 default route silently expiring fleet-wide: set net.ipv6.conf.{all,default}.accept_ra to 2 instead of 0, so Router Advertisements are still accepted despite IPv6 forwarding being enabled for container networking
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
