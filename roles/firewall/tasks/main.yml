@@ -111,3 +111,19 @@
     state: enabled
   notify: Reload firewalld
   when: container_runtime == 'docker'
+
+# Docker's IPv6 support here isn't backed by a fixed default-address-pools
+# in daemon.json, so each Docker network gets its own randomly-assigned
+# per-network ULA /64 (RFC 4193) rather than a subnet of one predictable
+# range. Match the whole ULA space instead of a single network's /64, the
+# same way the IPv4 rule above covers Docker's broader private range
+# rather than one specific bridge subnet — this covers any Docker
+# network's IPv6 prefix without per-host/per-network-specific config.
+- name: Assign Docker bridge ULA range (IPv6) to docker zone
+  ansible.posix.firewalld:
+    zone: docker
+    source: fd00::/8
+    permanent: true
+    state: enabled
+  notify: Reload firewalld
+  when: container_runtime == 'docker'
