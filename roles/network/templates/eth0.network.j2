@@ -36,17 +36,20 @@ IPv6AcceptRA=yes
 
 # IPv6PrivacyExtensions=yes: prefer a rotating temporary address (RFC 4941)
 # for outgoing connections, reducing long-term trackability of outbound
-# traffic. The static/stable address(es) pinned below via the Address=
-# loop - including any deliberately-chosen vanity form - stay present and
-# reachable for anything that needs a fixed address (inbound connections,
-# DNS records); this only changes which address gets picked as the source
-# for connections this host initiates.
+# traffic. Only genuinely static addresses - e.g. a deliberately-chosen
+# vanity address - are ever pinned below via the Address= loop; every
+# SLAAC-assigned address, including the kernel's own stable/permanent one,
+# is left entirely to the kernel/RA to manage. A pinned static address
+# stays present and reachable for anything that needs a fixed address
+# (inbound connections, DNS records); this setting only changes which
+# address gets picked as the source for connections this host initiates.
 IPv6PrivacyExtensions=yes
 
 # Address=: one line per detected address (there can be more than one per
-# family - e.g. a manually added secondary address - hence the loops below
-# rather than a single line). IPv4 addressing on this fleet is genuinely
-# static (no DHCP), so - unlike IPv6 above - a detected IPv4 default
+# family - e.g. a manually added secondary/vanity address - hence the loops
+# below rather than a single line). IPv4 addressing on this fleet is
+# genuinely static (no DHCP), so - unlike IPv6 above, where only
+# non-dynamic addresses are detected and pinned - a detected IPv4 default
 # gateway is still pinned as a static Gateway= line.
 {% for addr in network_ipv4.stdout_lines %}
 Address={{ addr }}

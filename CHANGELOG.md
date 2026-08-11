@@ -152,6 +152,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Order systemd-resolved's global DNS= as IPv6 nameservers before IPv4, matching the static resolv.conf's ordering
 - Bumped aws-actions/configure-aws-credentials from 6.2.2 to 6.2.3 (bug fixes: PackedPolicyTooLarge detection in STS tags, git credentials attached before Tag Major Version push)
 - Default container_runtime to docker instead of podman for new and existing VMs
+- Only pin manually-assigned (non-dynamic) IPv6 addresses into eth0.network's static Address= list; SLAAC-assigned addresses, stable and temporary alike, are left entirely to the kernel/router advertisements
 ### Deprecated
 ### Removed
 - Remove criu and pigz packages — neither is used or configured by the script
