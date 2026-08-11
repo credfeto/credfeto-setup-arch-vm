@@ -67,6 +67,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Add scripts/reset-clone-identity to regenerate machine-id and SSH host keys after cloning a VM
 - Enable IPv6 privacy extensions on the primary interface, so outgoing connections prefer a rotating temporary address while pinned static addresses remain reachable for anything that needs a fixed one
 - Install and configure Telegraf to report host and container metrics to https://metrics.markridgwell.com
+- Enable and start serial-getty@ttyS0.service via the services role, giving VMs a browser-copy/paste-capable serial console that keeps working when guest networking is down
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
@@ -106,6 +107,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Fix AuthorizedKeysCommand using non-existent %H sshd token, which broke SSH access fleet-wide on the next sshd reload
 - Always accept IPv6 Router Advertisement and never freeze a static IPv6 gateway, instead of snapshotting a live route that could permanently disappear on some segments
 - Make Chaotic AUR key fetch idempotent and non-fatal so a keyserver outage can no longer block the network/DNS role from applying
+- telegraf.service crash-looping on start because the deployed config used removed inputs.docker fields (container_names, perdevice, total) not recognised by the installed Telegraf version
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script

@@ -116,3 +116,13 @@
     enabled: true
     state: started
     daemon_reload: true
+
+# Serial console getty — gives a real, browser-copy/paste-capable console via
+# the hypervisor's serial channel, and keeps working even when the VM's own
+# networking is down.
+- name: Enable and start serial getty on ttyS0
+  ansible.builtin.systemd:
+    name: serial-getty@ttyS0.service
+    enabled: true
+    state: started
+    daemon_reload: true

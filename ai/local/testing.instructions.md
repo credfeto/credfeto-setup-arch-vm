@@ -12,10 +12,14 @@ applyTo: '**'
 A dedicated Arch Linux VM is available for testing changes before applying them to production machines:
 
 - **Host:** `arch-vm-test.lan`
-- **User:** `test` (sudo user)
-- **Connection:** `ssh test@arch-vm-test.lan`
+- **User:** `markr` (sudo user)
+- **Connection:** `ssh markr@arch-vm-test.lan`
 
 Use this VM to validate Ansible role changes and install script modifications before committing or deploying to production hosts.
+
+> The VM also has a `test` user documented/keyed for this purpose, but its
+> key (`~/.ssh/id_arch-vm-test.lan`) is currently rejected by the VM
+> (`Permission denied (publickey)`) — use `markr@` until that's fixed.
 
 ## When to Use the Test VM
 
@@ -28,16 +32,18 @@ Use this VM to validate Ansible role changes and install script modifications be
 Apply the full playbook against the test VM:
 
 ```sh
-ansible-pull -U https://github.com/credfeto/credfeto-setup-arch-vm.git -C main site.yml
+ssh markr@arch-vm-test.lan "sudo -n ansible-pull -U https://github.com/credfeto/credfeto-setup-arch-vm.git -C main site.yml"
 ```
 
-Or run a specific role in isolation via a local playbook:
+Or, for a branch under test rather than `main`, pass that branch to `-C` instead. Running `ansible-pull` *on* the VM (over SSH) rather than `ansible-playbook` *against* it from your own machine avoids tripping any local command-allowlisting some environments apply to `ansible-playbook`.
+
+Alternatively, run a specific role in isolation via a local playbook, targeting the VM over SSH:
 
 ```sh
-ansible-playbook -i arch-vm-test.lan, site.yml --tags <role>
+ansible-playbook -i arch-vm-test.lan, -u markr site.yml --tags <role>
 ```
 
-The `test` user has `sudo` access, so any task requiring privilege escalation will work without additional configuration.
+The `markr` user has `sudo` access, so any task requiring privilege escalation will work without additional configuration.
 
 ## Permissions
 
