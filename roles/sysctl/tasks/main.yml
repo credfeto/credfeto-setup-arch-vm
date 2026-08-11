@@ -210,17 +210,31 @@
     sysctl_file: /etc/sysctl.d/10-net.ipv6.conf.default.accept_source_route.conf
     reload: true
 
+# accept_ra=2, not 0: the kernel drops accept_ra to 0 on any interface the
+# moment net.ipv6.conf.*.forwarding=1 applies to it (see the forwarding
+# tasks above, needed for Docker/container networking), regardless of what
+# systemd-networkd's IPv6AcceptRA=yes (roles/network/templates/eth0.network.j2)
+# asked for. That silently defeats eth0.network.j2's whole approach to IPv6
+# routing - the fleet has no static IPv6 Gateway= anywhere by design, relying
+# entirely on Router Advertisement to install and keep renewing the default
+# route (see that template's comment for why a static Gateway= was tried and
+# reverted). With accept_ra=0, whatever RA route a host had at boot just
+# expires on its own RA-assigned lifetime and is never renewed, since new RAs
+# are silently ignored - confirmed live fleet-wide (dns-01/02/03/proxy.lan)
+# as the root cause of a total IPv6 egress outage. "2" is the standard fix:
+# accept Router Advertisements even when forwarding is enabled, so both
+# behaviours hold at once.
 - name: Set net.ipv6.conf.all.accept_ra
   ansible.posix.sysctl:
     name: net.ipv6.conf.all.accept_ra
-    value: "0"
+    value: "2"
     sysctl_file: /etc/sysctl.d/10-net.ipv6.conf.all.accept_ra.conf
     reload: true
 
 - name: Set net.ipv6.conf.default.accept_ra
   ansible.posix.sysctl:
     name: net.ipv6.conf.default.accept_ra
-    value: "0"
+    value: "2"
     sysctl_file: /etc/sysctl.d/10-net.ipv6.conf.default.accept_ra.conf
     reload: true
 
