@@ -67,6 +67,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Add scripts/reset-clone-identity to regenerate machine-id and SSH host keys after cloning a VM
 - Enable IPv6 privacy extensions on the primary interface, so outgoing connections prefer a rotating temporary address while pinned static addresses remain reachable for anything that needs a fixed one
 - Install and configure Telegraf to report host and container metrics to https://metrics.markridgwell.com
+- Enable and start serial-getty@ttyS0.service via the services role, giving VMs a browser-copy/paste-capable serial console that keeps working when guest networking is down
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
