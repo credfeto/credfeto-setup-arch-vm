@@ -79,14 +79,25 @@
     - not ansible_check_mode
     - network_nic.stdout | length > 0
 
-# temporary/deprecated address flags are excluded: see the comment above the
-# IPv4 equivalent task.
+# Unlike IPv4, only genuinely static IPv6 addresses are pinned here - e.g. a
+# manually-assigned vanity address such as 2a02:8010:61d5:42::102. Anything
+# the kernel assigned itself via SLAAC/RA is flagged "dynamic" by `ip addr
+# show`, whether it's the stable/permanent address or a rotating
+# privacy-extension one, and is filtered out here on that flag alone (which
+# subsumes the temporary/deprecated flags used above for IPv4 - both of
+# those only ever appear on dynamic addresses anyway). That leaves every
+# SLAAC-derived address entirely under kernel/RA control, matching
+# IPv6AcceptRA=yes and IPv6PrivacyExtensions=yes in eth0.network.j2: nothing
+# pinned here fights with what the kernel is managing on its own. A static
+# Address= line, once applied by systemd-networkd, is itself non-dynamic, so
+# a vanity address pinned by an earlier run is correctly detected and kept
+# on every subsequent run.
 - name: Detect IPv6 addresses
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
       ip -o -6 addr show dev {{ network_nic.stdout }} scope global \
-        | awk '{skip=0; for (i=5; i<=NF; i++) if ($i=="temporary" || $i=="deprecated") skip=1; if (!skip) print $4}' \
+        | awk '{skip=0; for (i=5; i<=NF; i++) if ($i=="dynamic" || $i=="temporary" || $i=="deprecated") skip=1; if (!skip) print $4}' \
         | sort -V
     executable: /bin/bash
   register: network_ipv6
