@@ -1,0 +1,61 @@
+---
+- name: Install starship
+  community.general.pacman:
+    name: starship
+    state: present
+    extra_args: "--noconfirm --needed"
+
+- name: Install system-wide Starship prompt configuration
+  ansible.builtin.copy:
+    src: starship.toml
+    dest: /etc/starship.toml
+    owner: root
+    group: root
+    mode: "0644"
+
+# /etc/bash.bashrc is sourced for both non-login interactive shells (bash's
+# own compiled-in SYS_BASHRC behaviour) and login interactive shells (Arch's
+# /etc/profile explicitly sources it whenever $PS1 is set) - this one file
+# covers every interactive bash shell for every user, present and future.
+# It's a pacman-owned config file: a .pacnew may appear on package upgrade -
+# roles/packages accepts the same risk for its pacman.conf blockinfile,
+# though that one also has a companion cleanup task for unmanaged sections
+# that this block doesn't need (nothing else ever writes to this marker).
+- name: Enable Starship prompt for all users via system-wide bash.bashrc
+  ansible.builtin.blockinfile:
+    path: /etc/bash.bashrc
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - starship"
+    block: |
+      # Whole block guarded: a failed/pending package install can't break
+      # every login, and nothing gets exported into the environment for
+      # a starship that isn't there to use it.
+      if command -v starship >/dev/null 2>&1; then
+        # Resolve the real home directory from the effective UID rather
+        # than $HOME - `sudo -s`/`sudo bash` (unlike `sudo -i`/`su -`)
+        # does not reset HOME on Arch's default sudoers, so a root shell
+        # reached that way would otherwise check the invoking user's
+        # config instead of root's, silently losing the distinct root
+        # styling this file exists to guarantee.
+        _starship_home=$(getent passwd "$(id -u)" 2>/dev/null | cut -d: -f6)
+        _starship_config_dir="${XDG_CONFIG_HOME:-${_starship_home:-$HOME}/.config}"
+        # Only set/keep the system default when the user has no config of
+        # their own - starship's own unset-vs-set precedence is what
+        # actually governs the per-user override, so this must not
+        # clobber it, or ~/.config/starship.toml would be silently
+        # ignored. _STARSHIP_DEFAULTED marks a default *this block* set
+        # (as opposed to one set upstream, e.g. via SSH env forwarding,
+        # which is left alone) so a config created after this variable
+        # was already exported into a parent shell is still picked up by
+        # every new shell, not just a fresh login.
+        if [ -z "${STARSHIP_CONFIG:-}" ] || [ -n "${_STARSHIP_DEFAULTED:-}" ]; then
+          if [ -f "${_starship_config_dir}/starship.toml" ]; then
+            unset STARSHIP_CONFIG _STARSHIP_DEFAULTED
+          else
+            export STARSHIP_CONFIG=/etc/starship.toml
+            export _STARSHIP_DEFAULTED=1
+          fi
+        fi
+        unset _starship_home _starship_config_dir
+        eval "$(starship init bash)"
+      fi
+    state: present
