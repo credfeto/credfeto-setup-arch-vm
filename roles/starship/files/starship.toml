@@ -1,9 +1,14 @@
 # Colour theme copied from credfeto/credfeto-bash's starship.toml (that repo
-# was renamed from credfeto/mybash; the theme itself is unchanged), with one
-# deliberate deviation: [username] style_root below is recoloured (source
-# theme has style_root identical to style_user) so an interactive root shell
-# is visually unmistakable on these hardened VMs. Everything else is verbatim
-# — see credfeto/credfeto-setup-arch-vm#211 for the approved deviation.
+# was renamed from credfeto/mybash; the theme itself is unchanged), with two
+# deliberate deviations from that source file:
+#   - [username] style_root below is recoloured (source theme has style_root
+#     identical to style_user) so an interactive root shell is visually
+#     unmistakable on these hardened VMs - see
+#     credfeto/credfeto-setup-arch-vm#211 for the approved deviation.
+#   - [docker_context] format wraps $path inside the ($style) group; the
+#     source theme leaves it outside, which renders it unstyled and breaks
+#     the powerline colour bar - a formatting bug fix, not a theme change.
+# Everything else is verbatim.
 format = """
 [](#3B4252)\
 $hostname\
@@ -73,7 +78,9 @@ format = '[ $symbol ($version) ]($style)'
 [docker_context]
 symbol = " "
 style = "bg:#06969A"
-format = '[ $symbol $context ]($style) $path'
+# $path pulled inside the ($style) group (upstream credfeto-bash leaves it
+# outside, which renders it unstyled and breaks the powerline colour bar)
+format = '[ $symbol $context $path ]($style)'
 
 [elixir]
 symbol = " "
