@@ -17,15 +17,27 @@
 # own compiled-in SYS_BASHRC behaviour) and login interactive shells (Arch's
 # /etc/profile explicitly sources it whenever $PS1 is set) - this one file
 # covers every interactive bash shell for every user, present and future.
-# It's a pacman-owned config file: a .pacnew may appear on package upgrade,
-# same accepted behaviour as the pacman.conf blockinfile in roles/packages.
+# It's a pacman-owned config file: a .pacnew may appear on package upgrade -
+# roles/packages accepts the same risk for its pacman.conf blockinfile,
+# though that one also has a companion cleanup task for unmanaged sections
+# that this block doesn't need (nothing else ever writes to this marker).
 - name: Enable Starship prompt for all users via system-wide bash.bashrc
   ansible.builtin.blockinfile:
     path: /etc/bash.bashrc
     marker: "# {mark} ANSIBLE MANAGED BLOCK - starship"
     block: |
-      # Default only - a user's own ~/.config/starship.toml still wins if present
-      export STARSHIP_CONFIG="${STARSHIP_CONFIG:-/etc/starship.toml}"
-      # Guarded so a failed/pending package install can't break every login
-      command -v starship >/dev/null 2>&1 && eval "$(starship init bash)"
+      # Whole block guarded: a failed/pending package install can't break
+      # every login, and nothing gets exported into the environment for
+      # a starship that isn't there to use it.
+      if command -v starship >/dev/null 2>&1; then
+        # Only set the system default when the user has no config of their
+        # own and nothing upstream already set STARSHIP_CONFIG (e.g. via
+        # SSH env forwarding) - starship's own unset-vs-set precedence is
+        # what actually governs the per-user override, so this must not
+        # clobber it, or ~/.config/starship.toml would be silently ignored.
+        if [ -z "${STARSHIP_CONFIG:-}" ] && [ ! -f "${XDG_CONFIG_HOME:-$HOME/.config}/starship.toml" ]; then
+          export STARSHIP_CONFIG=/etc/starship.toml
+        fi
+        eval "$(starship init bash)"
+      fi
     state: present
