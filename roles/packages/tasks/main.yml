@@ -1,4 +1,37 @@
 ---
+# pacman.conf ships "DownloadUser = alpm" by default, so every download
+# (including the Chaotic AUR keyring/mirrorlist pacman -U calls just below)
+# is fetched by the unprivileged "alpm" user sandboxed into a per-download
+# "download-<random>" subdirectory of the cache dir. That sandbox needs
+# execute permission on /var/cache/pacman/pkg itself to open files inside
+# it; if the directory has drifted to something tighter than the package's
+# own shipped mode (root:root 0755, confirmed via the pacman package's
+# mtree metadata), every download fails with "Permission denied" and the
+# whole play aborts here, before any later role ever runs. This must stay
+# the first task in the play (packages is the first role in site.yml) so
+# no download - including the Chaotic AUR ones below - can hit it.
+- name: Ensure pacman package cache directory has correct ownership and mode
+  ansible.builtin.file:
+    path: /var/cache/pacman/pkg
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+# Every download that is interrupted (network blip, this permissions bug,
+# an aborted transaction) leaves its "download-<random>" staging directory
+# behind - pacman only cleans these up on a successful download. Left
+# unattended these accumulate without bound. The age filter avoids ever
+# touching a directory that a concurrently running pacman transaction
+# (e.g. a human running pacman -Syu over SSH) might still be writing into.
+- name: Remove stale pacman partial-download directories
+  ansible.builtin.command:
+    cmd: >-
+      find /var/cache/pacman/pkg -maxdepth 1 -type d -name download-*
+      -mmin +60 -print -exec rm -rf {} +
+  register: packages_stale_downloads
+  changed_when: packages_stale_downloads.stdout != ""
+
 - name: Configure pacman cache server
   ansible.builtin.lineinfile:
     path: /etc/pacman.conf

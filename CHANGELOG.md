@@ -111,6 +111,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - telegraf.service crash-looping on start because the deployed config used removed inputs.docker fields (container_names, perdevice, total) not recognised by the installed Telegraf version
 - IPv6 traffic from Docker containers was rejected by the host firewall (docker zone only matched IPv4 sources), breaking any outbound IPv6 connection a container makes - e.g. Traefik's IPv6-routed backends
 - IPv6 default route silently expiring fleet-wide: set net.ipv6.conf.{all,default}.accept_ra to 2 instead of 0, so Router Advertisements are still accepted despite IPv6 forwarding being enabled for container networking
+- Restore pacman package cache directory to owner root, group root, mode 0755 and purge stale partial-download directories, fixing every ansible-pull run failing at the first pacman task because the DownloadUser=alpm sandbox could not traverse a permission-drifted cache directory
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
