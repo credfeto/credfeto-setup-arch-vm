@@ -27,7 +27,7 @@
 - name: Remove stale pacman partial-download directories
   ansible.builtin.command:
     cmd: >-
-      find /var/cache/pacman/pkg -maxdepth 1 -type d -name download-*
+      find /var/cache/pacman/pkg -maxdepth 1 -type d -name "download-*"
       -mmin +60 -print -exec rm -rf {} +
   register: packages_stale_downloads
   changed_when: packages_stale_downloads.stdout != ""
