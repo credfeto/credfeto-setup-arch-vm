@@ -3,34 +3,56 @@
 # (including the Chaotic AUR keyring/mirrorlist pacman -U calls just below)
 # is fetched by the unprivileged "alpm" user sandboxed into a per-download
 # "download-<random>" subdirectory of the cache dir. That sandbox needs
-# execute permission on /var/cache/pacman/pkg itself to open files inside
-# it; if the directory has drifted to something tighter than the package's
-# own shipped mode (root:root 0755, confirmed via the pacman package's
-# mtree metadata), every download fails with "Permission denied" and the
-# whole play aborts here, before any later role ever runs. This must stay
-# the first task in the play (packages is the first role in site.yml) so
-# no download - including the Chaotic AUR ones below - can hit it.
-- name: Ensure pacman package cache directory has correct ownership and mode
+# execute permission on /var/cache/pacman/pkg (and its parent) to open
+# files inside it; if either directory has drifted to something tighter
+# than the package's own shipped mode (root:root 0755, confirmed via the
+# pacman package's mtree metadata), every download fails with "Permission
+# denied" and the whole play aborts here, before any later role ever runs.
+# This must stay the first task in the play (packages is the first role in
+# site.yml) so no download - including the Chaotic AUR ones below - can
+# hit it.
+- name: Ensure pacman package cache directories have correct ownership and mode
   ansible.builtin.file:
-    path: /var/cache/pacman/pkg
+    path: "{{ item }}"
     state: directory
     owner: root
     group: root
     mode: "0755"
+  loop:
+    - /var/cache/pacman
+    - /var/cache/pacman/pkg
 
 # Every download that is interrupted (network blip, this permissions bug,
 # an aborted transaction) leaves its "download-<random>" staging directory
 # behind - pacman only cleans these up on a successful download. Left
-# unattended these accumulate without bound. The age filter avoids ever
-# touching a directory that a concurrently running pacman transaction
-# (e.g. a human running pacman -Syu over SSH) might still be writing into.
+# unattended these accumulate without bound.
+#
+# pacman itself serialises all transactions through /var/lib/pacman/db.lck,
+# so that lock's absence is a reliable guarantee no pacman process anywhere
+# is currently writing into any download-* directory (a small -mmin buffer
+# is kept as defence in depth, not as the primary safety check - directory
+# mtime only reflects entries being added/removed, not writes to a file
+# already inside it, so it can't be trusted alone to catch a slow transfer).
+- name: Check whether a pacman transaction is currently in progress
+  ansible.builtin.stat:
+    path: /var/lib/pacman/db.lck
+  register: packages_pacman_lock
+
 - name: Remove stale pacman partial-download directories
   ansible.builtin.command:
     cmd: >-
       find /var/cache/pacman/pkg -maxdepth 1 -type d -name "download-*"
-      -mmin +60 -print -exec rm -rf {} +
+      -mmin +5 -print -exec rm -rf {} +
   register: packages_stale_downloads
+  when: not packages_pacman_lock.stat.exists
   changed_when: packages_stale_downloads.stdout != ""
+  # A directory find already matched can still vanish mid-traversal if a
+  # concurrent process (e.g. pacman itself finishing up and cleaning its
+  # own download dir) removes it first; that's not a real failure, so only
+  # treat this task as failed for errors other than that race.
+  failed_when: >-
+    packages_stale_downloads.rc != 0 and
+    'No such file or directory' not in packages_stale_downloads.stderr
 
 - name: Configure pacman cache server
   ansible.builtin.lineinfile:
