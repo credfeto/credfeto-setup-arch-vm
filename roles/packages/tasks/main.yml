@@ -49,10 +49,14 @@
   # A directory find already matched can still vanish mid-traversal if a
   # concurrent process (e.g. pacman itself finishing up and cleaning its
   # own download dir) removes it first; that's not a real failure, so only
-  # treat this task as failed for errors other than that race.
+  # treat this task as failed for errors other than that race. Checked
+  # per-line rather than as a substring of the whole stderr blob, so one
+  # benign race on one directory can't mask a genuine error on another.
   failed_when: >-
     packages_stale_downloads.rc != 0 and
-    'No such file or directory' not in packages_stale_downloads.stderr
+    (packages_stale_downloads.stderr_lines
+      | reject('search', 'No such file or directory')
+      | list | length > 0)
 
 - name: Configure pacman cache server
   ansible.builtin.lineinfile:
