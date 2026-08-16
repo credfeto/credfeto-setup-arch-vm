@@ -12,6 +12,13 @@
     cmd: ssh-keygen -A
     creates: /etc/ssh/ssh_host_ed25519_key
 
+- name: Enable and start sshd
+  ansible.builtin.systemd:
+    name: sshd
+    enabled: true
+    state: started
+    daemon_reload: true
+
 - name: Remove legacy misnamed logingraceime config file
   ansible.builtin.file:
     path: /etc/ssh/sshd_config.d/10-logingraceime.conf
