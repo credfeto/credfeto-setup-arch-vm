@@ -67,6 +67,24 @@
     insertafter: "^Include = /etc/pacman.d/mirrorlist$"
     state: present
 
+# ILoveCandy, CheckSpace and VerbosePkgLists are plain flag directives (no
+# "= value") under [options]. Each may already be present (commented or
+# not, per the shipped pacman.conf template) or entirely absent (ILoveCandy
+# isn't in the template at all), so match on an optional leading "#" and
+# fall back to inserting a fresh line straight after the [options] header
+# when there's nothing to match.
+- name: Enable pacman [options] flags
+  ansible.builtin.lineinfile:
+    path: /etc/pacman.conf
+    regexp: "^#?{{ item }}$"
+    line: "{{ item }}"
+    insertafter: "^\\[options\\]$"
+    state: present
+  loop:
+    - ILoveCandy
+    - CheckSpace
+    - VerbosePkgLists
+
 - name: Check if Chaotic AUR signing key is already trusted
   ansible.builtin.command:
     cmd: pacman-key --list-keys 3056513887B78AEB

@@ -69,6 +69,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Install and configure Telegraf to report host and container metrics to https://metrics.markridgwell.com
 - Enable and start serial-getty@ttyS0.service via the services role, giving VMs a browser-copy/paste-capable serial console that keeps working when guest networking is down
 - Configure a system-wide coloured Starship prompt for all users
+- Enable ILoveCandy, CheckSpace and VerbosePkgLists options in pacman.conf
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
