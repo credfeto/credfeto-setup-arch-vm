@@ -116,6 +116,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Always enable and start sshd, instead of relying on it already being active for config changes to take effect
 - Telegraf role InfluxDB output pointed at metrics.markridgwell.com, a hostname with no DNS record, causing metrics pushes to silently fail on every DNS-VLAN host; corrected to monitoring.markridgwell.com
 - IPv4 gateway detection no longer emits a garbage token into Gateway=/NTP= on hosts with an on-link (via-less) default route
+- Remove stale docker-cleanup/podman-cleanup systemd units when container_runtime no longer matches, so switching container runtimes stops leaving the old runtime's cleanup timer running forever
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
