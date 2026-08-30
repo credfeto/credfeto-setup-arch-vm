@@ -51,6 +51,30 @@
     state: started
     daemon_reload: true
 
+# Cleanup stale docker-cleanup units if container runtime is not Docker
+- name: Disable docker-cleanup timer if present
+  ansible.builtin.systemd:
+    name: docker-cleanup.timer
+    enabled: false
+    state: stopped
+    daemon_reload: false
+  when: container_runtime != 'docker'
+  failed_when: false
+
+- name: Remove docker-cleanup.timer unit if runtime is not Docker
+  ansible.builtin.file:
+    path: /etc/systemd/system/docker-cleanup.timer
+    state: absent
+  when: container_runtime != 'docker'
+  notify: Reload systemd
+
+- name: Remove docker-cleanup.service unit if runtime is not Docker
+  ansible.builtin.file:
+    path: /etc/systemd/system/docker-cleanup.service
+    state: absent
+  when: container_runtime != 'docker'
+  notify: Reload systemd
+
 # docker-cleanup service + timer (Docker runtime only)
 - name: Install docker-cleanup.service unit
   ansible.builtin.copy:
@@ -79,6 +103,30 @@
     state: started
     daemon_reload: true
   when: container_runtime == 'docker'
+
+# Cleanup stale podman-cleanup units if container runtime is not Podman
+- name: Disable podman-cleanup timer if present
+  ansible.builtin.systemd:
+    name: podman-cleanup.timer
+    enabled: false
+    state: stopped
+    daemon_reload: false
+  when: container_runtime != 'podman'
+  failed_when: false
+
+- name: Remove podman-cleanup.timer unit if runtime is not Podman
+  ansible.builtin.file:
+    path: /etc/systemd/system/podman-cleanup.timer
+    state: absent
+  when: container_runtime != 'podman'
+  notify: Reload systemd
+
+- name: Remove podman-cleanup.service unit if runtime is not Podman
+  ansible.builtin.file:
+    path: /etc/systemd/system/podman-cleanup.service
+    state: absent
+  when: container_runtime != 'podman'
+  notify: Reload systemd
 
 # podman-cleanup service + timer (Podman runtime only)
 - name: Install podman-cleanup.service unit
