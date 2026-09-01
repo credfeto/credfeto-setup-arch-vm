@@ -114,6 +114,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - IPv6 default route silently expiring fleet-wide: set net.ipv6.conf.{all,default}.accept_ra to 2 instead of 0, so Router Advertisements are still accepted despite IPv6 forwarding being enabled for container networking
 - Restore pacman package cache directory to owner root, group root, mode 0755 and purge stale partial-download directories, fixing every ansible-pull run failing at the first pacman task because the DownloadUser=alpm sandbox could not traverse a permission-drifted cache directory
 - Always enable and start sshd, instead of relying on it already being active for config changes to take effect
+- TBD - to be finalized after review
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
@@ -166,7 +167,9 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 ### Deployment Changes
 - Already-provisioned hosts have /etc/resolv.conf replaced (static file on dns-?? hosts, symlink to systemd-resolved's stub on every other host) and systemd-resolved restarted on their next ansible-pull run
 - Existing hosts must re-run ansible-pull (or restart systemd-resolved) to pick up the DNSSEC=no change
+
 <!--
 Releases that have at least been deployed to staging, BUT NOT necessarily released to live.  Changes should be moved from [Unreleased] into here as they are merged into the appropriate release branch
 -->
+
 ## [0.0.0] - Project created
