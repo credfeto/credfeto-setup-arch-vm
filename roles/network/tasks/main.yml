@@ -66,12 +66,19 @@
     - not ansible_check_mode
     - network_nic.stdout | length > 0
 
+# $2=="via" guard: a via-less (on-link) default route is legal, and for one
+# iproute2 prints no "via <addr>" pair, so a bare NR==1{print $3} would emit
+# a garbage token ("static", "link", ...) instead of an address. networkd
+# rejects that in Gateway= (logged, inert), but NTP= would silently accept
+# it as a hostname and hand timesyncd an unresolvable server - which also
+# suppresses the compiled-in fallback pool, stopping time sync entirely.
+# With the guard, such a host renders neither line, keeping prior behaviour.
 - name: Detect IPv4 gateway
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
       ip -4 route show default dev {{ network_nic.stdout }} \
-        | awk 'NR==1{print $3}'
+        | awk 'NR==1 && $2=="via" {print $3}'
     executable: /bin/bash
   register: network_gw4
   changed_when: false

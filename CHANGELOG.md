@@ -115,6 +115,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Restore pacman package cache directory to owner root, group root, mode 0755 and purge stale partial-download directories, fixing every ansible-pull run failing at the first pacman task because the DownloadUser=alpm sandbox could not traverse a permission-drifted cache directory
 - Always enable and start sshd, instead of relying on it already being active for config changes to take effect
 - Telegraf role InfluxDB output pointed at metrics.markridgwell.com, a hostname with no DNS record, causing metrics pushes to silently fail on every DNS-VLAN host; corrected to monitoring.markridgwell.com
+- IPv4 gateway detection no longer emits a garbage token into Gateway=/NTP= on hosts with an on-link (via-less) default route
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
@@ -159,6 +160,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Bumped aws-actions/configure-aws-credentials from 6.2.2 to 6.2.3 (bug fixes: PackedPolicyTooLarge detection in STS tags, git credentials attached before Tag Major Version push)
 - Default container_runtime to docker instead of podman for new and existing VMs
 - Only pin manually-assigned (non-dynamic) IPv6 addresses into eth0.network's static Address= list; SLAAC-assigned addresses, stable and temporary alike, are left entirely to the kernel/router advertisements
+- Hosts now sync time from their own IPv4 gateway via networkd NTP= instead of the public arch.pool.ntp.org fallback
 ### Deprecated
 ### Removed
 - Remove criu and pigz packages — neither is used or configured by the script
