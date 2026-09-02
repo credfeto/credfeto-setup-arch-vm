@@ -159,6 +159,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Bumped aws-actions/configure-aws-credentials from 6.2.2 to 6.2.3 (bug fixes: PackedPolicyTooLarge detection in STS tags, git credentials attached before Tag Major Version push)
 - Default container_runtime to docker instead of podman for new and existing VMs
 - Only pin manually-assigned (non-dynamic) IPv6 addresses into eth0.network's static Address= list; SLAAC-assigned addresses, stable and temporary alike, are left entirely to the kernel/router advertisements
+- Hosts now sync time from their own IPv4 gateway via networkd NTP= instead of the public arch.pool.ntp.org fallback
 ### Deprecated
 ### Removed
 - Remove criu and pigz packages — neither is used or configured by the script
