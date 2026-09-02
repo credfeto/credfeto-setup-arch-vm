@@ -1,0 +1,10 @@
+---
+# When false (the default), the dns-egress firewalld policy is created
+# with every confirmed accept rule in place, but its target stays ACCEPT
+# rather than DROP - present and testable, not actually enforced. Flip to
+# true only once this role (and its ipset-refresh timer) has been running
+# cleanly for a while on every DNS node. See credfeto-dns's
+# docs/network/egress-whitelist.md for the destination list, the
+# reasoning behind each rule, and the open questions that still need
+# resolving before this is safe to enable everywhere.
+dns_egress_enforce: false

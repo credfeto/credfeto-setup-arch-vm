@@ -1,0 +1,147 @@
+---
+# Only meaningful on the DNS server hosts - this role is included with
+# `when: network_is_dns_server` in site.yml (that fact is set by the
+# network role, which runs before this one), so no per-task guard is
+# needed here.
+#
+# ansible.posix.firewalld doesn't support firewalld's policy objects
+# (zone-oriented only), so raw firewall-cmd is used throughout this file
+# for consistency - matching the check-then-create idiom already used
+# for the docker zone in the firewall role.
+
+- name: Check if dns-egress policy exists
+  ansible.builtin.command:
+    cmd: firewall-cmd --permanent --info-policy=dns-egress
+  register: dns_egress_policy_check
+  changed_when: false
+  failed_when: false
+
+- name: Create dns-egress policy
+  ansible.builtin.command:
+    cmd: firewall-cmd --permanent --new-policy=dns-egress
+  when: dns_egress_policy_check.rc != 0
+  changed_when: true
+  notify: Reload firewalld
+
+- name: Set dns-egress policy ingress zone
+  ansible.builtin.command:
+    cmd: firewall-cmd --permanent --policy=dns-egress --add-ingress-zone=HOST
+  when: dns_egress_policy_check.rc != 0
+  changed_when: true
+  notify: Reload firewalld
+
+- name: Set dns-egress policy egress zone
+  ansible.builtin.command:
+    cmd: firewall-cmd --permanent --policy=dns-egress --add-egress-zone=ANY
+  when: dns_egress_policy_check.rc != 0
+  changed_when: true
+  notify: Reload firewalld
+
+# Target reflects dns_egress_enforce: DROP once proven stable, ACCEPT
+# (every rule present but inert) until then. See defaults/main.yml.
+- name: Get current dns-egress policy target
+  ansible.builtin.command:
+    cmd: firewall-cmd --permanent --policy=dns-egress --get-target
+  register: dns_egress_current_target
+  changed_when: false
+
+- name: Set dns-egress policy target
+  ansible.builtin.command:
+    cmd: >-
+      firewall-cmd --permanent --policy=dns-egress
+      --set-target={{ 'DROP' if dns_egress_enforce else 'ACCEPT' }}
+  when: >-
+    dns_egress_current_target.stdout | trim !=
+    ('DROP' if dns_egress_enforce else 'ACCEPT')
+  changed_when: true
+  notify: Reload firewalld
+
+# Ipsets for the dynamic (CDN-fronted, no stable CIDR) destinations -
+# created empty here; the deployed dns-egress-refresh script populates
+# and maintains their actual entries.
+- name: Check existing firewalld ipsets
+  ansible.builtin.command:
+    cmd: firewall-cmd --permanent --get-ipsets
+  register: dns_egress_existing_ipsets
+  changed_when: false
+
+- name: Create dynamic-egress ipsets
+  ansible.builtin.command:
+    cmd: >-
+      firewall-cmd --permanent --new-ipset=dns-egress-{{ item.0.slug }}-{{ item.1.suffix }}
+      --type=hash:ip --option=family={{ item.1.family }}
+  loop: "{{ dns_egress_dynamic_domains | product(dns_egress_ipset_families) | list }}"
+  when: >-
+    ('dns-egress-' ~ item.0.slug ~ '-' ~ item.1.suffix)
+    not in dns_egress_existing_ipsets.stdout.split()
+  changed_when: true
+  notify: Reload firewalld
+  vars:
+    dns_egress_ipset_families:
+      - {suffix: v4, family: inet}
+      - {suffix: v6, family: inet6}
+
+# Static confirmed rules plus the two ipset-backed dynamic rules -
+# dns_egress_confirmed_rules in vars/main.yml.
+- name: Check for existing confirmed dns-egress rich rules
+  ansible.builtin.command:
+    cmd: >-
+      firewall-cmd --permanent --policy=dns-egress
+      --query-rich-rule={{ item }}
+  loop: "{{ dns_egress_confirmed_rules }}"
+  register: dns_egress_rule_check
+  changed_when: false
+  failed_when: false
+
+- name: Apply missing confirmed dns-egress rich rules
+  ansible.builtin.command:
+    cmd: >-
+      firewall-cmd --permanent --policy=dns-egress
+      --add-rich-rule={{ item.item }}
+  loop: "{{ dns_egress_rule_check.results }}"
+  when: item.rc != 0
+  changed_when: true
+  notify: Reload firewalld
+
+# The refresh script itself, deployed as a template so its domain list
+# stays in sync with dns_egress_dynamic_domains rather than being
+# hand-duplicated inside the script.
+- name: Install dns-egress-refresh script
+  ansible.builtin.template:
+    src: dns-egress-refresh.j2
+    dest: /usr/local/bin/dns-egress-refresh
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install dns-egress-refresh.service unit
+  ansible.builtin.copy:
+    src: dns-egress-refresh.service
+    dest: /etc/systemd/system/dns-egress-refresh.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Install dns-egress-refresh.timer unit
+  ansible.builtin.copy:
+    src: dns-egress-refresh.timer
+    dest: /etc/systemd/system/dns-egress-refresh.timer
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Enable and start dns-egress-refresh timer
+  ansible.builtin.systemd:
+    name: dns-egress-refresh.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+
+# Run once immediately so the ipsets are populated on first apply rather
+# than waiting up to OnBootSec for the timer's first fire.
+- name: Run dns-egress-refresh once to populate ipsets immediately
+  ansible.builtin.command:
+    cmd: /usr/local/bin/dns-egress-refresh
+  changed_when: true

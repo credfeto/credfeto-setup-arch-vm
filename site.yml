@@ -17,6 +17,8 @@
     - ssh
     - firewall
     - network
+    - role: dns_egress
+      when: network_is_dns_server
     - apparmor
     - services
     - ansible_pull

@@ -1,0 +1,55 @@
+---
+# Confirmed, static egress destinations for the DNS server hosts. Mirrors
+# credfeto-dns's docs/network/egress-whitelist.md - update that doc first,
+# then this list, if the destination set ever changes.
+#
+# The last two entries reference ipsets populated by the deployed
+# dns-egress-refresh script/timer, not static addresses - github.com and
+# cdn-mirror.chaotic.cx are both CDN-fronted with no stable CIDR to pin.
+dns_egress_confirmed_rules:
+  # DNS-to-DNS sync between the six nodes - a range, not the six
+  # individual /32s, since .101-.106 is just what exists today.
+  - rule family="ipv4" destination address="192.168.42.96/28" port port="53" protocol="tcp" accept
+  - rule family="ipv4" destination address="192.168.42.96/28" port port="53" protocol="udp" accept
+  - rule family="ipv6" destination address="2a02:8010:61d5:42::100/124" port port="53" protocol="tcp" accept
+  - rule family="ipv6" destination address="2a02:8010:61d5:42::100/124" port port="53" protocol="udp" accept
+
+  # NextDNS (be6f94), the sole forwarder - DoH/443, plus the plain-UDP/53
+  # bootstrap lookup of dns.nextdns.io's own hostname.
+  - rule family="ipv4" destination address="45.90.28.0/24" port port="443" protocol="tcp" accept
+  - rule family="ipv4" destination address="45.90.30.0/24" port port="443" protocol="tcp" accept
+  - rule family="ipv4" destination address="45.90.28.0/24" port port="53" protocol="udp" accept
+  - rule family="ipv4" destination address="45.90.30.0/24" port port="53" protocol="udp" accept
+
+  # raw.githubusercontent.com blocklists and abp.markridgwell.com (a
+  # CNAME to credfeto.github.io) - both land in GitHub Pages' Fastly range.
+  - rule family="ipv4" destination address="185.199.108.0/22" port port="443" protocol="tcp" accept
+  - rule family="ipv6" destination address="2606:50c0::/32" port port="443" protocol="tcp" accept
+
+  # NTP via OPNsense, not the public pool.
+  - rule family="ipv4" destination address="192.168.42.1/32" port port="123" protocol="udp" accept
+
+  # Internal package/registry/docker-cache proxy - fronts pacman, aur,
+  # dotnet, npm, api-nuget, docker-cache and docker-registry alike.
+  - rule family="ipv4" destination address="192.168.150.250/32" port port="443" protocol="tcp" accept
+
+  # Technitium's own "Query Logs (SQL Server)" app.
+  - rule family="ipv4" destination address="192.168.90.254/32" port port="1433" protocol="tcp" accept
+
+  # Dynamic (ipset-backed) destinations - see dns_egress_dynamic_domains
+  # below and the deployed dns-egress-refresh script.
+  - rule family="ipv4" destination ipset="dns-egress-github-com-v4" port port="443" protocol="tcp" accept
+  - rule family="ipv6" destination ipset="dns-egress-github-com-v6" port port="443" protocol="tcp" accept
+  - rule family="ipv4" destination ipset="dns-egress-cdn-mirror-chaotic-cx-v4" port port="443" protocol="tcp" accept
+  - rule family="ipv6" destination ipset="dns-egress-cdn-mirror-chaotic-cx-v6" port port="443" protocol="tcp" accept
+
+# One entry per CDN-fronted domain needing dynamic (resolve-and-refresh)
+# egress allow-listing. slug is the domain with dots replaced by hyphens,
+# matching the dns-egress-refresh script's own slug_for() and the ipset
+# names referenced in dns_egress_confirmed_rules above - keep all three in
+# sync if a domain is ever added or removed here.
+dns_egress_dynamic_domains:
+  - domain: github.com
+    slug: github-com
+  - domain: cdn-mirror.chaotic.cx
+    slug: cdn-mirror-chaotic-cx
