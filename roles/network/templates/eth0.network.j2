@@ -56,6 +56,15 @@ Address={{ addr }}
 {% endfor %}
 {% if network_gw4.stdout | length > 0 %}
 Gateway={{ network_gw4.stdout }}
+# NTP=: per-link NTP server for systemd-timesyncd, which takes precedence
+# over timesyncd.conf's compiled-in FallbackNTP (arch.pool.ntp.org - a
+# public pool that rotates members and can't be allow-listed by the DNS
+# servers' egress firewall). The router (OPNsense) serves NTP on every
+# VLAN, so pointing at the detected IPv4 gateway gives every host a local
+# time source without hardcoding a per-VLAN address. IPv4 only, on
+# purpose: no RA option exists to carry an IPv6 NTP server and these
+# hosts are static (no DHCPv6), so there is no IPv6 address to point at.
+NTP={{ network_gw4.stdout }}
 {% endif %}
 {% for addr in network_ipv6.stdout_lines %}
 Address={{ addr }}
