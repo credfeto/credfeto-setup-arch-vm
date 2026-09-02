@@ -261,6 +261,43 @@
     - host_is_dns_server
     - packages_chaotic_key_check.rc == 0 or packages_chaotic_key_receive.rc | default(1) == 0
 
+# Removal path for DNS hosts (#224), deliberately placed BEFORE "Update
+# all packages": the whole point is eliminating non-allow-listable egress,
+# so reflector must go even on a run where the update task later fails
+# (e.g. the cache being temporarily unreachable would otherwise leave
+# reflector alive and still fetching archlinux.org mirror status). The
+# timer is stopped before the package goes: pacman removes the unit file
+# but leaves an already-running timer live in systemd until the next
+# daemon-reload/reboot, so removing the package alone would let one more
+# mirror ranking fire. The stat guard keeps the stop task from failing on
+# a host that never had reflector.
+- name: Check whether the reflector timer unit exists
+  ansible.builtin.stat:
+    path: /usr/lib/systemd/system/reflector.timer
+  register: packages_reflector_timer
+  when: host_is_dns_server
+
+- name: Stop and disable reflector timer on DNS hosts
+  ansible.builtin.systemd:
+    name: reflector.timer
+    enabled: false
+    state: stopped
+  when:
+    - host_is_dns_server
+    - packages_reflector_timer.stat.exists
+
+- name: Remove reflector on DNS hosts
+  community.general.pacman:
+    name: reflector
+    state: absent
+  when: host_is_dns_server
+
+- name: Remove reflector configuration on DNS hosts
+  ansible.builtin.file:
+    path: /etc/xdg/reflector/reflector.conf
+    state: absent
+  when: host_is_dns_server
+
 - name: Update all packages
   community.general.pacman:
     update_cache: true
@@ -371,35 +408,3 @@
     state: started
     daemon_reload: true
   when: not host_is_dns_server
-
-# Removal path for DNS hosts (#224). The timer is stopped before the
-# package goes: pacman removes the unit file but leaves an already-running
-# timer live in systemd until the next daemon-reload/reboot, so removing
-# the package alone would let one more mirror ranking fire. The stat guard
-# keeps the stop task from failing on a host that never had reflector.
-- name: Check whether the reflector timer unit exists
-  ansible.builtin.stat:
-    path: /usr/lib/systemd/system/reflector.timer
-  register: packages_reflector_timer
-  when: host_is_dns_server
-
-- name: Stop and disable reflector timer on DNS hosts
-  ansible.builtin.systemd:
-    name: reflector.timer
-    enabled: false
-    state: stopped
-  when:
-    - host_is_dns_server
-    - packages_reflector_timer.stat.exists
-
-- name: Remove reflector on DNS hosts
-  community.general.pacman:
-    name: reflector
-    state: absent
-  when: host_is_dns_server
-
-- name: Remove reflector configuration on DNS hosts
-  ansible.builtin.file:
-    path: /etc/xdg/reflector/reflector.conf
-    state: absent
-  when: host_is_dns_server
