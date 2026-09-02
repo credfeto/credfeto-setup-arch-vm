@@ -2,3 +2,16 @@
 # container_runtime controls which container engine is installed.
 # Use 'docker' for new VMs (default). Set to 'podman' for existing Podman hosts.
 container_runtime: docker
+
+# DNS server hosts (dns-01, dns-02, ...) get special handling in several
+# roles: cache-only pacman configuration (packages role, #224) and a static
+# resolver instead of systemd-resolved (network role). Defined here as a
+# lazily-evaluated var rather than a set_fact so every role sees it with no
+# task-ordering dependency. ansible_hostname is the real machine hostname;
+# inventory_hostname is always "localhost" (hosts: localhost).
+host_is_dns_server: "{{ ansible_hostname is match('^dns-[0-9]{2}$') }}"
+
+# Base URL of the internal pacman cache (192.168.150.250). DNS hosts use it
+# as their ONLY package source; everything else tries it first and falls
+# back to public mirrors.
+pacman_cache_base: https://pacman.markridgwell.com/repo
