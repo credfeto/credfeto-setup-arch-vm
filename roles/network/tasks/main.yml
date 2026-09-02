@@ -12,16 +12,12 @@
       network_nameservers_ipv6 ({{ network_nameservers_ipv6 | length }} entries) must be
       the same length - resolv.conf.j2 pairs them up index-for-index.
 
-# DNS server hosts (dns-01, dns-02, ...) must not point their own resolver at
-# systemd-resolved's upstream list: that list includes the DNS servers
-# themselves, so a resolved restart/crash on one of these boxes would leave
-# it unable to resolve anything, including itself. They get the plain static
-# templated /etc/resolv.conf below instead. The detection itself lives in
-# site.yml's pre_tasks (host_is_dns_server) because the packages role also
-# needs it, before this role has run; this is just the role-scoped alias.
-- name: Determine if this host is a DNS server
-  ansible.builtin.set_fact:
-    network_is_dns_server: "{{ host_is_dns_server }}"
+# DNS server hosts (dns-01, dns-02, ..., detected via host_is_dns_server in
+# group_vars/all.yml) must not point their own resolver at systemd-resolved's
+# upstream list: that list includes the DNS servers themselves, so a resolved
+# restart/crash on one of these boxes would leave it unable to resolve
+# anything, including itself. They get the plain static templated
+# /etc/resolv.conf below instead.
 
 # eth0.network is re-applied on every run, so IP/GW/DNS changes made in this
 # role reach hosts that already have the file. All addresses on the primary
@@ -135,7 +131,7 @@
     owner: root
     group: root
     mode: "0644"
-  when: network_is_dns_server
+  when: host_is_dns_server
 
 # masked (not just disabled) so nothing can start it by any path - manual
 # `systemctl start`, another unit's Wants=/Requires=, or socket activation -
@@ -148,7 +144,7 @@
     state: stopped
     enabled: false
     masked: true
-  when: network_is_dns_server
+  when: host_is_dns_server
 
 - name: Ensure /etc/systemd/resolved.conf.d exists
   ansible.builtin.file:
@@ -157,7 +153,7 @@
     owner: root
     group: root
     mode: "0755"
-  when: not network_is_dns_server
+  when: not host_is_dns_server
 
 - name: Write systemd-resolved global DNS server list
   ansible.builtin.template:
@@ -166,7 +162,7 @@
     owner: root
     group: root
     mode: "0644"
-  when: not network_is_dns_server
+  when: not host_is_dns_server
   notify: Restart systemd-resolved
 
 - name: Enable and start systemd-resolved
@@ -174,7 +170,7 @@
     name: systemd-resolved
     enabled: true
     state: started
-  when: not network_is_dns_server
+  when: not host_is_dns_server
 
 - name: Point /etc/resolv.conf at systemd-resolved's stub
   ansible.builtin.file:
@@ -182,7 +178,7 @@
     dest: /etc/resolv.conf
     state: link
     force: true
-  when: not network_is_dns_server
+  when: not host_is_dns_server
 
 - name: Reload networkctl
   ansible.builtin.command:
