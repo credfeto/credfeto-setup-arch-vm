@@ -292,10 +292,16 @@
     state: absent
   when: host_is_dns_server
 
+# Both paths: pacman renames a modified config to .pacsave during the
+# package removal above, so the original name and the .pacsave variant
+# each need covering to leave nothing behind.
 - name: Remove reflector configuration on DNS hosts
   ansible.builtin.file:
-    path: /etc/xdg/reflector/reflector.conf
+    path: "{{ item }}"
     state: absent
+  loop:
+    - /etc/xdg/reflector/reflector.conf
+    - /etc/xdg/reflector/reflector.conf.pacsave
   when: host_is_dns_server
 
 - name: Update all packages
