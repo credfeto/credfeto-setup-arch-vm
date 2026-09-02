@@ -58,6 +58,16 @@
       | reject('search', 'No such file or directory')
       | list | length > 0)
 
+# Two mutually exclusive pacman.conf shapes for the main Arch repos
+# (#224). Non-DNS hosts: try the internal cache first, fall back to the
+# public mirrorlist (CacheServer + Include). DNS hosts: the egress
+# firewall can never allow-list rotating public mirrors, so the internal
+# cache is the ONLY source - Server= with no Include at all. It must be
+# Server= rather than CacheServer= there: CacheServer is try-first-then-
+# fall-back, so with a mirrorlist still included pacman silently resumes
+# exactly the public traffic this exists to eliminate. The replace task
+# is one-way (a host reclassified as non-DNS keeps Server= until its
+# pacman.conf is rebuilt); fleet hosts never change class in practice.
 - name: Configure pacman cache server
   ansible.builtin.lineinfile:
     path: /etc/pacman.conf
@@ -66,6 +76,22 @@
       https://pacman.markridgwell.com/repo/archlinux/$repo/os/$arch
     insertafter: "^Include = /etc/pacman.d/mirrorlist$"
     state: present
+  when: not host_is_dns_server
+
+- name: Remove pacman cache fallback line on DNS hosts
+  ansible.builtin.lineinfile:
+    path: /etc/pacman.conf
+    regexp: '^CacheServer = https://pacman\.markridgwell\.com/repo/archlinux/'
+    state: absent
+  when: host_is_dns_server
+
+- name: Point main repos only at the internal cache on DNS hosts
+  ansible.builtin.replace:
+    path: /etc/pacman.conf
+    regexp: '^Include = /etc/pacman\.d/mirrorlist$'
+    replace: >-
+      Server = https://pacman.markridgwell.com/repo/archlinux/$repo/os/$arch
+  when: host_is_dns_server
 
 # ILoveCandy, CheckSpace and VerbosePkgLists are plain flag directives (no
 # "= value") under [options]. Each may already be present (commented or
@@ -131,19 +157,46 @@
           the rest of the play, including the network role, still runs.
           This will retry automatically on the next ansible-pull.
 
+# DNS hosts fetch the keyring bootstrap through the internal cache (the
+# unversioned chaotic-keyring.pkg.tar.zst symlink is part of the same
+# chaotic-aur/x86_64 directory the cache proxies); everything else keeps
+# the upstream CDN. Same package either way, verified by the signing key
+# trusted above.
 - name: Install Chaotic AUR keyring
   community.general.pacman:
     name: https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst
     state: present
     extra_args: "--noconfirm --needed"
-  when: packages_chaotic_key_check.rc == 0 or packages_chaotic_key_receive.rc | default(1) == 0
+  when:
+    - not host_is_dns_server
+    - packages_chaotic_key_check.rc == 0 or packages_chaotic_key_receive.rc | default(1) == 0
 
+- name: Install Chaotic AUR keyring from the internal cache on DNS hosts
+  community.general.pacman:
+    name: https://pacman.markridgwell.com/repo/chaotic-aur/x86_64/chaotic-keyring.pkg.tar.zst  # yamllint disable-line rule:line-length
+    state: present
+    extra_args: "--noconfirm --needed"
+  when:
+    - host_is_dns_server
+    - packages_chaotic_key_check.rc == 0 or packages_chaotic_key_receive.rc | default(1) == 0
+
+# The mirrorlist package only exists to provide /etc/pacman.d/chaotic-
+# mirrorlist for the Include below; DNS hosts use a Server=-only section
+# that never references it, so it is removed there rather than installed.
 - name: Install Chaotic AUR mirrorlist
   community.general.pacman:
     name: https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst  # yamllint disable-line rule:line-length
     state: present
     extra_args: "--noconfirm --needed"
-  when: packages_chaotic_key_check.rc == 0 or packages_chaotic_key_receive.rc | default(1) == 0
+  when:
+    - not host_is_dns_server
+    - packages_chaotic_key_check.rc == 0 or packages_chaotic_key_receive.rc | default(1) == 0
+
+- name: Remove Chaotic AUR mirrorlist package on DNS hosts
+  community.general.pacman:
+    name: chaotic-mirrorlist
+    state: absent
+  when: host_is_dns_server
 
 - name: Remove any unmanaged chaotic-aur section from pacman.conf
   ansible.builtin.shell:
@@ -162,7 +215,8 @@
           if not in_managed and lines[i].strip() == '[chaotic-aur]':
               i += 1
               while (i < len(lines) and
-                     lines[i].startswith(('Include = ', 'CacheServer = '))):
+                     lines[i].startswith(
+                         ('Include = ', 'CacheServer = ', 'Server = '))):
                   i += 1
               continue
           new_lines.append(lines[i])
@@ -178,6 +232,10 @@
   register: packages_chaotic_cleanup
   changed_when: "'changed' in packages_chaotic_cleanup.stdout"
 
+# Same marker for both variants, so a host only ever carries one of them
+# and blockinfile itself swaps the content over. DNS hosts get Server=
+# only - no Include, no CacheServer - for the same no-public-fallback
+# reason as the main repos above.
 - name: Add Chaotic AUR repository to pacman.conf
   ansible.builtin.blockinfile:
     path: /etc/pacman.conf
@@ -187,7 +245,21 @@
       Include = /etc/pacman.d/chaotic-mirrorlist
       CacheServer = https://pacman.markridgwell.com/repo/chaotic-aur/x86_64
     state: present
-  when: packages_chaotic_key_check.rc == 0 or packages_chaotic_key_receive.rc | default(1) == 0
+  when:
+    - not host_is_dns_server
+    - packages_chaotic_key_check.rc == 0 or packages_chaotic_key_receive.rc | default(1) == 0
+
+- name: Add cache-only Chaotic AUR repository to pacman.conf on DNS hosts
+  ansible.builtin.blockinfile:
+    path: /etc/pacman.conf
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - chaotic-aur"
+    block: |
+      [chaotic-aur]
+      Server = https://pacman.markridgwell.com/repo/chaotic-aur/x86_64
+    state: present
+  when:
+    - host_is_dns_server
+    - packages_chaotic_key_check.rc == 0 or packages_chaotic_key_receive.rc | default(1) == 0
 
 - name: Update all packages
   community.general.pacman:
@@ -208,9 +280,20 @@
       - openssh
       - pacman-contrib
       - pkgstats
-      - reflector
     state: present
     extra_args: "--noconfirm --needed"
+
+# reflector maintains /etc/pacman.d/mirrorlist, which DNS hosts no longer
+# reference (Server=-only pacman.conf above), and its mirror-status fetch
+# from archlinux.org is itself egress the DNS firewall can never
+# allow-list - so it is installed everywhere except DNS hosts, where it
+# is removed outright (#224).
+- name: Install reflector
+  community.general.pacman:
+    name: reflector
+    state: present
+    extra_args: "--noconfirm --needed"
+  when: not host_is_dns_server
 
 - name: Install Docker and companions
   community.general.pacman:
@@ -279,6 +362,7 @@
     owner: root
     group: root
     mode: "0644"
+  when: not host_is_dns_server
 
 - name: Enable and start reflector timer
   ansible.builtin.systemd:
@@ -286,3 +370,36 @@
     enabled: true
     state: started
     daemon_reload: true
+  when: not host_is_dns_server
+
+# Removal path for DNS hosts (#224). The timer is stopped before the
+# package goes: pacman removes the unit file but leaves an already-running
+# timer live in systemd until the next daemon-reload/reboot, so removing
+# the package alone would let one more mirror ranking fire. The stat guard
+# keeps the stop task from failing on a host that never had reflector.
+- name: Check whether the reflector timer unit exists
+  ansible.builtin.stat:
+    path: /usr/lib/systemd/system/reflector.timer
+  register: packages_reflector_timer
+  when: host_is_dns_server
+
+- name: Stop and disable reflector timer on DNS hosts
+  ansible.builtin.systemd:
+    name: reflector.timer
+    enabled: false
+    state: stopped
+  when:
+    - host_is_dns_server
+    - packages_reflector_timer.stat.exists
+
+- name: Remove reflector on DNS hosts
+  community.general.pacman:
+    name: reflector
+    state: absent
+  when: host_is_dns_server
+
+- name: Remove reflector configuration on DNS hosts
+  ansible.builtin.file:
+    path: /etc/xdg/reflector/reflector.conf
+    state: absent
+  when: host_is_dns_server

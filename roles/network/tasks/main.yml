@@ -16,12 +16,12 @@
 # systemd-resolved's upstream list: that list includes the DNS servers
 # themselves, so a resolved restart/crash on one of these boxes would leave
 # it unable to resolve anything, including itself. They get the plain static
-# templated /etc/resolv.conf below instead. ansible_hostname is the real
-# machine hostname; inventory_hostname is always "localhost" here
-# (hosts: localhost).
+# templated /etc/resolv.conf below instead. The detection itself lives in
+# site.yml's pre_tasks (host_is_dns_server) because the packages role also
+# needs it, before this role has run; this is just the role-scoped alias.
 - name: Determine if this host is a DNS server
   ansible.builtin.set_fact:
-    network_is_dns_server: "{{ ansible_hostname is match('^dns-[0-9]{2}$') }}"
+    network_is_dns_server: "{{ host_is_dns_server }}"
 
 # eth0.network is re-applied on every run, so IP/GW/DNS changes made in this
 # role reach hosts that already have the file. All addresses on the primary
