@@ -4,6 +4,17 @@
   connection: local
   become: true
 
+  pre_tasks:
+    # Computed once here, before any role runs, because the packages role
+    # (deliberately first, see its own header comment) needs to know whether
+    # this is a DNS host to shape pacman.conf, and the network role needs
+    # the same answer later for resolver configuration. ansible_hostname is
+    # the real machine hostname; inventory_hostname is always "localhost"
+    # here (hosts: localhost).
+    - name: Determine if this host is a DNS server
+      ansible.builtin.set_fact:
+        host_is_dns_server: "{{ ansible_hostname is match('^dns-[0-9]{2}$') }}"
+
   roles:
     - packages
     - users
