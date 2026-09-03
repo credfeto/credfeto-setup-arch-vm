@@ -3,6 +3,14 @@
   hosts: localhost
   connection: local
   become: true
+  # A notified handler reflects a change already written to disk, so it must
+  # run even when a later role's task fails - otherwise disk and runtime
+  # drift apart with no self-healing path: the notifying task is idempotent,
+  # reports ok on the next run, and never re-notifies. Concrete case (#229):
+  # the ansible-pull.timer restart handler dropped by a failure in a later
+  # role would leave the host on its old in-memory schedule until an
+  # unrelated reboot.
+  force_handlers: true
 
   roles:
     - packages

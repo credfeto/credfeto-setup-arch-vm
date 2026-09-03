@@ -163,6 +163,8 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Only pin manually-assigned (non-dynamic) IPv6 addresses into eth0.network's static Address= list; SLAAC-assigned addresses, stable and temporary alike, are left entirely to the kernel/router advertisements
 - Hosts now sync time from their own IPv4 gateway via networkd NTP= instead of the public arch.pool.ntp.org fallback
 - DNS hosts (dns-NN) point pacman only at the internal cache server for the main Arch and Chaotic AUR repos, with no public mirror fallback
+- ansible-pull now runs at a stable per-host random time within 30 minutes each side of the hour, so a kernel update no longer reboots the whole fleet at once
+- notified Ansible handlers now always run even if a later task in the run fails, so restarts for already-written config changes are never silently dropped
 ### Deprecated
 ### Removed
 - Remove criu and pigz packages — neither is used or configured by the script
