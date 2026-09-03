@@ -11,12 +11,9 @@
   changed_when: true
   listen: boot-config-changed
 
-# grub-mkconfig above recreates grub.cfg world-readable; re-tighten it in
-# the same run (lynis FILE-7524, #62).
-- name: Restrict regenerated grub.cfg to root only
-  ansible.builtin.file:
-    path: /boot/grub/grub.cfg
-    owner: root
-    group: root
-    mode: "0600"
-  listen: boot-config-changed
+# Applies the tightened fmask/dmask from the fstab edit without waiting
+# for a reboot (lynis FILE-7524, #62).
+- name: Remount /boot
+  ansible.posix.mount:
+    path: /boot
+    state: remounted
