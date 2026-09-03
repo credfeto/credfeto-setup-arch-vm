@@ -3,9 +3,21 @@ Description=Run ansible-pull every hour to apply latest system configuration
 Requires=ansible-pull.service
 
 [Timer]
+# The reboot role schedules a reboot 60s after any run that picks up a
+# kernel/boot-config change, so the fleet's reboot spread IS the pull-time
+# spread. Fire hourly at :30 with a fixed per-host random delay of up to 1h:
+# each host lands on one stable offset (derived from its machine-id) inside
+# a window 30 minutes each side of the hour, so a kernel update trickles
+# through the fleet instead of rebooting everything at once (#229).
+# FixedRandomDelay (rather than a re-rolled delay) matters because only the
+# single run that picks up the update counts - re-rolling could still land
+# two hosts together on exactly that run. The delay also applies to the
+# OnBootSec trigger, which is aligned with the goal: hosts that booted
+# together after a power event do not pull-and-reboot together either.
 OnBootSec=1min
-OnUnitActiveSec=1h
-RandomizedDelaySec=5min
+OnCalendar=*-*-* *:30:00
+RandomizedDelaySec=1h
+FixedRandomDelay=true
 AccuracySec=1s
 Persistent=true
 
