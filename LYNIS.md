@@ -8,9 +8,10 @@ that must be triaged before a PR is marked ready.
 
 ## Hardening index
 
-**75** (lynis 3.1.7 on arch-vm-test.lan)
+**76** (lynis 3.1.7 on arch-vm-test.lan)
 
-For reference: 74 before the #62 hardening changes.
+For reference: 74 before the #62 hardening changes (75 before the
+review-pass fixes added the sshd Banner and the root core-dump limit).
 
 ## Expected warnings (dynamic conditions, not regressions)
 
@@ -50,4 +51,4 @@ For reference: 74 before the #62 hardening changes.
 
 ---
 
-Captured with lynis 3.1.7 on 2026-09-03 against branch feature/62-lynis-hardening (post-#62 hardening).
+Captured with lynis 3.1.7 on 2026-09-03 against branch feature/62-lynis-hardening (post-#62 hardening, including the review-pass fixes).
