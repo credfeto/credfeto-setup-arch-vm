@@ -46,6 +46,9 @@ The Ansible role at `roles/packages/tasks/main.yml` enforces this by explicitly 
 - Keep configuration under `/etc` and avoid editing files in `/usr`.
 - Use systemd drop-ins in `/etc/systemd/system/<unit>.d/`.
 - Use `systemctl` and `journalctl` for service control and logs.
+- **`/boot` is a vfat ESP: per-file `chmod` is impossible there.** Permissions come exclusively from the `fmask`/`dmask` mount options in `/etc/fstab`; a `chmod`/Ansible `file: mode:` task on anything under `/boot` is a silent no-op. To restrict `/boot`, tighten the masks in fstab.
+- **vfat ignores `fmask`/`dmask` changes on remount** — `mount -o remount /boot` does not apply new masks; they only take effect on a fresh mount (in practice, the next reboot).
+- **Arch's `pam` package ships only `/etc/security/limits.conf`** — the `limits.d` drop-in directory does not exist until something creates it; create it before writing a drop-in there. Also note `pam_limits` never applies wildcard (`*`) entries to root; root needs its own line.
 - **A running systemd timer keeps the schedule it was started with** — a daemon-reload alone does not apply a changed timer unit; the timer must be restarted (or the host rebooted).
 - **Restarting a systemd timer re-arms its elapsed monotonic triggers** (`OnBootSec`/`OnStartupSec` long in the past fire immediately on timer start), and a `Requires=` on the paired service turns that into an immediate service start — a no-op only while the service is already active. Expect one extra run of the paired service when restarting such a timer outside a run of the service itself.
 
