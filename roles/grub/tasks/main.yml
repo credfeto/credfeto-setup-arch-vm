@@ -168,13 +168,16 @@
     line: '\1 iommu=force"'
   notify: boot-config-changed
 
-# grub.cfg leaks kernel command line and boot layout to any local user;
-# lynis FILE-7524 (#62). grub-mkconfig recreates it world-readable, so the
-# regen handler chain re-tightens it too - this task covers hosts where no
-# regen fires this run.
-- name: Restrict grub.cfg to root only
-  ansible.builtin.file:
-    path: /boot/grub/grub.cfg
-    owner: root
-    group: root
-    mode: "0600"
+# grub.cfg leaks the kernel command line and boot layout to any local
+# user; lynis FILE-7524 (#62). /boot is a vfat ESP, where per-file chmod
+# is impossible - permissions come from the fmask/dmask mount options, so
+# tighten those (files 0600, directories 0700) on the fstab entry and
+# remount. The replace only touches a vfat /boot line still carrying the
+# default fmask=0022,dmask=0022 pair, so it is idempotent and inert on
+# any host already tightened or laid out differently.
+- name: Restrict /boot to root only via vfat mount masks
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^(\S+\s+/boot\s+vfat\s+\S*)fmask=0022,dmask=0022'
+    replace: '\1fmask=0177,dmask=0077'
+  notify: Remount /boot
