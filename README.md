@@ -11,7 +11,7 @@ Sets up an Arch Linux VM with Docker, Git, and supporting tooling. The `install`
 - **Kernel module blacklisting** — unused/dangerous protocols and filesystems
 - **`/tmp` as noexec tmpfs** — prevents code execution from `/tmp`
 - **pkgstats** — weekly anonymous package statistics submission
-- **reflector** — automatic mirror ranking
+- **reflector** — automatic mirror ranking (not on DNS hosts, which use only the internal pacman cache)
 - **pacman cache pruning** — weekly `paccache -r` via systemd timer
 - **Telegraf** — reports host and (on Docker hosts) container metrics to `https://metrics.markridgwell.com`
 

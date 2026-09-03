@@ -75,7 +75,7 @@ while i < len(lines):
     # Remove unmanaged [chaotic-aur] blocks (outside the ansible-managed block)
     if not in_managed and lines[i].strip() == '[chaotic-aur]':
         i += 1
-        while i < len(lines) and lines[i].startswith(('Include = ', 'CacheServer = ')):
+        while i < len(lines) and lines[i].startswith(('Include = ', 'CacheServer = ', 'Server = ')):
             i += 1
         continue
     new_lines.append(lines[i])

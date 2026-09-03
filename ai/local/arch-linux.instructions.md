@@ -23,6 +23,9 @@ Use these instructions when writing guidance, scripts, or documentation for Arch
 - Inspect packages with `pacman -Qi`, `pacman -Ql`, and `pacman -Ss`.
 - Use `paccache -r` (from `pacman-contrib`) to prune the package cache, keeping the 3 most recent versions per package.
 - Schedule `paccache -r` via a weekly systemd timer to prevent unbounded cache growth.
+- **Stop and disable a package's systemd timer/service before removing the package.** pacman removes the unit file but leaves an already-running unit live in systemd until the next daemon-reload/reboot, so removing the package alone lets the unit fire again.
+- **Never remove a package that provides a file `pacman.conf` still `Include`s** (e.g. a mirrorlist package) until the `Include` line has been rewritten or removed first. A dangling `Include` makes every pacman invocation fail to parse its own config, wedging package management until the file or line is restored.
+- **pacman renames a modified config file to `<name>.pacsave` on package removal** (and installs a fresh copy as `<name>.pacnew` when reinstalling over a survivor). Cleanup tasks must cover both the original name and the `.pacsave` variant; restore flows may need to move a `.pacnew` into place.
 
 ## AUR Helpers — PROHIBITED
 

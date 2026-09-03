@@ -149,8 +149,9 @@
 # ansible_nodename (not ansible_hostname) is used deliberately: the key
 # server expects the full dns-05.lan style value, not the domain-stripped
 # short form (ansible_hostname strips everything from the first dot -
-# that's the fact roles/network/tasks/main.yml uses for the ^dns-[0-9]{2}$
-# DNS-server check, which needs the short form; this needs the opposite).
+# that's the fact group_vars/all.yml's host_is_dns_server uses for the
+# ^dns-[0-9]{2}$ DNS-server check, which needs the short form; this needs
+# the opposite).
 # ansible_nodename is the raw, unmodified /etc/hostname content - no
 # domain-stripping, no DNS lookups that could disagree with it.
 - name: Configure sshd AuthorizedKeysCommand
