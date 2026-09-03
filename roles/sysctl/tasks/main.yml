@@ -367,3 +367,13 @@
     owner: root
     group: root
     mode: "0644"
+
+# Loading an arbitrary TTY line discipline via TIOCSETD historically gave
+# local privilege-escalation primitives; nothing on these hosts needs
+# autoloading (lynis KRNL-6000, #62).
+- name: Set dev.tty.ldisc_autoload
+  ansible.posix.sysctl:
+    name: dev.tty.ldisc_autoload
+    value: "0"
+    sysctl_file: /etc/sysctl.d/10-dev.tty.ldisc_autoload.conf
+    reload: true
