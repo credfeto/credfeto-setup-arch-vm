@@ -356,3 +356,14 @@
     value: "0"
     sysctl_file: /etc/sysctl.d/10-net.ipv4.tcp_sack.conf
     reload: true
+
+# fs.suid_dumpable above stops setuid dumps; this closes the ulimit path
+# so no login session can re-enable core dumps for its own processes
+# (lynis KRNL-5820, #62).
+- name: Disable core dumps via security limits
+  ansible.builtin.copy:
+    dest: /etc/security/limits.d/10-no-core-dumps.conf
+    content: "* hard core 0\n"
+    owner: root
+    group: root
+    mode: "0644"
