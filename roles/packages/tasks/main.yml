@@ -307,21 +307,21 @@
     state: stopped
   when:
     - host_is_dns_server
-    - packages_reflector_timer.stat.exists
+    - packages_reflector_timer.stat.exists | default(false)
 
-# The stat gate (host_is_dns_server must stay first: the stat task above
-# is itself gated, so the register has no .stat on non-DNS hosts and only
-# the in-order short-circuit keeps this safe) makes this a skipped no-op
-# in steady state instead of a full pacman run every hour; the package
-# owns the timer unit file, so a reinstall brings the file back and the
-# removal fires again.
+# The stat gate (default(false): the stat task above is itself gated, so
+# the register has no .stat on non-DNS hosts, and the guard must not rely
+# on list order for safety) makes this a skipped no-op in steady state
+# instead of a full pacman run every hour; the package owns the timer
+# unit file, so a reinstall brings the file back and the removal fires
+# again.
 - name: Remove reflector on DNS hosts
   community.general.pacman:
     name: reflector
     state: absent
   when:
     - host_is_dns_server
-    - packages_reflector_timer.stat.exists
+    - packages_reflector_timer.stat.exists | default(false)
 
 # Both paths: pacman renames a modified config to .pacsave during the
 # package removal above, so the original name and the .pacsave variant
