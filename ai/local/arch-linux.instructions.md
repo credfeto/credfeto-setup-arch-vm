@@ -46,6 +46,8 @@ The Ansible role at `roles/packages/tasks/main.yml` enforces this by explicitly 
 - Keep configuration under `/etc` and avoid editing files in `/usr`.
 - Use systemd drop-ins in `/etc/systemd/system/<unit>.d/`.
 - Use `systemctl` and `journalctl` for service control and logs.
+- **A running systemd timer keeps the schedule it was started with** — a daemon-reload alone does not apply a changed timer unit; the timer must be restarted (or the host rebooted).
+- **Restarting a systemd timer re-arms its elapsed monotonic triggers** (`OnBootSec`/`OnStartupSec` long in the past fire immediately on timer start), and a `Requires=` on the paired service turns that into an immediate service start — a no-op only while the service is already active. Expect one extra run of the paired service when restarting such a timer outside a run of the service itself.
 
 ## Security
 
