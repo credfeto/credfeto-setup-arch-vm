@@ -10,10 +10,3 @@
     cmd: mkinitcpio -P
   changed_when: true
   listen: boot-config-changed
-
-# Applies the tightened fmask/dmask from the fstab edit without waiting
-# for a reboot (lynis FILE-7524, #62).
-- name: Remount /boot
-  ansible.posix.mount:
-    path: /boot
-    state: remounted
