@@ -15,3 +15,12 @@ host_is_dns_server: "{{ ansible_hostname is match('^dns-[0-9]{2}$') }}"
 # as their ONLY package source; everything else tries it first and falls
 # back to public mirrors.
 pacman_cache_base: https://pacman.markridgwell.com/repo
+
+# Full per-repo server URLs derived from the base. The packages role both
+# writes these as literals and matches them back with regexps (the restore
+# and removal tasks that flip a host between the DNS and non-DNS pacman.conf
+# shapes); deriving every occurrence from one definition keeps literal and
+# regexp byte-identical - a regexp that silently stopped matching would
+# strand hosts in the wrong shape with every task reporting ok.
+pacman_cache_main_server: "{{ pacman_cache_base }}/archlinux/$repo/os/$arch"
+pacman_cache_chaotic_server: "{{ pacman_cache_base }}/chaotic-aur/x86_64"

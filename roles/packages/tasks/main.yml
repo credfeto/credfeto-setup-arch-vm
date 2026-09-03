@@ -75,14 +75,14 @@
 - name: Restore public mirrorlist Includes on non-DNS hosts
   ansible.builtin.replace:
     path: /etc/pacman.conf
-    regexp: '^Server = {{ pacman_cache_base | regex_escape }}/archlinux/\$repo/os/\$arch$'
+    regexp: "^Server = {{ pacman_cache_main_server | regex_escape }}$"
     replace: "Include = /etc/pacman.d/mirrorlist"
   when: not host_is_dns_server
 
 - name: Configure pacman cache server
   ansible.builtin.lineinfile:
     path: /etc/pacman.conf
-    line: "CacheServer = {{ pacman_cache_base }}/archlinux/$repo/os/$arch"
+    line: "CacheServer = {{ pacman_cache_main_server }}"
     insertafter: "^Include = /etc/pacman.d/mirrorlist$"
     state: present
   when: not host_is_dns_server
@@ -90,7 +90,7 @@
 - name: Remove pacman cache fallback line on DNS hosts
   ansible.builtin.lineinfile:
     path: /etc/pacman.conf
-    regexp: '^CacheServer = {{ pacman_cache_base | regex_escape }}/archlinux/'
+    regexp: "^CacheServer = {{ pacman_cache_main_server | regex_escape }}$"
     state: absent
   when: host_is_dns_server
 
@@ -98,7 +98,7 @@
   ansible.builtin.replace:
     path: /etc/pacman.conf
     regexp: '^Include = /etc/pacman\.d/mirrorlist$'
-    replace: "Server = {{ pacman_cache_base }}/archlinux/$repo/os/$arch"
+    replace: "Server = {{ pacman_cache_main_server }}"
   when: host_is_dns_server
 
 # ILoveCandy, CheckSpace and VerbosePkgLists are plain flag directives (no
@@ -187,7 +187,7 @@
   vars:
     packages_chaotic_keyring_url: >-
       {{ host_is_dns_server | ternary(
-           pacman_cache_base ~ '/chaotic-aur/x86_64/chaotic-keyring.pkg.tar.zst',
+           pacman_cache_chaotic_server ~ '/chaotic-keyring.pkg.tar.zst',
            'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst') }}
   when: packages_chaotic_key_trusted
 
@@ -250,7 +250,7 @@
     block: |
       [chaotic-aur]
       Include = /etc/pacman.d/chaotic-mirrorlist
-      CacheServer = {{ pacman_cache_base }}/chaotic-aur/x86_64
+      CacheServer = {{ pacman_cache_chaotic_server }}
     state: present
   when:
     - not host_is_dns_server
@@ -262,7 +262,7 @@
     marker: "# {mark} ANSIBLE MANAGED BLOCK - chaotic-aur"
     block: |
       [chaotic-aur]
-      Server = {{ pacman_cache_base }}/chaotic-aur/x86_64
+      Server = {{ pacman_cache_chaotic_server }}
     state: present
   when:
     - host_is_dns_server
