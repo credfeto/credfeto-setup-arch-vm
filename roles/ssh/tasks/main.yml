@@ -182,6 +182,18 @@
     mode: "0600"
   notify: Reload sshd
 
+# The users role installs the consent banner text; without this sshd
+# never shows it (Banner defaults to none), which would leave the file
+# satisfying the lynis check while doing nothing (#62).
+- name: Configure sshd Banner
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-banner.conf
+    content: "Banner /etc/issue.net\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Reload sshd
+
 # Session
 - name: Configure sshd X11Forwarding
   ansible.builtin.copy:
