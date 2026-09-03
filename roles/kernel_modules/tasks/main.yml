@@ -292,7 +292,7 @@
 # Hardware absent in a VM (Bluetooth, USB storage, kernel test devices)
 # ---------------------------------------------------------------------------
 
-- name: Blacklist VM-absent hardware modules (Bluetooth, USB storage, vivid)
+- name: Blacklist VM-absent hardware modules (Bluetooth, USB storage, FireWire, vivid)
   ansible.builtin.copy:
     dest: /etc/modprobe.d/blacklist-vm-absent-hardware.conf
     content: |
@@ -305,6 +305,14 @@
       install usb_storage /bin/false
       blacklist vivid
       install vivid /bin/false
+      # FireWire storage (lynis STRG-1846, #62): DMA-capable and usable
+      # for unauthorized storage attach; no such hardware in these VMs
+      blacklist firewire_core
+      install firewire_core /bin/false
+      blacklist firewire_ohci
+      install firewire_ohci /bin/false
+      blacklist firewire_sbp2
+      install firewire_sbp2 /bin/false
     owner: root
     group: root
     mode: "0644"
@@ -332,3 +340,21 @@
     name: vivid
     state: absent
   when: "'vivid' in kernel_modules_lsmod_output.stdout"
+
+- name: Unload firewire_sbp2 if currently loaded
+  community.general.modprobe:
+    name: firewire_sbp2
+    state: absent
+  when: "'firewire_sbp2' in kernel_modules_lsmod_output.stdout"
+
+- name: Unload firewire_ohci if currently loaded
+  community.general.modprobe:
+    name: firewire_ohci
+    state: absent
+  when: "'firewire_ohci' in kernel_modules_lsmod_output.stdout"
+
+- name: Unload firewire_core if currently loaded
+  community.general.modprobe:
+    name: firewire_core
+    state: absent
+  when: "'firewire_core' in kernel_modules_lsmod_output.stdout"
