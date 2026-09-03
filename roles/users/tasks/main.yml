@@ -70,3 +70,26 @@
     user: markr
     state: present
     key: https://github.com/credfeto.keys
+
+# lynis AUTH-9230 (#62). ENCRYPT_METHOD is already YESCRYPT (the Arch
+# default); the cost factor defaults to 5 - raise it so any password
+# hash that does get created (accounts are key-only, but local recovery
+# passwords are possible) costs an attacker more to crack. Matching an
+# optionally-commented shipped line is the same pattern as the pacman
+# [options] flags in the packages role.
+- name: Set YESCRYPT_COST_FACTOR in login.defs
+  ansible.builtin.lineinfile:
+    path: /etc/login.defs
+    regexp: '^#?YESCRYPT_COST_FACTOR\b'
+    line: "YESCRYPT_COST_FACTOR 7"
+    state: present
+
+# lynis AUTH-9328 (#62): the default 022 makes every newly created file
+# world-readable. 027 strips "other" access from files created in login
+# sessions (files 640, directories 750); services are unaffected.
+- name: Set default umask 027 in login.defs
+  ansible.builtin.lineinfile:
+    path: /etc/login.defs
+    regexp: '^#?UMASK\b'
+    line: "UMASK\t\t027"
+    state: present
