@@ -345,6 +345,7 @@
     name:
       - ansible
       - apparmor
+      - arch-audit
       - audit
       - curl
       - fail2ban
