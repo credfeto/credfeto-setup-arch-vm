@@ -13,7 +13,12 @@
 # pick up a new schedule at its next reboot. Restarting the timer is safe
 # from inside a timer-triggered run: the Requires= on ansible-pull.service
 # only issues a start job, which is a no-op while the service (this play)
-# is already active.
+# is already active. From a MANUAL run (ssh/ad-hoc ansible-pull, where the
+# service is not active) the restart instead fires the service immediately
+# (the long-elapsed OnBootSec trigger re-arms on timer start), i.e. one
+# extra pull of the timer's own branch right after this play - idempotent
+# and benign on main, but during branch testing that extra main pull
+# reverts this unit file to main's version (observed on arch-vm-test).
 - name: Install ansible-pull.timer unit
   ansible.builtin.copy:
     src: ansible-pull.timer
