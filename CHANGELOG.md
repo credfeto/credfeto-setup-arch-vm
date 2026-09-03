@@ -167,6 +167,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Remove criu and pigz packages — neither is used or configured by the script
 - Remove curl-based security script in favour of ansible-pull timer
 - auto-update bash script, service, and timer — superseded by the packages role running pacman -Syyu on every hourly ansible-pull run
+- reflector and the chaotic-mirrorlist package from DNS hosts (dns-NN), along with reflector's timer and /etc/xdg/reflector configuration; all other hosts keep both
 ### Deployment Changes
 - Already-provisioned hosts have /etc/resolv.conf replaced (static file on dns-?? hosts, symlink to systemd-resolved's stub on every other host) and systemd-resolved restarted on their next ansible-pull run
 - Existing hosts must re-run ansible-pull (or restart systemd-resolved) to pick up the DNSSEC=no change
