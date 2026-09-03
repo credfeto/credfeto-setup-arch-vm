@@ -272,12 +272,17 @@
 # deletes /etc/pacman.d/chaotic-mirrorlist, and doing that while
 # pacman.conf still carried the previous run's Include line would leave a
 # window (or, if the play aborted inside it, a whole hour until the next
-# pull) where every pacman invocation fails to parse its own config.
+# pull) where every pacman invocation fails to parse its own config. The
+# key-trusted gate matches the blockinfile above for the same reason: on a
+# rescue-path run (keyserver unreachable) the rewrite is skipped, so a
+# leftover non-DNS block would still Include the file this deletes.
 - name: Remove Chaotic AUR mirrorlist package on DNS hosts
   community.general.pacman:
     name: chaotic-mirrorlist
     state: absent
-  when: host_is_dns_server
+  when:
+    - host_is_dns_server
+    - packages_chaotic_key_trusted
 
 # Removal path for DNS hosts (#224), deliberately placed BEFORE "Update
 # all packages": the whole point is eliminating non-allow-listable egress,
