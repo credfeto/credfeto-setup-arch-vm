@@ -19,6 +19,16 @@
     state: started
     daemon_reload: true
 
+# sshd reads its config as root, so nothing else needs read access; the
+# package ships it 0644 (lynis FILE-7524, #62). The drop-ins under
+# sshd_config.d are already written 0600 by the tasks below.
+- name: Restrict sshd_config to root only
+  ansible.builtin.file:
+    path: /etc/ssh/sshd_config
+    owner: root
+    group: root
+    mode: "0600"
+
 - name: Remove legacy misnamed logingraceime config file
   ansible.builtin.file:
     path: /etc/ssh/sshd_config.d/10-logingraceime.conf
