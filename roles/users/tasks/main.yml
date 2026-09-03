@@ -93,3 +93,20 @@
     regexp: '^#?UMASK\b'
     line: "UMASK\t\t027"
     state: present
+
+# lynis BANN-7126/BANN-7128 (#62): consent banner shown on the console
+# (/etc/issue) and offered to network login services (/etc/issue.net).
+- name: Install legal banner
+  ansible.builtin.copy:
+    dest: "{{ item }}"
+    content: |
+      By accessing this system, you consent to the following conditions:
+      - This system is for authorized use only.
+      - Any or all uses of this system and all files on this system may be monitored.
+      - Communications using, or data stored on, this system are not private.
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - /etc/issue
+    - /etc/issue.net
