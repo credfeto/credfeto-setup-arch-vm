@@ -306,7 +306,7 @@
       blacklist vivid
       install vivid /bin/false
       # FireWire storage (lynis STRG-1846, #62): DMA-capable and usable
-      # for unauthorized storage attach; no such hardware in these VMs
+      # for unauthorised storage attach; no such hardware in these VMs
       blacklist firewire_core
       install firewire_core /bin/false
       blacklist firewire_ohci
