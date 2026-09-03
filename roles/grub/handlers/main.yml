@@ -10,3 +10,13 @@
     cmd: mkinitcpio -P
   changed_when: true
   listen: boot-config-changed
+
+# grub-mkconfig above recreates grub.cfg world-readable; re-tighten it in
+# the same run (lynis FILE-7524, #62).
+- name: Restrict regenerated grub.cfg to root only
+  ansible.builtin.file:
+    path: /boot/grub/grub.cfg
+    owner: root
+    group: root
+    mode: "0600"
+  listen: boot-config-changed
