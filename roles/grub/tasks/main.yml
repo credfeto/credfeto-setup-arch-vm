@@ -167,3 +167,14 @@
     regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\biommu=).*)"$'
     line: '\1 iommu=force"'
   notify: boot-config-changed
+
+# grub.cfg leaks kernel command line and boot layout to any local user;
+# lynis FILE-7524 (#62). grub-mkconfig recreates it world-readable, so the
+# regen handler chain re-tightens it too - this task covers hosts where no
+# regen fires this run.
+- name: Restrict grub.cfg to root only
+  ansible.builtin.file:
+    path: /boot/grub/grub.cfg
+    owner: root
+    group: root
+    mode: "0600"
