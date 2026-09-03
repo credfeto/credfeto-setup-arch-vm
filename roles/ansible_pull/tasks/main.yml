@@ -8,6 +8,12 @@
     mode: "0644"
   notify: Reload systemd
 
+# Restart (not just daemon-reload) on change: a running timer keeps the
+# schedule it was started with, so without the restart the fleet would only
+# pick up a new schedule at its next reboot. Restarting the timer is safe
+# from inside a timer-triggered run: the Requires= on ansible-pull.service
+# only issues a start job, which is a no-op while the service (this play)
+# is already active.
 - name: Install ansible-pull.timer unit
   ansible.builtin.copy:
     src: ansible-pull.timer
@@ -15,7 +21,7 @@
     owner: root
     group: root
     mode: "0644"
-  notify: Reload systemd
+  notify: Restart ansible-pull timer
 
 - name: Enable and start ansible-pull timer
   ansible.builtin.systemd:
