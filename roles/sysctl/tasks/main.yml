@@ -359,7 +359,16 @@
 
 # fs.suid_dumpable above stops setuid dumps; this closes the ulimit path
 # so no login session can re-enable core dumps for its own processes
-# (lynis KRNL-5820, #62).
+# (lynis KRNL-5820, #62). pam ships only limits.conf on Arch - the
+# limits.d directory does not exist until something creates it.
+- name: Ensure /etc/security/limits.d exists
+  ansible.builtin.file:
+    path: /etc/security/limits.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
 - name: Disable core dumps via security limits
   ansible.builtin.copy:
     dest: /etc/security/limits.d/10-no-core-dumps.conf
