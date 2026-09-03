@@ -55,6 +55,21 @@ This VM is exclusively for testing. Feel free to:
 
 There is no need to ask permission before rebooting or making significant changes to this VM.
 
+## Security Audit (every test session - MANDATORY)
+
+After the final branch run of a test session (once the playbook applies with `failed=0`), run a lynis security audit and a Docker smoke test on the VM:
+
+1. Install lynis if missing: `ssh markr@arch-vm-test.lan sudo -n pacman -S --noconfirm --needed lynis` (installed ad-hoc on the test VM only - it is deliberately not in the fleet package list).
+2. Docker smoke test: `ssh markr@arch-vm-test.lan sudo -n docker run --rm alpine:latest echo docker-smoke-ok`. This exercises the bridge, iptables, forwarding, and DNS in one shot; if it fails after a hardening change, the change is broken regardless of what lynis says.
+3. Run the audit: `ssh markr@arch-vm-test.lan sudo -n lynis audit system --quiet --no-colors`, then read `/var/log/lynis-report.dat` (`hardening_index=`, `warning[]=`, `suggestion[]=` lines) and `/var/log/lynis.log` for per-test detail.
+4. Compare against [LYNIS.md](../../LYNIS.md) at the repo root:
+   - The hardening index must not be below the recorded baseline.
+   - Every warning/suggestion must be either listed in LYNIS.md (accepted or expected-dynamic) or triaged now: if the branch under test caused it, fix it on the branch; otherwise file an issue for it and add it to LYNIS.md with a reason.
+   - An index drop or an untriaged new finding blocks marking the PR ready.
+5. When findings or the index legitimately change, update LYNIS.md on the branch (index, accepted table, capture line) and record the before/after index in the PR description.
+
+Known quirks: the scheduled hourly ansible-pull of main can update the kernel mid-session, producing a transient KRNL-5830 reboot-needed warning; PKGS-7322 (arch-audit output) is routinely non-empty on a rolling release - both are documented as expected in LYNIS.md.
+
 ## Cleanup After Testing
 
 After testing is complete, **revert the VM to its pre-test state** so it is clean for the next test run:
