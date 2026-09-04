@@ -356,3 +356,36 @@
     value: "0"
     sysctl_file: /etc/sysctl.d/10-net.ipv4.tcp_sack.conf
     reload: true
+
+# fs.suid_dumpable above stops setuid dumps; this closes the ulimit path
+# so no login session can re-enable core dumps for its own processes
+# (lynis KRNL-5820, #62). pam_limits never applies wildcard entries to
+# root, so root needs its own line. pam ships only limits.conf on Arch -
+# the limits.d directory does not exist until something creates it.
+- name: Ensure /etc/security/limits.d exists
+  ansible.builtin.file:
+    path: /etc/security/limits.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Disable core dumps via security limits
+  ansible.builtin.copy:
+    dest: /etc/security/limits.d/10-no-core-dumps.conf
+    content: |
+      * hard core 0
+      root hard core 0
+    owner: root
+    group: root
+    mode: "0644"
+
+# Loading an arbitrary TTY line discipline via TIOCSETD historically gave
+# local privilege-escalation primitives; nothing on these hosts needs
+# autoloading (lynis KRNL-6000, #62).
+- name: Set dev.tty.ldisc_autoload
+  ansible.posix.sysctl:
+    name: dev.tty.ldisc_autoload
+    value: "0"
+    sysctl_file: /etc/sysctl.d/10-dev.tty.ldisc_autoload.conf
+    reload: true

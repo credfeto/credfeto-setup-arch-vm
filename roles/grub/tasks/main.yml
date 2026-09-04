@@ -167,3 +167,19 @@
     regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\biommu=).*)"$'
     line: '\1 iommu=force"'
   notify: boot-config-changed
+
+# grub.cfg leaks the kernel command line and boot layout to any local
+# user; lynis FILE-7524 (#62). /boot is a vfat ESP, where per-file chmod
+# is impossible - permissions come from the fmask/dmask mount options, so
+# tighten those (files 0600, directories 0700) on the fstab entry. The
+# replace only touches a vfat /boot line still carrying the default
+# fmask=0022,dmask=0022 pair, so it is idempotent and inert on any host
+# already tightened or laid out differently. vfat ignores mask changes on
+# remount (confirmed on arch-vm-test), so the new masks take effect at
+# the next reboot - the reboot role already reboots on kernel updates,
+# which bounds the window.
+- name: Restrict /boot to root only via vfat mount masks
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^(\S+\s+/boot\s+vfat\s+\S*)fmask=0022,dmask=0022'
+    replace: '\1fmask=0177,dmask=0077'

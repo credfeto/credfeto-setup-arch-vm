@@ -70,6 +70,8 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Enable and start serial-getty@ttyS0.service via the services role, giving VMs a browser-copy/paste-capable serial console that keeps working when guest networking is down
 - Configure a system-wide coloured Starship prompt for all users
 - Enable ILoveCandy, CheckSpace and VerbosePkgLists options in pacman.conf
+- lynis-driven hardening: /boot locked to root via vfat mount masks, sshd_config restricted to root, core dumps disabled via security limits, login.defs yescrypt cost factor raised and umask tightened to 027, TTY line-discipline autoloading disabled, FireWire storage modules blacklisted, legal consent banner installed, and arch-audit installed for vulnerable-package detection
+- LYNIS.md security-audit baseline (hardening index 75) with an accepted-findings register, maintained by a mandatory lynis audit and Docker smoke test on every test-VM session
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
