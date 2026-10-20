@@ -2,3 +2,9 @@
 - name: Reload systemd
   ansible.builtin.systemd:
     daemon_reload: true
+
+- name: Restart fstrim timer
+  ansible.builtin.systemd:
+    name: fstrim.timer
+    state: restarted
+    daemon_reload: true
