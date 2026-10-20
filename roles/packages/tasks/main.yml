@@ -174,11 +174,23 @@
       {{ packages_chaotic_key_check.rc == 0
          or packages_chaotic_key_receive.rc | default(1) == 0 }}
 
-# DNS hosts fetch the keyring bootstrap through the internal cache (the
-# unversioned chaotic-keyring.pkg.tar.zst symlink is part of the same
-# chaotic-aur/x86_64 directory the cache proxies); everything else keeps
-# the upstream CDN. Same package either way, verified by the signing key
-# trusted above.
+- name: Check if Chaotic AUR keyring is installed
+  ansible.builtin.command:
+    cmd: pacman -Q chaotic-keyring
+  register: packages_chaotic_keyring_check
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: packages_chaotic_key_trusted
+
+# The URL install is bootstrap-only: [chaotic-aur] is not in pacman.conf
+# yet on a fresh host, and once installed "Update all packages" keeps it
+# current from the repo (--needed would not stop a URL reinstall from
+# downgrading it to an older URL build). DNS hosts fetch the bootstrap
+# through the internal cache (the unversioned chaotic-keyring.pkg.tar.zst
+# symlink is part of the same chaotic-aur/x86_64 directory the cache
+# proxies); everything else keeps the upstream CDN. Same package either
+# way, verified by the signing key trusted above.
 - name: Install Chaotic AUR keyring
   community.general.pacman:
     name: "{{ packages_chaotic_keyring_url }}"
@@ -189,13 +201,27 @@
       {{ host_is_dns_server | ternary(
            pacman_cache_chaotic_server ~ '/chaotic-keyring.pkg.tar.zst',
            'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst') }}
-  when: packages_chaotic_key_trusted
+  when:
+    - packages_chaotic_key_trusted
+    - packages_chaotic_keyring_check.rc != 0
+
+- name: Check if Chaotic AUR mirrorlist is installed
+  ansible.builtin.command:
+    cmd: pacman -Q chaotic-mirrorlist
+  register: packages_chaotic_mirrorlist_check
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when:
+    - not host_is_dns_server
+    - packages_chaotic_key_trusted
 
 # The mirrorlist package only exists to provide /etc/pacman.d/chaotic-
 # mirrorlist for the Include below; DNS hosts use a Server=-only section
 # that never references it, so it is removed there rather than installed
 # (the removal itself sits AFTER the blockinfile rewrite below, so the
-# file never disappears while pacman.conf still Includes it).
+# file never disappears while pacman.conf still Includes it). The URL
+# install is bootstrap-only, as for the keyring above.
 - name: Install Chaotic AUR mirrorlist
   community.general.pacman:
     name: https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst  # yamllint disable-line rule:line-length
@@ -204,6 +230,7 @@
   when:
     - not host_is_dns_server
     - packages_chaotic_key_trusted
+    - packages_chaotic_mirrorlist_check.rc != 0
 
 - name: Remove any unmanaged chaotic-aur section from pacman.conf
   ansible.builtin.shell:
