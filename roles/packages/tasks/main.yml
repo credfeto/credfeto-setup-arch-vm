@@ -183,16 +183,14 @@
   check_mode: false
   when: packages_chaotic_key_trusted
 
-# The URL install is bootstrap-only: the [chaotic-aur] section is added to
-# pacman.conf after this task, so a fresh host cannot install the keyring
-# by name yet. Once installed, "Update all packages" keeps it current from
-# the repo; re-running the URL install would downgrade it whenever the URL
-# serves an older build than the repo, because --needed only skips an
-# identical version. DNS hosts fetch the bootstrap through the internal
-# cache (the unversioned chaotic-keyring.pkg.tar.zst symlink is part of the
-# same chaotic-aur/x86_64 directory the cache proxies); everything else
-# keeps the upstream CDN. Same package either way, verified by the signing
-# key trusted above.
+# The URL install is bootstrap-only: [chaotic-aur] is not in pacman.conf
+# yet on a fresh host, and once installed "Update all packages" keeps it
+# current from the repo (--needed would not stop a URL reinstall from
+# downgrading it to an older URL build). DNS hosts fetch the bootstrap
+# through the internal cache (the unversioned chaotic-keyring.pkg.tar.zst
+# symlink is part of the same chaotic-aur/x86_64 directory the cache
+# proxies); everything else keeps the upstream CDN. Same package either
+# way, verified by the signing key trusted above.
 - name: Install Chaotic AUR keyring
   community.general.pacman:
     name: "{{ packages_chaotic_keyring_url }}"
@@ -223,10 +221,7 @@
 # that never references it, so it is removed there rather than installed
 # (the removal itself sits AFTER the blockinfile rewrite below, so the
 # file never disappears while pacman.conf still Includes it). The URL
-# install is bootstrap-only for the same reason as the keyring above: the
-# repo is not configured yet on a fresh host, and once installed the repo
-# build is kept current by "Update all packages", which a URL reinstall of
-# an older build would otherwise downgrade.
+# install is bootstrap-only, as for the keyring above.
 - name: Install Chaotic AUR mirrorlist
   community.general.pacman:
     name: https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst  # yamllint disable-line rule:line-length
