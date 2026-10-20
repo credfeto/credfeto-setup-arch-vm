@@ -51,6 +51,33 @@
     state: started
     daemon_reload: true
 
+# fstrim.timer daily drop-in
+- name: Create fstrim.timer drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/fstrim.timer.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+# Restart (not just daemon-reload) on change: a running timer keeps the
+# schedule it was started with.
+- name: Install fstrim.timer daily drop-in
+  ansible.builtin.copy:
+    src: fstrim-daily.conf
+    dest: /etc/systemd/system/fstrim.timer.d/daily.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart fstrim timer
+
+- name: Enable and start fstrim timer
+  ansible.builtin.systemd:
+    name: fstrim.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+
 # Cleanup stale docker-cleanup units if container runtime is not Docker
 - name: Disable docker-cleanup timer if present
   ansible.builtin.systemd:
