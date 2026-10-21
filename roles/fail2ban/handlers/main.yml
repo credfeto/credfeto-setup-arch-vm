@@ -1,6 +1,11 @@
 ---
+# A start in this run already read the current jail files and the reloaded
+# unit, so only a fail2ban that was running before the run needs restarting.
+# fail2ban_started is undefined when a task failed before Start fail2ban and
+# force_handlers runs this anyway; restart then, as the start never happened.
 - name: Restart fail2ban
   ansible.builtin.systemd:
     name: fail2ban
     state: restarted
     daemon_reload: true
+  when: fail2ban_started is not defined or fail2ban_started is not changed

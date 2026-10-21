@@ -41,9 +41,17 @@
 # definition order, so the firewall role's Restart firewalld runs before
 # Restart fail2ban. Reloading now means systemd already has the uncoupled
 # unit loaded before any firewalld restart is queued.
-- name: Enable and start fail2ban
+- name: Enable fail2ban
   ansible.builtin.systemd:
     name: fail2ban
     enabled: true
-    state: started
     daemon_reload: true
+
+# Separate from enabling so that changed here means fail2ban was actually
+# started, which the Restart fail2ban handler relies on to skip a second
+# start in the same run.
+- name: Start fail2ban
+  ansible.builtin.systemd:
+    name: fail2ban
+    state: started
+  register: fail2ban_started
