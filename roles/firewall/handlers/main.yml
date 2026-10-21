@@ -12,17 +12,34 @@
 # firewalld.service Conflicts= with (iptables, ip6tables, ipset), so a
 # firewalld restart queues both a restart and a stop job for an active
 # fail2ban and systemd rejects the transaction. Stopping fail2ban first
-# leaves nothing to conflict; Restart firewalld then starts it again.
-# Must be defined above Restart firewalld: handlers run in definition order.
+# leaves nothing to conflict; the handlers below start it again.
+# The four handlers below all run on Restart firewalld, in definition order.
 - name: Stop fail2ban before restarting firewalld
   ansible.builtin.systemd:
     name: fail2ban
     state: stopped
   listen: Restart firewalld
 
+# A failed handler stops every later handler for the host, and block
+# rescue/always is not honoured in handlers, so the failure is held in a
+# register until fail2ban has been started again, then raised.
 - name: Restart firewalld
   ansible.builtin.systemd:
     name: firewalld
     state: restarted
     daemon_reload: true
-  notify: Restart fail2ban
+  register: firewall_firewalld_restart
+  ignore_errors: true
+
+# A fresh start re-bans every still-active entry from fail2ban's database.
+- name: Start fail2ban after restarting firewalld
+  ansible.builtin.systemd:
+    name: fail2ban
+    state: started
+  listen: Restart firewalld
+
+- name: Fail if firewalld did not restart
+  ansible.builtin.fail:
+    msg: "firewalld failed to restart: {{ firewall_firewalld_restart.msg | default('no message') }}"
+  when: firewall_firewalld_restart is failed
+  listen: Restart firewalld

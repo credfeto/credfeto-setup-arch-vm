@@ -25,8 +25,9 @@
     - ssh
     - firewall
     # Must come after firewall: handlers run in the order they are defined,
-    # and the firewalld reload/restart handlers notify Restart fail2ban,
-    # which has to run after them to re-add the bans they drop.
+    # and the firewalld reload handler notifies Restart fail2ban, which has
+    # to run after it to re-add the bans it drops. The firewalld restart
+    # handlers stop and start fail2ban themselves.
     - fail2ban
     - network
     - apparmor
