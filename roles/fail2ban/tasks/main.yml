@@ -1,0 +1,31 @@
+---
+- name: Configure fail2ban default jail settings
+  ansible.builtin.copy:
+    dest: /etc/fail2ban/jail.d/default.local
+    content: |
+      [DEFAULT]
+      bantime = 1h
+      banaction = firewallcmd-rich-rules
+      banaction_allports = firewallcmd-allports
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart fail2ban
+
+- name: Configure fail2ban sshd jail
+  ansible.builtin.copy:
+    dest: /etc/fail2ban/jail.d/ssh.local
+    content: |
+      [sshd]
+      enabled = true
+      mode = aggressive
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart fail2ban
+
+- name: Enable and start fail2ban
+  ansible.builtin.systemd:
+    name: fail2ban
+    enabled: true
+    state: started
