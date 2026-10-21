@@ -1,0 +1,33 @@
+# Managed by the fail2ban Ansible role.
+#
+# Full copy of the packaged /usr/lib/systemd/system/fail2ban.service with the
+# iptables/firewalld/ip6tables/ipset/nftables entries removed from After= and
+# PartOf=. The packaged PartOf= on firewalld.service and on the units
+# firewalld.service Conflicts= with makes "systemctl restart firewalld" fail
+# with conflicting restart and stop jobs for an active fail2ban. The nftables
+# ban action keeps its rules in its own inet f2b-table, which firewalld never
+# flushes, so fail2ban needs no coupling to any firewall unit. PartOf= cannot
+# be reset from a drop-in, hence a full unit rather than a .d override.
+#
+# Keep everything below in step with the packaged unit when the fail2ban
+# package changes it.
+[Unit]
+Description=Fail2Ban Service
+Documentation=man:fail2ban(1)
+After=network.target
+
+[Service]
+Type=simple
+Environment="PYTHONNOUSERSITE=1"
+RuntimeDirectory=fail2ban
+StateDirectory=fail2ban
+ExecStart=/usr/bin/fail2ban-server -xf start
+# if should be logged in systemd journal, use following line or set logtarget to sysout in fail2ban.local
+# ExecStart=/usr/bin/fail2ban-server -xf --logtarget=sysout start
+ExecStop=/usr/bin/fail2ban-client stop
+ExecReload=/usr/bin/fail2ban-client reload
+Restart=on-failure
+RestartPreventExitStatus=0 255
+
+[Install]
+WantedBy=multi-user.target

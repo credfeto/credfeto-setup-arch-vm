@@ -24,8 +24,26 @@
     mode: "0644"
   notify: Restart fail2ban
 
+# Full unit, not a drop-in: the packaged unit's PartOf= on firewalld.service
+# (and the units firewalld Conflicts= with) cannot be reset from a .d file,
+# and it makes a firewalld restart fail while fail2ban is active. The file
+# must be kept in step with the packaged /usr/lib/systemd/system unit.
+- name: Install fail2ban.service unit without firewall unit coupling
+  ansible.builtin.copy:
+    src: fail2ban.service
+    dest: /etc/systemd/system/fail2ban.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart fail2ban
+
+# daemon_reload here, not only in the handler: handlers flush at play end in
+# definition order, so the firewall role's Restart firewalld runs before
+# Restart fail2ban. Reloading now means systemd already has the uncoupled
+# unit loaded before any firewalld restart is queued.
 - name: Enable and start fail2ban
   ansible.builtin.systemd:
     name: fail2ban
     enabled: true
     state: started
+    daemon_reload: true

@@ -4,36 +4,17 @@
     cmd: firewall-cmd --reload
   changed_when: true
 
-# fail2ban.service is PartOf= both firewalld.service and the units
-# firewalld.service Conflicts= with (iptables, ip6tables, ipset), so a
-# firewalld restart queues both a restart and a stop job for an active
-# fail2ban and systemd rejects the transaction. Stopping fail2ban first
-# leaves nothing to conflict; the handlers below start it again.
-# The five handlers below all run on Restart firewalld, in definition order.
-# A failed handler stops every later handler for the host, and block
-# rescue/always is not honoured in handlers, so this failure, the firewalld
-# restart's, the state check's and the fail2ban start's are held in
-# registers until fail2ban has been started again, then raised together.
-- name: Stop fail2ban before restarting firewalld
-  ansible.builtin.systemd:
-    name: fail2ban
-    state: stopped
-  register: firewall_fail2ban_stop
-  ignore_errors: true
-  listen: Restart firewalld
-
 - name: Restart firewalld
   ansible.builtin.systemd:
     name: firewalld
     state: restarted
     daemon_reload: true
-  register: firewall_firewalld_restart
-  ignore_errors: true
 
 # firewalld.service is Type=simple, so the restart reports success as soon as
 # the process is forked, even when firewalld then exits; systemctl is-active
 # can likewise read active before it dies. firewall-cmd --state succeeds only
-# once the daemon is answering on D-Bus, so poll it.
+# once the daemon is answering on D-Bus, so poll it and fail the run when it
+# never does.
 - name: Check firewalld is running after restarting it
   ansible.builtin.command:
     cmd: firewall-cmd --state
@@ -42,36 +23,4 @@
   until: firewall_firewalld_state.rc == 0
   retries: 10
   delay: 1
-  ignore_errors: true
-  listen: Restart firewalld
-
-- name: Start fail2ban after restarting firewalld
-  ansible.builtin.systemd:
-    name: fail2ban
-    state: started
-  register: firewall_fail2ban_start
-  ignore_errors: true
-  listen: Restart firewalld
-
-- name: Fail if firewalld or fail2ban did not restart
-  ansible.builtin.fail:
-    msg: >-
-      fail2ban stop:
-      {{ firewall_fail2ban_stop.msg | default('failed')
-      if firewall_fail2ban_stop is failed else 'ok' }};
-      firewalld restart:
-      {{ firewall_firewalld_restart.msg | default('failed')
-      if firewall_firewalld_restart is failed else 'ok' }};
-      firewalld state:
-      {{ (firewall_firewalld_state.stdout | default('') ~ ' '
-      ~ firewall_firewalld_state.stderr | default('')) | trim
-      if firewall_firewalld_state is failed else 'ok' }};
-      fail2ban start:
-      {{ firewall_fail2ban_start.msg | default('failed')
-      if firewall_fail2ban_start is failed else 'ok' }}
-  when: >-
-    firewall_fail2ban_stop is failed
-    or firewall_firewalld_restart is failed
-    or firewall_firewalld_state is failed
-    or firewall_fail2ban_start is failed
   listen: Restart firewalld
