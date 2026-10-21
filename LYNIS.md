@@ -8,10 +8,11 @@ that must be triaged before a PR is marked ready.
 
 ## Hardening index
 
-**76** (lynis 3.1.7 on arch-vm-test.lan)
+**77** (lynis 3.1.7 on arch-vm-test.lan)
 
 For reference: 74 before the #62 hardening changes (75 before the
-review-pass fixes added the sshd Banner and the root core-dump limit).
+review-pass fixes added the sshd Banner and the root core-dump limit);
+76 before #245 restored fail2ban (now reported as IDS/IPS tooling).
 
 ## Expected warnings (dynamic conditions, not regressions)
 
@@ -35,6 +36,7 @@ review-pass fixes added the sshd Banner and the root core-dump limit).
 | AUTH-9286 | Min/max password age | Password authentication is disabled; aging adds lockout risk with no benefit. |
 | BOOT-5122 | GRUB boot loader password | Headless VMs recovered via console; a GRUB password blocks unattended recovery. Hypervisor access already implies full control. |
 | BOOT-5264 | Harden systemd services | Real work, tracked separately - see the follow-up issue for per-service `systemd-analyze security` sandboxing. |
+| KRNL-6000 | One or more sysctl values differ from the scan profile | Umbrella summary lynis emits whenever any KRNL-6000 sysctl item differs; the specific items are each accepted in the rows below. |
 | KRNL-6000 | `kernel.modules_disabled=1` | Would block all module loading until reboot, breaking Docker (iptables/overlay module loads) and maintenance. |
 | KRNL-6000 | `net.ipv4.conf.all.forwarding=0` | Forwarding is required by Docker; deliberately enabled by the sysctl role. |
 | KRNL-6000 | `net.ipv4.conf.all.rp_filter=1` (strict) | Loose mode (2) is deliberate for Docker bridge traffic. |
@@ -51,4 +53,4 @@ review-pass fixes added the sshd Banner and the root core-dump limit).
 
 ---
 
-Captured with lynis 3.1.7 on 2026-09-03 against branch feature/62-lynis-hardening (post-#62 hardening, including the review-pass fixes).
+Captured with lynis 3.1.7 on 2026-10-21 against branch fix/245-restore-fail2ban (post-#245, fail2ban restored).
