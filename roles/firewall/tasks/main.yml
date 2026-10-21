@@ -102,6 +102,7 @@
     cmd: firewall-cmd --reload
   when: container_runtime == 'docker' and firewall_docker_zone_check.rc != 0
   changed_when: true
+  notify: Restart fail2ban
 
 - name: Assign Docker bridge subnet to docker zone
   ansible.posix.firewalld:
