@@ -19,7 +19,7 @@ Use this VM to validate Ansible role changes and install script modifications be
 
 > The VM also has a `test` user documented/keyed for this purpose, but its
 > key (`~/.ssh/id_arch-vm-test.lan`) is currently rejected by the VM
-> (`Permission denied (publickey)`) — use `markr@` until that's fixed.
+> (`Permission denied (publickey)`), so use `markr@` until that's fixed.
 
 ## When to Use the Test VM
 

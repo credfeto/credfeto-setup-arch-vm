@@ -7,7 +7,7 @@
 #   2. Duplicate [chaotic-aur] section in /etc/pacman.conf → unmanaged copy
 #      removed, leaving only the Ansible-managed block.
 #
-# Safe to re-run — all checks are idempotent.
+# Safe to re-run: all checks are idempotent.
 # Must be run as root.
 
 set -e
@@ -47,7 +47,7 @@ if [ -f "${NETFILE}" ]; then
         skip "Subnet mask in ${NETFILE} is already correct (no /25 found)"
     fi
 else
-    skip "${NETFILE} does not exist — skipping subnet fix"
+    skip "${NETFILE} does not exist, skipping subnet fix"
 fi
 
 # ── Fix 2: duplicate [chaotic-aur] in pacman.conf ────────────────────────────
@@ -86,10 +86,10 @@ with open(path, 'w') as f:
 EOF
         ok "Removed duplicate [chaotic-aur] section from ${PACMANCONF}"
     else
-        skip "Only one [chaotic-aur] section found in ${PACMANCONF} — no duplicate to remove"
+        skip "Only one [chaotic-aur] section found in ${PACMANCONF} (no duplicate to remove)"
     fi
 else
-    skip "No [chaotic-aur] section found in ${PACMANCONF} — skipping"
+    skip "No [chaotic-aur] section found in ${PACMANCONF}, skipping"
 fi
 
 ok "Remediation complete"

@@ -1,5 +1,5 @@
 ---
-description: 'Output formatting rules for the install script — coloured indicators for applied, skipped, and failed steps.'
+description: 'Output formatting rules for the install script: coloured indicators for applied, skipped, and failed steps.'
 applyTo: '**'
 ---
 
@@ -14,8 +14,8 @@ The `install` script uses three helper functions for all status output. Plain `e
 | Function | Symbol | Colour | When to use |
 | --- | --- | --- | --- |
 | `ok "message"` | ✓ | Green | A setting was successfully applied or written |
-| `skip "message"` | ● | Yellow | A setting was already correct — no change needed |
-| `die "message"` | ✗ | Red | A fatal error occurred — prints to stderr and exits |
+| `skip "message"` | ● | Yellow | A setting was already correct (no change needed) |
+| `die "message"` | ✗ | Red | A fatal error occurred (prints to stderr and exits) |
 
 ## Implementation
 

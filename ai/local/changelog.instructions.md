@@ -23,7 +23,7 @@ dotnet changelog -f CHANGELOG.md -a Changed -m "Switch firewall backend from ipt
 
 ## Rules
 
-An entry is required for every commit that changes **what the script installs, configures, hardens, or how it behaves on a target system**. The audience is someone running the `install` script — describe what changed on their system, not how the code changed internally.
+An entry is required for every commit that changes **what the script installs, configures, hardens, or how it behaves on a target system**. The audience is someone running the `install` script: describe what changed on their system, not how the code changed internally.
 
 ### When to add an entry
 
@@ -45,6 +45,6 @@ An entry is required for every commit that changes **what the script installs, c
 
 ### Keeping entries accurate
 
-- If a previous `[Unreleased]` entry on the same branch is superseded, remove it with `-r` and add a replacement — do not leave stale entries.
+- If a previous `[Unreleased]` entry on the same branch is superseded, remove it with `-r` and add a replacement. Do not leave stale entries.
 - When an `[Unreleased]` entry is no longer valid, remove it.
-- Do not manually move or edit entries — use the tool only.
+- Do not manually move or edit entries. Use the tool only.
