@@ -165,11 +165,20 @@
   when: not host_is_dns_server
   notify: Restart systemd-resolved
 
-- name: Enable and start systemd-resolved
+- name: Enable systemd-resolved
   ansible.builtin.systemd:
     name: systemd-resolved
     enabled: true
+  when: not host_is_dns_server
+
+# Separate from enabling so that changed here means systemd-resolved was
+# actually started, which the Restart systemd-resolved handler relies on to
+# skip a second start in the same run.
+- name: Start systemd-resolved
+  ansible.builtin.systemd:
+    name: systemd-resolved
     state: started
+  register: network_resolved_started
   when: not host_is_dns_server
 
 - name: Point /etc/resolv.conf at systemd-resolved's stub

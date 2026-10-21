@@ -1,15 +1,29 @@
 ---
-- name: Enable and start firewalld
-  ansible.builtin.systemd:
-    name: firewalld
-    enabled: true
-    state: started
-
+# Before starting firewalld, so a start in this run already runs without the
+# drop-in and the Restart firewalld handler is only needed when firewalld was
+# running with it loaded.
 - name: Remove legacy firewalld systemd security drop-in
   ansible.builtin.file:
     path: /etc/systemd/system/firewalld.service.d/security.conf
     state: absent
   notify: Restart firewalld
+
+# daemon_reload so that a start below no longer applies a just-removed
+# drop-in.
+- name: Enable firewalld
+  ansible.builtin.systemd:
+    name: firewalld
+    enabled: true
+    daemon_reload: true
+
+# Separate from enabling so that changed here means firewalld was actually
+# started, which the Restart firewalld handlers rely on to skip a second
+# start in the same run.
+- name: Start firewalld
+  ansible.builtin.systemd:
+    name: firewalld
+    state: started
+  register: firewall_firewalld_started
 
 # Allow SSH from IPv4 RFC-1918 private ranges
 - name: Allow SSH from 10.0.0.0/8 (IPv4)

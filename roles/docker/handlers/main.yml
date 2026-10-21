@@ -3,7 +3,12 @@
   ansible.builtin.systemd:
     daemon_reload: true
 
+# A start in this run already read the current daemon.json, so only a docker
+# that was running before the run needs restarting. docker_started is
+# undefined when a task failed before Start docker service and force_handlers
+# runs this anyway; restart then, as the start never happened.
 - name: Restart docker
   ansible.builtin.systemd:
     name: docker
     state: restarted
+  when: docker_started is not defined or docker_started is not changed

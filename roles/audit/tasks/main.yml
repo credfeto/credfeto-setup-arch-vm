@@ -65,8 +65,19 @@
       -e 2
   notify: Restart auditd
 
-- name: Enable and start auditd service
+# This role is the only one that starts auditd: a start in an earlier role
+# would run before the rules above are written, so the Restart auditd handler
+# would have to restart it again in the same run to load them.
+- name: Enable auditd service
   ansible.builtin.systemd:
     name: auditd
     enabled: true
+
+# Separate from enabling so that changed here means auditd was actually
+# started, which the Restart auditd handler relies on to skip a second start
+# in the same run.
+- name: Start auditd service
+  ansible.builtin.systemd:
+    name: auditd
     state: started
+  register: audit_started

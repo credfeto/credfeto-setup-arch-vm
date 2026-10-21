@@ -28,9 +28,17 @@
     mode: "0644"
   notify: Restart ansible-pull timer
 
-- name: Enable and start ansible-pull timer
+- name: Enable ansible-pull timer
   ansible.builtin.systemd:
     name: ansible-pull.timer
     enabled: true
-    state: started
     daemon_reload: true
+
+# Separate from enabling so that changed here means the timer was actually
+# started, which the Restart ansible-pull timer handler relies on to skip a
+# second start in the same run.
+- name: Start ansible-pull timer
+  ansible.builtin.systemd:
+    name: ansible-pull.timer
+    state: started
+  register: ansible_pull_timer_started

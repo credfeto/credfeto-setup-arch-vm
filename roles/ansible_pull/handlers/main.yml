@@ -3,8 +3,13 @@
   ansible.builtin.systemd:
     daemon_reload: true
 
+# A start in this run already used the current timer unit, so only a timer
+# that was running before the run needs restarting. ansible_pull_timer_started
+# is undefined when a task failed before Start ansible-pull timer and
+# force_handlers runs this anyway; restart then, as the start never happened.
 - name: Restart ansible-pull timer
   ansible.builtin.systemd:
     name: ansible-pull.timer
     state: restarted
     daemon_reload: true
+  when: ansible_pull_timer_started is not defined or ansible_pull_timer_started is not changed

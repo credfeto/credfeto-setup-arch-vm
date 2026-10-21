@@ -1,5 +1,11 @@
 ---
+# A start in this run already read the current DNS server drop-in, so only a
+# systemd-resolved that was running before the run needs restarting.
+# network_resolved_started is undefined when a task failed before Start
+# systemd-resolved and force_handlers runs this anyway; restart then, as the
+# start never happened.
 - name: Restart systemd-resolved
   ansible.builtin.systemd:
     name: systemd-resolved
     state: restarted
+  when: network_resolved_started is not defined or network_resolved_started is not changed

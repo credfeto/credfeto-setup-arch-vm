@@ -1,5 +1,10 @@
 ---
+# A start in this run already read the current telegraf.conf, so only a
+# telegraf that was running before the run needs restarting. telegraf_started
+# is undefined when a task failed before Start telegraf service and
+# force_handlers runs this anyway; restart then, as the start never happened.
 - name: Restart telegraf
   ansible.builtin.systemd:
     name: telegraf
     state: restarted
+  when: telegraf_started is not defined or telegraf_started is not changed
