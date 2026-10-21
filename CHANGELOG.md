@@ -120,7 +120,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - IPv4 gateway detection no longer emits a garbage token into Gateway=/NTP= on hosts with an on-link (via-less) default route
 - Remove stale docker-cleanup/podman-cleanup systemd units when container_runtime no longer matches, so switching container runtimes stops leaving the old runtime's cleanup timer running forever
 - Chaotic AUR keyring and mirrorlist are now installed from their URLs only when not already installed, so hosts no longer downgrade chaotic-mirrorlist to the older CDN build and re-upgrade it on every run
-- fail2ban is configured and running again on every host with 1h bans and an aggressive SSH jail, after the Ansible migration had left it installed but disabled; active bans are re-applied whenever firewalld is reloaded or restarted; a firewalld restart now fails the run, reporting every failure together, when firewalld is left stopped, fail2ban cannot be stopped, or fail2ban does not start again, instead of silently leaving the host without a firewall or fail2ban
+- fail2ban is configured and running again on every host (1h bans, aggressive SSH jail) after the Ansible migration had left it installed but disabled; bans now use nftables, so they apply to every source address and survive firewalld reloads and restarts; a firewalld restart that leaves firewalld or fail2ban stopped now fails the run instead of silently leaving the host unprotected
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
