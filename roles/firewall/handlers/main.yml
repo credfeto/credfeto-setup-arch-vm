@@ -21,9 +21,9 @@
   listen: Restart firewalld
 
 # A failed handler stops every later handler for the host, and block
-# rescue/always is not honoured in handlers, so this failure and the state
-# check's are held in registers until fail2ban has been started again, then
-# raised.
+# rescue/always is not honoured in handlers, so this failure, the state
+# check's and the fail2ban start's are held in registers until fail2ban has
+# been started again, then raised together.
 - name: Restart firewalld
   ansible.builtin.systemd:
     name: firewalld
@@ -53,14 +53,25 @@
   ansible.builtin.systemd:
     name: fail2ban
     state: started
+  register: firewall_fail2ban_start
+  ignore_errors: true
   listen: Restart firewalld
 
-- name: Fail if firewalld did not restart
+- name: Fail if firewalld or fail2ban did not restart
   ansible.builtin.fail:
     msg: >-
-      firewalld failed to restart:
-      {{ firewall_firewalld_restart.msg | default('no restart error') }};
-      state: {{ firewall_firewalld_state.stdout | default('') }}
-      {{ firewall_firewalld_state.stderr | default('') }}
-  when: firewall_firewalld_restart is failed or firewall_firewalld_state is failed
+      firewalld restart:
+      {{ firewall_firewalld_restart.msg | default('failed')
+      if firewall_firewalld_restart is failed else 'ok' }};
+      firewalld state:
+      {{ (firewall_firewalld_state.stdout | default('') ~ ' '
+      ~ firewall_firewalld_state.stderr | default('')) | trim
+      if firewall_firewalld_state is failed else 'ok' }};
+      fail2ban start:
+      {{ firewall_fail2ban_start.msg | default('failed')
+      if firewall_fail2ban_start is failed else 'ok' }}
+  when: >-
+    firewall_firewalld_restart is failed
+    or firewall_firewalld_state is failed
+    or firewall_fail2ban_start is failed
   listen: Restart firewalld
