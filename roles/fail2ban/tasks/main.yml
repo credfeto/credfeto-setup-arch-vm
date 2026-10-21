@@ -47,6 +47,28 @@
     enabled: true
     daemon_reload: true
 
+# fail2ban-client --test parses the whole configuration (jail.conf plus every
+# jail.d file) and exits without contacting the server, so it works whether
+# fail2ban is running or stopped, and it fails on any invalid jail rather
+# than skipping it. failed_when: false so the result is always registered:
+# the Restart fail2ban handler checks it, because force_handlers would
+# otherwise run that restart into a broken configuration after the run fails.
+- name: Check fail2ban configuration
+  ansible.builtin.command:
+    cmd: fail2ban-client --test
+  register: fail2ban_config_check
+  changed_when: false
+  failed_when: false
+
+# After Enable fail2ban, whose daemon-reload touches no running process and
+# must happen before the firewall role's Restart firewalld even on a failed
+# run, and before Start fail2ban, so a bad configuration is never started on
+# a fresh host and a running fail2ban is left as it is.
+- name: Fail when the fail2ban configuration is invalid
+  ansible.builtin.fail:
+    msg: "fail2ban-client --test failed: {{ fail2ban_config_check.stdout }} {{ fail2ban_config_check.stderr }} {{ fail2ban_config_check.msg | default('') }}"
+  when: fail2ban_config_check.rc != 0
+
 # Separate from enabling so that changed here means fail2ban was actually
 # started, which the Restart fail2ban handler relies on to skip a second
 # start in the same run.
