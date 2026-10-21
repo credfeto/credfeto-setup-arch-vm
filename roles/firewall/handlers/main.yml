@@ -13,7 +13,7 @@
 # firewalld restart queues both a restart and a stop job for an active
 # fail2ban and systemd rejects the transaction. Stopping fail2ban first
 # leaves nothing to conflict; the handlers below start it again.
-# The four handlers below all run on Restart firewalld, in definition order.
+# The five handlers below all run on Restart firewalld, in definition order.
 - name: Stop fail2ban before restarting firewalld
   ansible.builtin.systemd:
     name: fail2ban
@@ -21,8 +21,9 @@
   listen: Restart firewalld
 
 # A failed handler stops every later handler for the host, and block
-# rescue/always is not honoured in handlers, so the failure is held in a
-# register until fail2ban has been started again, then raised.
+# rescue/always is not honoured in handlers, so this failure and the state
+# check's are held in registers until fail2ban has been started again, then
+# raised.
 - name: Restart firewalld
   ansible.builtin.systemd:
     name: firewalld
@@ -30,6 +31,22 @@
     daemon_reload: true
   register: firewall_firewalld_restart
   ignore_errors: true
+
+# firewalld.service is Type=simple, so the restart reports success as soon as
+# the process is forked, even when firewalld then exits; systemctl is-active
+# can likewise read active before it dies. firewall-cmd --state succeeds only
+# once the daemon is answering on D-Bus, so poll it. Running it before
+# fail2ban starts also means fail2ban re-adds its bans to a ready firewalld.
+- name: Check firewalld is running after restarting it
+  ansible.builtin.command:
+    cmd: firewall-cmd --state
+  register: firewall_firewalld_state
+  changed_when: false
+  until: firewall_firewalld_state.rc == 0
+  retries: 10
+  delay: 1
+  ignore_errors: true
+  listen: Restart firewalld
 
 # A fresh start re-bans every still-active entry from fail2ban's database.
 - name: Start fail2ban after restarting firewalld
@@ -40,6 +57,10 @@
 
 - name: Fail if firewalld did not restart
   ansible.builtin.fail:
-    msg: "firewalld failed to restart: {{ firewall_firewalld_restart.msg | default('no message') }}"
-  when: firewall_firewalld_restart is failed
+    msg: >-
+      firewalld failed to restart:
+      {{ firewall_firewalld_restart.msg | default('no restart error') }};
+      state: {{ firewall_firewalld_state.stdout | default('') }}
+      {{ firewall_firewalld_state.stderr | default('') }}
+  when: firewall_firewalld_restart is failed or firewall_firewalld_state is failed
   listen: Restart firewalld
