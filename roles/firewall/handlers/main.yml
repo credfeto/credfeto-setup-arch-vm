@@ -8,6 +8,18 @@
   changed_when: true
   notify: Restart fail2ban
 
+# fail2ban.service is PartOf= both firewalld.service and the units
+# firewalld.service Conflicts= with (iptables, ip6tables, ipset), so a
+# firewalld restart queues both a restart and a stop job for an active
+# fail2ban and systemd rejects the transaction. Stopping fail2ban first
+# leaves nothing to conflict; Restart firewalld then starts it again.
+# Must be defined above Restart firewalld: handlers run in definition order.
+- name: Stop fail2ban before restarting firewalld
+  ansible.builtin.systemd:
+    name: fail2ban
+    state: stopped
+  listen: Restart firewalld
+
 - name: Restart firewalld
   ansible.builtin.systemd:
     name: firewalld
