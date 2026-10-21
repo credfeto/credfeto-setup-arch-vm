@@ -1,11 +1,16 @@
 ---
+# A firewalld reload or restart drops fail2ban's runtime ban rules and
+# fail2ban does not re-add them; restarting fail2ban re-bans every
+# still-active entry from its database.
 - name: Reload firewalld
   ansible.builtin.command:
     cmd: firewall-cmd --reload
   changed_when: true
+  notify: Restart fail2ban
 
 - name: Restart firewalld
   ansible.builtin.systemd:
     name: firewalld
     state: restarted
     daemon_reload: true
+  notify: Restart fail2ban

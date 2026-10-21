@@ -24,6 +24,9 @@
     - grub
     - ssh
     - firewall
+    # Must come after firewall: handlers run in the order they are defined,
+    # and the firewalld reload/restart handlers notify Restart fail2ban,
+    # which has to run after them to re-add the bans they drop.
     - fail2ban
     - network
     - apparmor
