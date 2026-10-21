@@ -6,7 +6,7 @@ Sets up an Arch Linux VM with Docker, Git, and supporting tooling. The `install`
 - **Docker** (with Docker Compose and Buildx)
 - **firewalld** firewall
 - **SSH hardening** — strong crypto only, key-based auth, no root login
-- **fail2ban** — bans hosts after repeated failed SSH logins (`sshd` jail in aggressive mode, firewalld rich-rule ban action, 1h ban time), re-applied automatically after the playbook reloads or restarts firewalld
+- **fail2ban**: bans hosts after repeated failed SSH logins (`sshd` jail in aggressive mode, firewalld rich-rule ban action, 1h ban time), re-applied automatically after the playbook reloads or restarts firewalld
 - **sysctl hardening** — network, kernel, and filesystem protections, including persistent IPv4/IPv6 forwarding
 - **Core dump disabling** — via sysctl and systemd
 - **Kernel module blacklisting** — unused/dangerous protocols and filesystems
