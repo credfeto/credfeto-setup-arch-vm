@@ -120,6 +120,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - IPv4 gateway detection no longer emits a garbage token into Gateway=/NTP= on hosts with an on-link (via-less) default route
 - Remove stale docker-cleanup/podman-cleanup systemd units when container_runtime no longer matches, so switching container runtimes stops leaving the old runtime's cleanup timer running forever
 - Chaotic AUR keyring and mirrorlist are now installed from their URLs only when not already installed, so hosts no longer downgrade chaotic-mirrorlist to the older CDN build and re-upgrade it on every run
+- TBD - to be finalized after review
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
