@@ -1,12 +1,8 @@
 ---
-# A firewalld reload or restart drops fail2ban's runtime ban rules and
-# fail2ban does not re-add them; restarting fail2ban re-bans every
-# still-active entry from its database.
 - name: Reload firewalld
   ansible.builtin.command:
     cmd: firewall-cmd --reload
   changed_when: true
-  notify: Restart fail2ban
 
 # fail2ban.service is PartOf= both firewalld.service and the units
 # firewalld.service Conflicts= with (iptables, ip6tables, ipset), so a
@@ -37,8 +33,7 @@
 # firewalld.service is Type=simple, so the restart reports success as soon as
 # the process is forked, even when firewalld then exits; systemctl is-active
 # can likewise read active before it dies. firewall-cmd --state succeeds only
-# once the daemon is answering on D-Bus, so poll it. Running it before
-# fail2ban starts also means fail2ban re-adds its bans to a ready firewalld.
+# once the daemon is answering on D-Bus, so poll it.
 - name: Check firewalld is running after restarting it
   ansible.builtin.command:
     cmd: firewall-cmd --state
@@ -50,7 +45,6 @@
   ignore_errors: true
   listen: Restart firewalld
 
-# A fresh start re-bans every still-active entry from fail2ban's database.
 - name: Start fail2ban after restarting firewalld
   ansible.builtin.systemd:
     name: fail2ban
