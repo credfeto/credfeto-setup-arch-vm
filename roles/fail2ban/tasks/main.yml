@@ -5,8 +5,8 @@
     content: |
       [DEFAULT]
       bantime = 1h
-      banaction = firewallcmd-rich-rules
-      banaction_allports = firewallcmd-allports
+      banaction = nftables-multiport
+      banaction_allports = nftables-allports
     owner: root
     group: root
     mode: "0644"
