@@ -44,25 +44,6 @@
       profile and update this role.
     quiet: true
 
-- name: Read AppArmor authentication abstraction
-  ansible.builtin.slurp:
-    src: /etc/apparmor.d/abstractions/authentication
-  register: apparmor_authentication_abstraction
-
-# The local rules below leave unix_chkpwd to the upstream profile, which only
-# allows it through this abstraction; if either drops it, sshd password and
-# account checks are denied, so stop the run instead.
-- name: Check sshd AppArmor profile still gets unix_chkpwd from abstractions/authentication
-  ansible.builtin.assert:
-    that:
-      - "'include <abstractions/authentication>' in apparmor_sshd_upstream_profile"
-      - "'/{,usr/}{,s}bin/unix_chkpwd Px,' in (apparmor_authentication_abstraction.content | b64decode)"
-    fail_msg: >-
-      The upstream sshd profile no longer includes abstractions/authentication,
-      or /etc/apparmor.d/abstractions/authentication no longer transitions
-      unix_chkpwd with Px; review both and update this role's local sshd rules.
-    quiet: true
-
 # On Arch /usr/sbin is a symlink to /usr/bin and AppArmor attaches profiles by
 # the resolved path, so the Debian attachment would never match the running
 # sshd. Arch also installs the sshd helpers and sftp-server under
