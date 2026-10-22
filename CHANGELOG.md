@@ -11,6 +11,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 ## [Unreleased]
 ### Security
 - Pin actions/checkout references to commit SHA instead of mutable tag in ansible-lint and security-review workflows, hardening against tag repointing
+- TBD - to be finalized after review
 ### Added
 - Git workflow instructions: never-squash-commits rule to preserve the full commit history however messy the path
 - AI instructions: mandatory git identity and GPG signing check before any commit — abort if identity is `andy@nanoclaw.ai` or GPG signing is disabled
