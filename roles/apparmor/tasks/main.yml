@@ -36,6 +36,7 @@
       - 'apparmor_sshd_upstream_profile is regex("^[ \t]*/usr/sbin/sshd [{]", multiline=True)'
       - 'apparmor_sshd_upstream_profile is regex("^[ \t]*/usr/lib/openssh/sshd-auth", multiline=True)'
       - 'apparmor_sshd_upstream_profile is regex("^[ \t]*/usr/lib/openssh/sshd-session", multiline=True)'
+      - 'apparmor_sshd_upstream_profile is regex("^[ \t]*/usr/lib/openssh/sftp-server", multiline=True)'
       - 'apparmor_sshd_upstream_profile is regex("^[ \t]*include if exists <local/usr[.]sbin[.]sshd>", multiline=True)'
     fail_msg: >-
       /usr/share/apparmor/extra-profiles/usr.sbin.sshd no longer contains the
