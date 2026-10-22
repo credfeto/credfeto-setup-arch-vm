@@ -5,9 +5,254 @@
     enabled: true
     state: started
 
-- name: Install apparmor-profiles if available
-  community.general.pacman:
-    name: apparmor-profiles
-    state: present
-    extra_args: "--noconfirm --needed"
-  ignore_errors: true  # noqa: ignore-errors - package may not be available in repos
+# The grub role turns AppArmor on through kernel parameters, so on the run
+# that first adds them the kernel has no AppArmor until the next reboot.
+# Loading or querying profiles fails then; install the profile anyway and
+# leave loading it to the boot that enables AppArmor.
+- name: Check whether the kernel has AppArmor enabled
+  ansible.builtin.stat:
+    path: /sys/kernel/security/apparmor/profiles
+  register: apparmor_kernel
+
+# The apparmor package ships the sshd profile only as an inactive example,
+# written for Debian's paths. Read it from the host on every run so profile
+# updates from package upgrades flow through to the installed copy.
+- name: Read upstream sshd AppArmor profile
+  ansible.builtin.slurp:
+    src: /usr/share/apparmor/extra-profiles/usr.sbin.sshd
+  register: apparmor_sshd_upstream
+
+- name: Decode upstream sshd AppArmor profile
+  ansible.builtin.set_fact:
+    apparmor_sshd_upstream_profile: "{{ apparmor_sshd_upstream.content | b64decode }}"
+
+# The path rewrite below silently does nothing if upstream renames or moves
+# any of these, which would leave a profile that never attaches to sshd or
+# denies its helpers; stop the run instead so the change gets looked at.
+- name: Check upstream sshd AppArmor profile still has the paths rewritten for Arch
+  ansible.builtin.assert:
+    that:
+      - "'/usr/sbin/sshd {' in apparmor_sshd_upstream_profile"
+      - "'/usr/lib/openssh/sshd-auth' in apparmor_sshd_upstream_profile"
+      - "'/usr/lib/openssh/sshd-session' in apparmor_sshd_upstream_profile"
+    fail_msg: >-
+      /usr/share/apparmor/extra-profiles/usr.sbin.sshd no longer contains the
+      sshd or helper paths this role rewrites for Arch; review the upstream
+      profile and update the rewrite.
+    quiet: true
+
+# On Arch /usr/sbin is a symlink to /usr/bin and AppArmor attaches profiles by
+# the resolved path, so the Debian attachment would never match the running
+# sshd. Arch also installs the sshd helpers and sftp-server under
+# /usr/lib/ssh rather than /usr/lib/openssh. Extra rules belong in the
+# profile's own local/usr.sbin.sshd include, never here, so this copy stays an
+# exact rewrite of upstream.
+- name: Install Arch-adjusted sshd AppArmor profile
+  ansible.builtin.copy:
+    content: >-
+      {{ apparmor_sshd_upstream_profile
+         | regex_replace('/usr/sbin/sshd(?![-a-zA-Z0-9_])', '/usr/{bin,sbin}/sshd')
+         | regex_replace('/usr/lib/openssh/', '/usr/lib/ssh/') }}
+    dest: /etc/apparmor.d/usr.sbin.sshd
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload sshd AppArmor profile
+
+- name: Read loaded AppArmor profile modes
+  ansible.builtin.command:
+    cmd: aa-status --json
+  register: apparmor_status
+  changed_when: false
+  when: apparmor_kernel.stat.exists
+
+# The profile is named after its attachment, so that is the key aa-status
+# reports it under. aa-enforce also loads the profile when it is not loaded
+# yet, such as on the first run. A profile only attaches at exec, so the
+# running sshd stays unconfined until the reload makes it re-exec itself.
+- name: Enforce sshd AppArmor profile
+  ansible.builtin.command:
+    cmd: aa-enforce /etc/apparmor.d/usr.sbin.sshd
+  changed_when: true
+  when:
+    - apparmor_kernel.stat.exists
+    - (apparmor_status.stdout | from_json).profiles['/usr/{bin,sbin}/sshd'] | default('') != 'enforce'
+  notify: Reload sshd
+
+# Everything below only reads container state and reports what it finds; it
+# never fails the run or touches a container. Before the reboot that enables
+# AppArmor every container lacks a profile, so there is nothing to report.
+- name: Check whether docker is installed
+  ansible.builtin.stat:
+    path: /usr/bin/docker
+  register: apparmor_docker_binary
+
+- name: Check whether podman is installed
+  ansible.builtin.stat:
+    path: /usr/bin/podman
+  register: apparmor_podman_binary
+
+- name: List running docker containers
+  ansible.builtin.command:
+    cmd: docker ps --quiet
+  register: apparmor_docker_ids
+  changed_when: false
+  failed_when: false
+  when:
+    - apparmor_kernel.stat.exists
+    - apparmor_docker_binary.stat.exists
+
+- name: Inspect running docker containers
+  ansible.builtin.command:
+    argv: "{{ ['docker', 'inspect'] + apparmor_docker_ids.stdout_lines }}"
+  register: apparmor_docker_inspect
+  changed_when: false
+  failed_when: false
+  when: apparmor_docker_ids.stdout_lines | default([]) | length > 0
+
+- name: List running rootful podman containers
+  ansible.builtin.command:
+    cmd: podman ps --quiet
+  register: apparmor_podman_ids
+  changed_when: false
+  failed_when: false
+  when:
+    - apparmor_kernel.stat.exists
+    - apparmor_podman_binary.stat.exists
+
+- name: Inspect running rootful podman containers
+  ansible.builtin.command:
+    argv: "{{ ['podman', 'inspect'] + apparmor_podman_ids.stdout_lines }}"
+  register: apparmor_podman_inspect
+  changed_when: false
+  failed_when: false
+  when: apparmor_podman_ids.stdout_lines | default([]) | length > 0
+
+# A container that exits between the listing and the inspect makes inspect
+# exit non-zero, so read whatever it printed rather than checking rc.
+- name: Collect running rootful containers
+  ansible.builtin.set_fact:
+    apparmor_containers: >-
+      {{ ((apparmor_docker_inspect.stdout | default('[]', true) | from_json)
+          + (apparmor_podman_inspect.stdout | default('[]', true) | from_json))
+         | map('combine', {'apparmor_owner': 'root', 'apparmor_rootless': false})
+         | list }}
+
+# Each rootless container runs under a conmon owned by its user, which finds
+# users whose containers run from system units with User= as well as from
+# their own sessions. ps prints a numeric uid for some names, so map uids to
+# users here instead.
+- name: List owners of running podman containers
+  ansible.builtin.command:
+    cmd: ps -C conmon -o uid=
+  register: apparmor_conmon_uids
+  changed_when: false
+  failed_when: false
+  when:
+    - apparmor_kernel.stat.exists
+    - apparmor_podman_binary.stat.exists
+
+- name: Set rootless podman container owner uids
+  ansible.builtin.set_fact:
+    apparmor_rootless_uids: >-
+      {{ apparmor_conmon_uids.stdout_lines | default([]) | map('trim')
+         | reject('equalto', '0') | unique | list }}
+
+- name: Read user accounts
+  ansible.builtin.getent:
+    database: passwd
+  when: apparmor_rootless_uids | length > 0
+
+# getent_passwd values are [password, uid, gid, gecos, home, shell].
+# Podman refuses to run with a runtime directory other than the one its
+# containers were started with, so skip a user whose /run/user/<uid> is gone.
+- name: Check rootless podman owners have a runtime directory
+  ansible.builtin.stat:
+    path: /run/user/{{ item.value[1] }}
+  loop: >-
+    {{ getent_passwd | default({}) | dict2items
+       | selectattr('value.1', 'in', apparmor_rootless_uids) | list }}
+  loop_control:
+    label: "{{ item.key }}"
+  register: apparmor_rootless_runtime_dirs
+
+# env -i stops root's XDG_* and CONTAINERS_* variables pointing podman at
+# root's storage instead of the user's.
+- name: List running rootless podman containers
+  ansible.builtin.command:
+    argv:
+      - runuser
+      - -u
+      - "{{ item.key }}"
+      - --
+      - env
+      - -i
+      - HOME={{ item.value[4] }}
+      - XDG_RUNTIME_DIR=/run/user/{{ item.value[1] }}
+      - PATH=/usr/bin
+      - podman
+      - ps
+      - --quiet
+    chdir: /
+  loop: >-
+    {{ apparmor_rootless_runtime_dirs.results | default([])
+       | selectattr('stat.exists') | map(attribute='item') | list }}
+  loop_control:
+    label: "{{ item.key }}"
+  register: apparmor_rootless_ids
+  changed_when: false
+  failed_when: false
+
+- name: Inspect running rootless podman containers
+  ansible.builtin.command:
+    argv: >-
+      {{ ['runuser', '-u', item.item.key, '--', 'env', '-i',
+          'HOME=' ~ item.item.value[4],
+          'XDG_RUNTIME_DIR=/run/user/' ~ item.item.value[1],
+          'PATH=/usr/bin', 'podman', 'inspect'] + item.stdout_lines }}
+    chdir: /
+  loop: >-
+    {{ apparmor_rootless_ids.results | default([])
+       | selectattr('stdout_lines', 'defined')
+       | rejectattr('stdout_lines', 'equalto', []) | list }}
+  loop_control:
+    label: "{{ item.item.key }}"
+  register: apparmor_rootless_inspect
+  changed_when: false
+  failed_when: false
+
+- name: Collect running rootless podman containers
+  ansible.builtin.set_fact:
+    apparmor_containers: >-
+      {{ apparmor_containers
+         + (item.stdout | default('[]', true) | from_json
+            | map('combine', {'apparmor_owner': item.item.item.key, 'apparmor_rootless': true})
+            | list) }}
+  loop: "{{ apparmor_rootless_inspect.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.item.key }}"
+
+# Rootless podman can never apply AppArmor, so its profile is always empty;
+# only a deliberate opt-out, recorded in the apparmor annotation, is reported
+# for it. Docker reports a privileged container as unconfined, so it can be
+# listed with both reasons.
+- name: Warn about containers not confined by AppArmor
+  ansible.builtin.debug:
+    msg: >-
+      WARNING: container {{ item.Name | regex_replace('^/', '') }} (image
+      {{ item.Config.Image }}, user {{ item.apparmor_owner }}) is not confined
+      by AppArmor: {{ apparmor_container_reasons | join(', ') }}
+  loop: "{{ apparmor_containers }}"
+  loop_control:
+    label: "{{ item.Name | regex_replace('^/', '') }}"
+  when: apparmor_container_reasons | length > 0
+  vars:
+    apparmor_container_reasons: >-
+      {{ (['privileged'] if item.HostConfig.Privileged | default(false) else [])
+         + (['AppArmor profile ' ~ (item.AppArmorProfile | default('', true) or 'none')]
+            if not item.apparmor_rootless and item.AppArmorProfile | default('') in ['', 'unconfined']
+            else [])
+         + (['started with apparmor=unconfined']
+            if item.apparmor_rootless
+               and (item.Config.Annotations | default({}, true))['io.podman.annotations.apparmor'] | default('') == 'unconfined'
+            else []) }}
