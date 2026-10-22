@@ -36,7 +36,7 @@
       - "'/usr/sbin/sshd {' in apparmor_sshd_upstream_profile"
       - "'/usr/lib/openssh/sshd-auth' in apparmor_sshd_upstream_profile"
       - "'/usr/lib/openssh/sshd-session' in apparmor_sshd_upstream_profile"
-      - "'include if exists <local/usr.sbin.sshd>' in apparmor_sshd_upstream_profile"
+      - 'apparmor_sshd_upstream_profile is regex("^[ \t]*include if exists <local/usr[.]sbin[.]sshd>", multiline=True)'
     fail_msg: >-
       /usr/share/apparmor/extra-profiles/usr.sbin.sshd no longer contains the
       sshd or helper paths this role rewrites for Arch, or the
