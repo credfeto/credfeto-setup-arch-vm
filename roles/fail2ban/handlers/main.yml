@@ -1,0 +1,29 @@
+---
+# fail2ban_config_check is undefined when a task failed before Check fail2ban
+# configuration and force_handlers runs these handlers anyway; check the
+# configuration here then, so the restart below never runs into a broken one.
+# A separate variable, because register on a skipped handler would overwrite
+# the task's result.
+- name: Check fail2ban configuration before restarting it
+  ansible.builtin.command:
+    cmd: fail2ban-client --test
+  register: fail2ban_handler_config_check
+  changed_when: false
+  failed_when: false
+  when: fail2ban_config_check is not defined
+  listen: Restart fail2ban
+
+# A start in this run already read the current jail files and the reloaded
+# unit, so only a fail2ban that was running before the run needs restarting.
+# fail2ban_started is undefined when a task failed before Start fail2ban and
+# force_handlers runs this anyway; restart then, as the start never happened.
+# Never restart into a configuration that failed the check: the running
+# fail2ban keeps its last good configuration and the run has already failed.
+- name: Restart fail2ban
+  ansible.builtin.systemd:
+    name: fail2ban
+    state: restarted
+    daemon_reload: true
+  when:
+    - (fail2ban_config_check if fail2ban_config_check is defined else fail2ban_handler_config_check).rc == 0
+    - fail2ban_started is not defined or fail2ban_started is not changed

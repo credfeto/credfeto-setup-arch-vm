@@ -14,7 +14,7 @@ Use these instructions when writing guidance, scripts, or documentation for Arch
 - Emphasize the rolling-release model and the need for full upgrades.
 - Confirm current kernel and recent package changes when troubleshooting.
 - Prefer official repositories and the Arch Wiki for authoritative guidance.
-- **The kernel is `linux-hardened`** — this provides additional security patches, stricter defaults, and enables hardening features referenced in GRUB parameters (e.g. `hardened_usercopy`, `init_on_alloc`, `slab_nomerge`). Always assume `linux-hardened` and `linux-hardened-headers` are installed.
+- **The kernel is `linux-hardened`**: this provides additional security patches, stricter defaults, and enables hardening features referenced in GRUB parameters (e.g. `hardened_usercopy`, `init_on_alloc`, `slab_nomerge`). Always assume `linux-hardened` and `linux-hardened-headers` are installed.
 - **`/tmp` is mounted by systemd's `tmp.mount` unit**, not via `/etc/fstab`. To change mount options (e.g. add `noexec`), use a drop-in at `/etc/systemd/system/tmp.mount.d/`. Never add a `/tmp` entry to `/etc/fstab` on Arch.
 
 ## Package Management
@@ -27,7 +27,7 @@ Use these instructions when writing guidance, scripts, or documentation for Arch
 - **Never remove a package that provides a file `pacman.conf` still `Include`s** (e.g. a mirrorlist package) until the `Include` line has been rewritten or removed first. A dangling `Include` makes every pacman invocation fail to parse its own config, wedging package management until the file or line is restored.
 - **pacman renames a modified config file to `<name>.pacsave` on package removal** (and installs a fresh copy as `<name>.pacnew` when reinstalling over a survivor). Cleanup tasks must cover both the original name and the `.pacsave` variant; restore flows may need to move a `.pacnew` into place.
 
-## AUR Helpers — PROHIBITED
+## AUR Helpers: PROHIBITED
 
 **Never install or recommend AUR helpers** (yay, yay-bin, paru, paru-bin, pikaur, trizen, aurutils, aura, bauerbill, pakku, pamac-aur, or any equivalent).
 
@@ -37,9 +37,9 @@ If any AUR helper is found installed it **must be removed** immediately via `pac
 
 The Ansible role at `roles/packages/tasks/main.yml` enforces this by explicitly removing known AUR helper packages on every run.
 
-### Permitted exception — Chaotic AUR
+### Permitted exception: Chaotic AUR
 
-**Chaotic AUR is permitted** and is the only community repository approved for use. Packages in Chaotic AUR are pre-built by a maintained automated pipeline and externally reviewed, unlike raw AUR PKGBUILDs. Chaotic AUR is configured via `pacman.conf` and the signed keyring — **never** via an AUR helper.
+**Chaotic AUR is permitted** and is the only community repository approved for use. Packages in Chaotic AUR are pre-built by a maintained automated pipeline and externally reviewed, unlike raw AUR PKGBUILDs. Chaotic AUR is configured via `pacman.conf` and the signed keyring, **never** via an AUR helper.
 
 ## Configuration & Services
 
@@ -47,10 +47,10 @@ The Ansible role at `roles/packages/tasks/main.yml` enforces this by explicitly 
 - Use systemd drop-ins in `/etc/systemd/system/<unit>.d/`.
 - Use `systemctl` and `journalctl` for service control and logs.
 - **`/boot` is a vfat ESP: per-file `chmod` is impossible there.** Permissions come exclusively from the `fmask`/`dmask` mount options in `/etc/fstab`; a `chmod`/Ansible `file: mode:` task on anything under `/boot` is a silent no-op. To restrict `/boot`, tighten the masks in fstab.
-- **vfat ignores `fmask`/`dmask` changes on remount** — `mount -o remount /boot` does not apply new masks; they only take effect on a fresh mount (in practice, the next reboot).
-- **Arch's `pam` package ships only `/etc/security/limits.conf`** — the `limits.d` drop-in directory does not exist until something creates it; create it before writing a drop-in there. Also note `pam_limits` never applies wildcard (`*`) entries to root; root needs its own line.
-- **A running systemd timer keeps the schedule it was started with** — a daemon-reload alone does not apply a changed timer unit; the timer must be restarted (or the host rebooted).
-- **Restarting a systemd timer re-arms its elapsed monotonic triggers** (`OnBootSec`/`OnStartupSec` long in the past fire immediately on timer start), and a `Requires=` on the paired service turns that into an immediate service start — a no-op only while the service is already active. Expect one extra run of the paired service when restarting such a timer outside a run of the service itself.
+- **vfat ignores `fmask`/`dmask` changes on remount**: `mount -o remount /boot` does not apply new masks; they only take effect on a fresh mount (in practice, the next reboot).
+- **Arch's `pam` package ships only `/etc/security/limits.conf`**: the `limits.d` drop-in directory does not exist until something creates it; create it before writing a drop-in there. Also note `pam_limits` never applies wildcard (`*`) entries to root; root needs its own line.
+- **A running systemd timer keeps the schedule it was started with**: a daemon-reload alone does not apply a changed timer unit; the timer must be restarted (or the host rebooted).
+- **Restarting a systemd timer re-arms its elapsed monotonic triggers** (`OnBootSec`/`OnStartupSec` long in the past fire immediately on timer start), and a `Requires=` on the paired service turns that into an immediate service start (a no-op only while the service is already active). Expect one extra run of the paired service when restarting such a timer outside a run of the service itself.
 
 ## Security
 

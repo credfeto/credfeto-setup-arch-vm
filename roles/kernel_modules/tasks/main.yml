@@ -13,7 +13,7 @@
   ansible.builtin.copy:
     dest: /etc/modprobe.d/blacklist-dirtyfrag-esp4.conf
     content: |
-      # Dirty Frag CVE-2026-43284 — disable IPsec ESP (IPv4)
+      # Dirty Frag CVE-2026-43284: disable IPsec ESP (IPv4)
       blacklist esp4
       install esp4 /bin/false
     owner: root
@@ -30,7 +30,7 @@
   ansible.builtin.copy:
     dest: /etc/modprobe.d/blacklist-dirtyfrag-esp6.conf
     content: |
-      # Dirty Frag CVE-2026-43284 — disable IPsec ESP (IPv6)
+      # Dirty Frag CVE-2026-43284: disable IPsec ESP (IPv6)
       blacklist esp6
       install esp6 /bin/false
     owner: root
@@ -47,7 +47,7 @@
   ansible.builtin.copy:
     dest: /etc/modprobe.d/blacklist-dirtyfrag-rxrpc.conf
     content: |
-      # Dirty Frag CVE-2026-43500 — disable AFS RxRPC
+      # Dirty Frag CVE-2026-43500: disable AFS RxRPC
       blacklist rxrpc
       install rxrpc /bin/false
     owner: root
@@ -68,7 +68,7 @@
   ansible.builtin.copy:
     dest: /etc/modprobe.d/blacklist-unused-protocols.conf
     content: |
-      # Unused network protocols — high LPE attack surface, not needed on a server VM
+      # Unused network protocols: high LPE attack surface, not needed on a server VM
       blacklist dccp
       install dccp /bin/false
       blacklist dccp_ipv4
@@ -145,7 +145,7 @@
   ansible.builtin.copy:
     dest: /etc/modprobe.d/blacklist-amateur-radio.conf
     content: |
-      # Amateur radio protocols — absent on a server VM
+      # Amateur radio protocols: absent on a server VM
       blacklist ax25
       install ax25 /bin/false
       blacklist netrom
@@ -190,7 +190,7 @@
   ansible.builtin.copy:
     dest: /etc/modprobe.d/blacklist-legacy-protocols.conf
     content: |
-      # Niche/legacy network protocols — absent on a server VM
+      # Niche/legacy network protocols: absent on a server VM
       blacklist af_802154
       install af_802154 /bin/false
       blacklist can
@@ -235,7 +235,7 @@
   ansible.builtin.copy:
     dest: /etc/modprobe.d/blacklist-legacy-filesystems.conf
     content: |
-      # Legacy filesystems — not mounted on a server VM
+      # Legacy filesystems: not mounted on a server VM
       blacklist cramfs
       install cramfs /bin/false
       blacklist freevxfs

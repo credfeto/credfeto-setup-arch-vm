@@ -4,8 +4,31 @@
     cmd: firewall-cmd --reload
   changed_when: true
 
+# A start in this run already ran without the removed drop-in, so only a
+# firewalld that was running before the run needs restarting.
+# firewall_firewalld_started is undefined when a task failed before Start
+# firewalld and force_handlers runs this anyway; restart then, as the start
+# never happened.
 - name: Restart firewalld
   ansible.builtin.systemd:
     name: firewalld
     state: restarted
     daemon_reload: true
+  when: firewall_firewalld_started is not defined or firewall_firewalld_started is not changed
+
+# firewalld.service is Type=simple, so the restart reports success as soon as
+# the process is forked, even when firewalld then exits; systemctl is-active
+# can likewise read active before it dies. firewall-cmd --state succeeds only
+# once the daemon is answering on D-Bus, so poll it and fail the run when it
+# never does.
+- name: Check firewalld is running after restarting it
+  ansible.builtin.command:
+    cmd: firewall-cmd --state
+  register: firewall_firewalld_state
+  changed_when: false
+  until: firewall_firewalld_state.rc == 0
+  retries: 10
+  delay: 1
+  listen: Restart firewalld
+  # Same condition as Restart firewalld: only check after a restart it made.
+  when: firewall_firewalld_started is not defined or firewall_firewalld_started is not changed

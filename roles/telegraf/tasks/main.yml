@@ -26,8 +26,16 @@
     append: true
   when: container_runtime == 'docker'
 
-- name: Enable and start telegraf service
+- name: Enable telegraf service
   ansible.builtin.systemd:
     name: telegraf
     enabled: true
+
+# Separate from enabling so that changed here means telegraf was actually
+# started, which the Restart telegraf handler relies on to skip a second
+# start in the same run.
+- name: Start telegraf service
+  ansible.builtin.systemd:
+    name: telegraf
     state: started
+  register: telegraf_started

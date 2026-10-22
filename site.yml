@@ -24,6 +24,7 @@
     - grub
     - ssh
     - firewall
+    - fail2ban
     - network
     - apparmor
     - services

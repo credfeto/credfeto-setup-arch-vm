@@ -1,0 +1,79 @@
+---
+- name: Configure fail2ban default jail settings
+  ansible.builtin.copy:
+    dest: /etc/fail2ban/jail.d/default.local
+    content: |
+      [DEFAULT]
+      bantime = 1h
+      banaction = nftables-multiport
+      banaction_allports = nftables-allports
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart fail2ban
+
+- name: Configure fail2ban sshd jail
+  ansible.builtin.copy:
+    dest: /etc/fail2ban/jail.d/ssh.local
+    content: |
+      [sshd]
+      enabled = true
+      mode = aggressive
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart fail2ban
+
+# Full unit, not a drop-in: the packaged unit's PartOf= on firewalld.service
+# (and the units firewalld Conflicts= with) cannot be reset from a .d file,
+# and it makes a firewalld restart fail while fail2ban is active. The file
+# must be kept in step with the packaged /usr/lib/systemd/system unit.
+- name: Install fail2ban.service unit without firewall unit coupling
+  ansible.builtin.copy:
+    src: fail2ban.service
+    dest: /etc/systemd/system/fail2ban.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart fail2ban
+
+# daemon_reload here, not only in the handler: handlers flush at play end in
+# definition order, so the firewall role's Restart firewalld runs before
+# Restart fail2ban. Reloading now means systemd already has the uncoupled
+# unit loaded before any firewalld restart is queued.
+- name: Enable fail2ban
+  ansible.builtin.systemd:
+    name: fail2ban
+    enabled: true
+    daemon_reload: true
+
+# fail2ban-client --test parses the whole configuration (jail.conf plus every
+# jail.d file) and exits without contacting the server, so it works whether
+# fail2ban is running or stopped, and it fails on any invalid jail rather
+# than skipping it. failed_when: false so the result is always registered:
+# the Restart fail2ban handler checks it, because force_handlers would
+# otherwise run that restart into a broken configuration after the run fails.
+- name: Check fail2ban configuration
+  ansible.builtin.command:
+    cmd: fail2ban-client --test
+  register: fail2ban_config_check
+  changed_when: false
+  failed_when: false
+
+# After Enable fail2ban, whose daemon-reload touches no running process and
+# must happen before the firewall role's Restart firewalld even on a failed
+# run, and before Start fail2ban, so a bad configuration is never started on
+# a fresh host and a running fail2ban is left as it is.
+- name: Fail when the fail2ban configuration is invalid
+  ansible.builtin.fail:
+    msg: "fail2ban-client --test failed: {{ fail2ban_config_check.stdout }} {{ fail2ban_config_check.stderr }} {{ fail2ban_config_check.msg | default('') }}"
+  when: fail2ban_config_check.rc != 0
+
+# Separate from enabling so that changed here means fail2ban was actually
+# started, which the Restart fail2ban handler relies on to skip a second
+# start in the same run.
+- name: Start fail2ban
+  ansible.builtin.systemd:
+    name: fail2ban
+    state: started
+  register: fail2ban_started

@@ -5,12 +5,6 @@
     enabled: true
     state: started
 
-- name: Enable and start auditd for AppArmor audit logging
-  ansible.builtin.systemd:
-    name: auditd
-    enabled: true
-    state: started
-
 - name: Install apparmor-profiles if available
   community.general.pacman:
     name: apparmor-profiles

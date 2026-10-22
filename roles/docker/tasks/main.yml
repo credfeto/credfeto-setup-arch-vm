@@ -33,9 +33,18 @@
     daemon_reload: true
   when: container_runtime == 'docker'
 
-- name: Enable and start docker service
+- name: Enable docker service
   ansible.builtin.systemd:
     name: docker
     enabled: true
+  when: container_runtime == 'docker'
+
+# Separate from enabling so that changed here means docker was actually
+# started, which the Restart docker handler relies on to skip a second start
+# in the same run.
+- name: Start docker service
+  ansible.builtin.systemd:
+    name: docker
     state: started
+  register: docker_started
   when: container_runtime == 'docker'

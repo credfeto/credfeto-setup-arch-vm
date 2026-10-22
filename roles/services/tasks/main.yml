@@ -71,12 +71,20 @@
     mode: "0644"
   notify: Restart fstrim timer
 
-- name: Enable and start fstrim timer
+- name: Enable fstrim timer
   ansible.builtin.systemd:
     name: fstrim.timer
     enabled: true
-    state: started
     daemon_reload: true
+
+# Separate from enabling so that changed here means the timer was actually
+# started, which the Restart fstrim timer handler relies on to skip a second
+# start in the same run.
+- name: Start fstrim timer
+  ansible.builtin.systemd:
+    name: fstrim.timer
+    state: started
+  register: services_fstrim_timer_started
 
 # Cleanup stale docker-cleanup units if container runtime is not Docker
 - name: Disable docker-cleanup timer if present
@@ -192,7 +200,7 @@
     state: started
     daemon_reload: true
 
-# Serial console getty — gives a real, browser-copy/paste-capable console via
+# Serial console getty: gives a real, browser-copy/paste-capable console via
 # the hypervisor's serial channel, and keeps working even when the VM's own
 # networking is down.
 - name: Enable and start serial getty on ttyS0

@@ -2,19 +2,20 @@
 
 Sets up an Arch Linux VM with Docker, Git, and supporting tooling. The `install` script configures:
 
-- **`linux-hardened` kernel** — security-hardened kernel with additional patches and stricter defaults
+- **`linux-hardened` kernel**: security-hardened kernel with additional patches and stricter defaults
 - **Docker** (with Docker Compose and Buildx)
 - **firewalld** firewall
-- **SSH hardening** — strong crypto only, key-based auth, no root login
-- **sysctl hardening** — network, kernel, and filesystem protections, including persistent IPv4/IPv6 forwarding
-- **Core dump disabling** — via sysctl and systemd
-- **Kernel module blacklisting** — unused/dangerous protocols and filesystems
-- **`/tmp` as noexec tmpfs** — prevents code execution from `/tmp`
-- **pkgstats** — weekly anonymous package statistics submission
+- **SSH hardening**: strong crypto only, key-based auth, no root login
+- **fail2ban**: bans hosts after repeated failed SSH logins (`sshd` jail in aggressive mode, nftables ban action in its own `inet f2b-table`, which firewalld never flushes and which runs before firewalld so it also covers `docker`-zone sources, 1h ban time); firewalld reloads and restarts leave the bans in place, and fail2ban restores them from its database whenever it restarts
+- **sysctl hardening**: network, kernel, and filesystem protections, including persistent IPv4/IPv6 forwarding
+- **Core dump disabling**: via sysctl and systemd
+- **Kernel module blacklisting**: unused/dangerous protocols and filesystems
+- **`/tmp` as noexec tmpfs**: prevents code execution from `/tmp`
+- **pkgstats**: weekly anonymous package statistics submission
 - **arch-audit**: vulnerable-package detection against the Arch security tracker
-- **reflector** — automatic mirror ranking (not on DNS hosts, which use only the internal pacman cache)
-- **pacman cache pruning** — weekly `paccache -r` via systemd timer
-- **Telegraf** — reports host and (on Docker hosts) container metrics to `https://metrics.markridgwell.com`
+- **reflector**: automatic mirror ranking (not on DNS hosts, which use only the internal pacman cache)
+- **pacman cache pruning**: weekly `paccache -r` via systemd timer
+- **Telegraf**: reports host and (on Docker hosts) container metrics to `https://metrics.markridgwell.com`
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/credfeto/credfeto-setup-arch-vm/refs/heads/main/install | sh

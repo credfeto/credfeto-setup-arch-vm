@@ -1,5 +1,5 @@
 ---
-description: 'Rules for editing the install script — idempotency, style, and tooling checks.'
+description: 'Rules for editing the install script: idempotency, style, and tooling checks.'
 applyTo: '**'
 ---
 
@@ -56,15 +56,15 @@ The `install` script must be safe to run multiple times without duplicating or b
 
 Rules:
 
-- If the persistent file is already correct (idempotency check passes), emit `skip` — do not re-apply the live change.
+- If the persistent file is already correct (idempotency check passes), emit `skip`. Do not re-apply the live change.
 - If the persistent file is written or updated, always apply the live change immediately afterwards and `die` on failure.
 - Do not apply a live change without also writing the persistent form.
 
 ## Script Style
 
-- The script **must** start with the shebang `#!/bin/sh` (or `#!/usr/bin/env sh`) — never omit it.
+- The script **must** start with the shebang `#!/bin/sh` (or `#!/usr/bin/env sh`). Never omit it.
 - Use HEREDOC rather than multiple `echo` statements.
-- Use `sh` (POSIX shell) — avoid bash-specific syntax.
+- Use `sh` (POSIX shell). Avoid bash-specific syntax.
 - Validate all scripts with `shellcheck` before committing.
 - Validate all scripts with `checkbashisms` to confirm POSIX `sh` compatibility.
 

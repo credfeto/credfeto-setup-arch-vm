@@ -3,8 +3,13 @@
   ansible.builtin.systemd:
     daemon_reload: true
 
+# A start in this run already used the current drop-in, so only a timer that
+# was running before the run needs restarting. services_fstrim_timer_started
+# is undefined when a task failed before Start fstrim timer and
+# force_handlers runs this anyway; restart then, as the start never happened.
 - name: Restart fstrim timer
   ansible.builtin.systemd:
     name: fstrim.timer
     state: restarted
     daemon_reload: true
+  when: services_fstrim_timer_started is not defined or services_fstrim_timer_started is not changed
