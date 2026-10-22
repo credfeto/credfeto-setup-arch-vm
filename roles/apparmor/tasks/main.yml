@@ -83,8 +83,9 @@
 
 # curl is the sshd AuthorizedKeysCommand set by the ssh role, which the
 # enforced upstream profile denies. Do not add unix_chkpwd here:
-# abstractions/authentication already transitions it with Px, and a second
-# x rule for the same path makes the profile fail to load.
+# abstractions/authentication already transitions it with Px, and a rule
+# giving it a different exec mode conflicts with that and stops the profile
+# loading.
 - name: Allow sshd AppArmor profile to run curl
   ansible.builtin.copy:
     content: |
