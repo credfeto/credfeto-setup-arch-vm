@@ -1,0 +1,8 @@
+---
+# -r replaces the loaded profile in place, so the running sshd and every
+# session it has spawned pick up the new rules without a restart.
+- name: Reload sshd AppArmor profile
+  ansible.builtin.command:
+    cmd: apparmor_parser -r /etc/apparmor.d/usr.sbin.sshd
+  changed_when: true
+  when: apparmor_kernel.stat.exists
