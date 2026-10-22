@@ -26,19 +26,22 @@
   ansible.builtin.set_fact:
     apparmor_sshd_upstream_profile: "{{ apparmor_sshd_upstream.content | b64decode }}"
 
-# The path rewrite below silently does nothing if upstream renames or moves
-# any of these, which would leave a profile that never attaches to sshd or
-# denies its helpers; stop the run instead so the change gets looked at.
-- name: Check upstream sshd AppArmor profile still has the paths rewritten for Arch
+# The path rewrite and the local rules below silently do nothing if upstream
+# renames or moves any of these, which would leave a profile that never
+# attaches to sshd or denies its helpers or curl; stop the run instead so the
+# change gets looked at.
+- name: Check upstream sshd AppArmor profile still has the paths and local include this role relies on
   ansible.builtin.assert:
     that:
       - "'/usr/sbin/sshd {' in apparmor_sshd_upstream_profile"
       - "'/usr/lib/openssh/sshd-auth' in apparmor_sshd_upstream_profile"
       - "'/usr/lib/openssh/sshd-session' in apparmor_sshd_upstream_profile"
+      - "'include if exists <local/usr.sbin.sshd>' in apparmor_sshd_upstream_profile"
     fail_msg: >-
       /usr/share/apparmor/extra-profiles/usr.sbin.sshd no longer contains the
-      sshd or helper paths this role rewrites for Arch; review the upstream
-      profile and update the rewrite.
+      sshd or helper paths this role rewrites for Arch, or the
+      local/usr.sbin.sshd include its local rules rely on; review the upstream
+      profile and update this role.
     quiet: true
 
 # On Arch /usr/sbin is a symlink to /usr/bin and AppArmor attaches profiles by
