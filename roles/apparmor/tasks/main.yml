@@ -33,9 +33,9 @@
 - name: Check upstream sshd AppArmor profile still has the paths and local include this role relies on
   ansible.builtin.assert:
     that:
-      - "'/usr/sbin/sshd {' in apparmor_sshd_upstream_profile"
-      - "'/usr/lib/openssh/sshd-auth' in apparmor_sshd_upstream_profile"
-      - "'/usr/lib/openssh/sshd-session' in apparmor_sshd_upstream_profile"
+      - 'apparmor_sshd_upstream_profile is regex("^[ \t]*/usr/sbin/sshd [{]", multiline=True)'
+      - 'apparmor_sshd_upstream_profile is regex("^[ \t]*/usr/lib/openssh/sshd-auth", multiline=True)'
+      - 'apparmor_sshd_upstream_profile is regex("^[ \t]*/usr/lib/openssh/sshd-session", multiline=True)'
       - 'apparmor_sshd_upstream_profile is regex("^[ \t]*include if exists <local/usr[.]sbin[.]sshd>", multiline=True)'
     fail_msg: >-
       /usr/share/apparmor/extra-profiles/usr.sbin.sshd no longer contains the
