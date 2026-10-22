@@ -59,6 +59,20 @@
     mode: "0644"
   notify: Reload sshd AppArmor profile
 
+# curl is the sshd AuthorizedKeysCommand set by the ssh role, which the
+# enforced upstream profile denies. Do not add unix_chkpwd here:
+# abstractions/authentication already transitions it with Px, and a second
+# x rule for the same path makes the profile fail to load.
+- name: Allow sshd AppArmor profile to run curl
+  ansible.builtin.copy:
+    content: |
+      /usr/bin/curl Ux,
+    dest: /etc/apparmor.d/local/usr.sbin.sshd
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload sshd AppArmor profile
+
 - name: Read loaded AppArmor profile modes
   ansible.builtin.command:
     cmd: aa-status --json
