@@ -127,7 +127,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - A firewalld restart, including a manual restart, no longer stops or touches fail2ban, so existing bans stay in place
 - A firewalld that fails to come back after a restart now fails the run instead of going unnoticed
 - A broken fail2ban jail configuration now fails the run before fail2ban is touched, so the running fail2ban keeps protecting the host
-- TBD - to be finalized after review
+- The enforced sshd AppArmor profile no longer blocks curl, the SSH AuthorizedKeysCommand, so key-based SSH logins work again on hosts enforcing the profile
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
