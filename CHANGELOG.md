@@ -11,6 +11,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 ## [Unreleased]
 ### Security
 - Pin actions/checkout references to commit SHA instead of mutable tag in ansible-lint and security-review workflows, hardening against tag repointing
+- Install sshd AppArmor profile from Arch's extra-profiles using Arch paths and enforce it
 ### Added
 - Git workflow instructions: never-squash-commits rule to preserve the full commit history however messy the path
 - AI instructions: mandatory git identity and GPG signing check before any commit — abort if identity is `andy@nanoclaw.ai` or GPG signing is disabled
@@ -31,7 +32,6 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Install ansible and configure ansible-pull systemd timer to automatically apply latest system configuration every 6 hours, replacing the manual security script
 - Add site.yml Ansible playbook entry point for ansible-pull
 - Harden default umask to 027 via /etc/profile.d/umask.sh
-- Install and enable AppArmor service with community profiles enforced for sshd, docker-default, and fail2ban
 - Install audit package alongside AppArmor for kernel-level audit logging
 - Enable auditd service for AppArmor audit event logging
 - Remove orphaned packages inline after package install step rather than via a systemd timer
@@ -72,6 +72,8 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Enable ILoveCandy, CheckSpace and VerbosePkgLists options in pacman.conf
 - lynis-driven hardening: /boot locked to root via vfat mount masks, sshd_config restricted to root, core dumps disabled via security limits, login.defs yescrypt cost factor raised and umask tightened to 027, TTY line-discipline autoloading disabled, FireWire storage modules blacklisted, legal consent banner installed, and arch-audit installed for vulnerable-package detection
 - LYNIS.md security-audit baseline (hardening index 75) with an accepted-findings register, maintained by a mandatory lynis audit and Docker smoke test on every test-VM session
+- Install and enable AppArmor service with the sshd profile from Arch's extra-profiles enforced
+- Warn when Docker or rootful/rootless Podman containers run unconfined or privileged
 ### Fixed
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
@@ -181,6 +183,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Remove curl-based security script in favour of ansible-pull timer
 - auto-update bash script, service, and timer — superseded by the packages role running pacman -Syyu on every hourly ansible-pull run
 - reflector and the chaotic-mirrorlist package from DNS hosts (dns-NN), along with reflector's timer and /etc/xdg/reflector configuration; all other hosts keep both
+- Remove dead apparmor-profiles task
 ### Deployment Changes
 - Already-provisioned hosts have /etc/resolv.conf replaced (static file on dns-?? hosts, symlink to systemd-resolved's stub on every other host) and systemd-resolved restarted on their next ansible-pull run
 - Existing hosts must re-run ansible-pull (or restart systemd-resolved) to pick up the DNSSEC=no change
