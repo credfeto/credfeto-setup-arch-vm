@@ -75,6 +75,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Install and enable AppArmor service with the sshd profile from Arch's extra-profiles enforced
 - Warn when Docker or rootful/rootless Podman containers run unconfined or privileged
 ### Fixed
+- SSH lockout after reboot: strip attach_disconnected.path from the packaged unix-chkpwd AppArmor profile so it attaches on linux-hardened and sshd's Px transition for pam_unix's helper works
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
 - Enable pkgstats.timer via symlink for static unit as it has no [Install] section and cannot be enabled with systemctl enable

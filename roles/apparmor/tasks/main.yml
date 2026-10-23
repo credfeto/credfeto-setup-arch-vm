@@ -63,6 +63,25 @@
     mode: "0644"
   notify: Reload sshd AppArmor profile
 
+# The unix-chkpwd profile apparmor 4.1.8 ships declares
+# flags=(attach_disconnected.path=/att/unix-chkpwd/). On linux-hardened that
+# profile loads but never attaches, so unix_chkpwd runs unconfined and sshd's
+# Px transition to it (from abstractions/authentication) fails with "profile
+# transition not found". pam_unix's account helper is then denied and every
+# login fails with "Access denied by PAM account configuration". It bites at
+# the first boot after the package update; hosts that have not rebooted keep
+# the old, working profile loaded. Strip the flag (upgrades may restore the
+# file, so this re-applies every run) and reload unix-chkpwd before the sshd
+# profile.
+- name: Make unix-chkpwd AppArmor profile attach so sshd can transition to it
+  ansible.builtin.replace:
+    path: /etc/apparmor.d/unix-chkpwd
+    regexp: '^(profile unix-chkpwd \S+) flags=\(attach_disconnected\.path=/att/unix-chkpwd/\) \{'
+    replace: '\1 {'
+  notify:
+    - Reload unix-chkpwd AppArmor profile
+    - Reload sshd AppArmor profile
+
 # curl is the sshd AuthorizedKeysCommand set by the ssh role, which the
 # enforced upstream profile denies. Do not add unix_chkpwd here:
 # abstractions/authentication already transitions it with Px, and a rule
