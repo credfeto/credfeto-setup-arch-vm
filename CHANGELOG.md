@@ -127,6 +127,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - A firewalld restart, including a manual restart, no longer stops or touches fail2ban, so existing bans stay in place
 - A firewalld that fails to come back after a restart now fails the run instead of going unnoticed
 - A broken fail2ban jail configuration now fails the run before fail2ban is touched, so the running fail2ban keeps protecting the host
+- The sshd AppArmor profile no longer blocks curl, the SSH AuthorizedKeysCommand, so key-based SSH logins work again on hosts enforcing it
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
@@ -177,6 +178,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - notified Ansible handlers now always run even if a later task in the run fails, so restarts for already-written config changes are never silently dropped
 - Run fstrim.timer daily instead of weekly and enable it explicitly, so thin-provisioned ZFS/Ceph host storage reclaims blocks freed in the guest promptly
 - Fail2ban, docker, auditd, the ansible-pull and fstrim timers, telegraf, systemd-resolved and firewalld are each started or restarted at most once per run, instead of possibly several times
+- The run now fails if the upstream sshd AppArmor profile no longer has the paths or the local include the Arch adjustments rely on
 ### Deprecated
 ### Removed
 - Remove criu and pigz packages — neither is used or configured by the script
