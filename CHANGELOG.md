@@ -11,6 +11,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 ## [Unreleased]
 ### Fixed
 - Temporarily load the sshd AppArmor profile in complain mode: since apparmor 4.1.8 a freshly booted host denies sshd's transition to unix_chkpwd and every SSH login fails at PAM account
+- Fix the complain-mode rewrite writing a literal \1 into the sshd AppArmor profile (parse error at line 21), and validate the rendered profile with apparmor_parser before installing it
 ### Security
 - Remove leftover 9*-*RootLogin.conf sshd drop-ins (e.g. 999-/9999-RootLogin.conf) that set PermitRootLogin yes behind 10-permitrootlogin.conf
 ### Security
