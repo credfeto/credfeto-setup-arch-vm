@@ -117,6 +117,25 @@
     mode: "0600"
   notify: Reload sshd
 
+# Older runs wrote PermitRootLogin yes into files such as 999-RootLogin.conf
+# or 9999-RootLogin.conf. sshd takes the first value it reads, so
+# 10-permitrootlogin.conf wins today, but a leftover file would turn root
+# login on if that one were ever removed or renamed.
+- name: Find leftover PermitRootLogin override files
+  ansible.builtin.find:
+    paths: /etc/ssh/sshd_config.d
+    patterns: "9*-*RootLogin.conf"
+  register: ssh_leftover_rootlogin
+
+- name: Remove leftover PermitRootLogin override files
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ ssh_leftover_rootlogin.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+  notify: Reload sshd
+
 - name: Configure sshd PasswordAuthentication
   ansible.builtin.copy:
     dest: /etc/ssh/sshd_config.d/10-passwordauthentication.conf

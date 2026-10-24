@@ -9,6 +9,10 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 -->
 
 ## [Unreleased]
+### Fixed
+- Temporarily load the sshd AppArmor profile in complain mode: since apparmor 4.1.8 a freshly booted host denies sshd's transition to unix_chkpwd and every SSH login fails at PAM account
+### Security
+- Remove leftover 9*-*RootLogin.conf sshd drop-ins (e.g. 999-/9999-RootLogin.conf) that set PermitRootLogin yes behind 10-permitrootlogin.conf
 ### Security
 - Pin actions/checkout references to commit SHA instead of mutable tag in ansible-lint and security-review workflows, hardening against tag repointing
 - Install sshd AppArmor profile from Arch's extra-profiles using Arch paths and enforce it

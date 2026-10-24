@@ -51,10 +51,20 @@
 # /usr/lib/ssh rather than /usr/lib/openssh. Extra rules belong in the
 # profile's own local/usr.sbin.sshd include, never here, so this copy stays an
 # exact rewrite of upstream.
+#
+# TEMPORARY: the profile is installed in complain mode. Since apparmor 4.1.8
+# a freshly booted host denies sshd's Px transition to unix_chkpwd ("profile
+# transition not found") even with the unix-chkpwd fix below, so every login
+# fails at PAM account and the host is locked out until a console fix. Hosts
+# that have not rebooted since the upgrade keep working, which is why this
+# only shows after a reboot. Complain mode keeps the profile loaded and
+# logging every violation while letting logins through. Remove the
+# flags=(complain) rewrite once the boot-time attach problem is understood.
 - name: Install Arch-adjusted sshd AppArmor profile
   ansible.builtin.copy:
     content: >-
       {{ apparmor_sshd_upstream_profile
+         | regex_replace('(?m)^([ \t]*/usr/sbin/sshd) [{]', '\\1 flags=(complain) {')
          | regex_replace('/usr/sbin/sshd(?![-a-zA-Z0-9_])', '/usr/{bin,sbin}/sshd')
          | regex_replace('/usr/lib/openssh/', '/usr/lib/ssh/') }}
     dest: /etc/apparmor.d/usr.sbin.sshd
@@ -105,16 +115,18 @@
   when: apparmor_kernel.stat.exists
 
 # The profile is named after its attachment, so that is the key aa-status
-# reports it under. aa-enforce also loads the profile when it is not loaded
-# yet, such as on the first run. A profile only attaches at exec, so the
-# running sshd stays unconfined until the reload makes it re-exec itself.
-- name: Enforce sshd AppArmor profile
+# reports it under. Loading the installed file also loads the profile when it
+# is not loaded yet, such as on the first run, and switches a host that was
+# left in enforce mode by an earlier run to the complain mode set above. A
+# profile only attaches at exec, so the running sshd keeps its old
+# confinement until the reload makes it re-exec itself.
+- name: Load sshd AppArmor profile in complain mode
   ansible.builtin.command:
-    cmd: aa-enforce /etc/apparmor.d/usr.sbin.sshd
+    cmd: apparmor_parser -r /etc/apparmor.d/usr.sbin.sshd
   changed_when: true
   when:
     - apparmor_kernel.stat.exists
-    - (apparmor_status.stdout | from_json).profiles['/usr/{bin,sbin}/sshd'] | default('') != 'enforce'
+    - (apparmor_status.stdout | from_json).profiles['/usr/{bin,sbin}/sshd'] | default('') != 'complain'
   notify: Reload sshd
 
 # Everything below only reads container state and reports what it finds; it
