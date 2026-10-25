@@ -77,24 +77,40 @@
     validate: apparmor_parser --skip-kernel-load --skip-cache --base /etc/apparmor.d %s
   notify: Reload sshd AppArmor profile
 
-# The unix-chkpwd profile apparmor 4.1.8 ships declares
-# flags=(attach_disconnected.path=/att/unix-chkpwd/). On linux-hardened that
-# profile loads but never attaches, so unix_chkpwd runs unconfined and sshd's
-# Px transition to it (from abstractions/authentication) fails with "profile
-# transition not found". pam_unix's account helper is then denied and every
-# login fails with "Access denied by PAM account configuration". It bites at
-# the first boot after the package update; hosts that have not rebooted keep
-# the old, working profile loaded. Strip the flag (upgrades may restore the
-# file, so this re-applies every run) and reload unix-chkpwd before the sshd
-# profile.
+# sshd's Px transition to unix_chkpwd comes from abstractions/authentication
+# and relies on the unix-chkpwd profile attaching by path. apparmor 4.1.8
+# ships that profile as
+#   profile unix-chkpwd /{,usr/}{,s}bin/unix_chkpwd flags=(attach_disconnected.path=/att/unix-chkpwd/) {
+# With apparmor_parser 4.1.8 on linux-hardened 7.2, an attachment with two
+# brace groups in a row where the first has an empty alternative
+# ({,usr/}{,s}bin) never matches: the exec fails with "profile transition not
+# found", pam_unix's account helper is denied and every SSH login fails with
+# "Access denied by PAM account configuration". Tested on dns-02: /{,a/}{,b/}x
+# and /a/{,b/}{,c}x never attach, while /{a/,b/}{,c/}x, a single {,a/} group,
+# {a,b} and * all do. Hosts that have not rebooted since the upgrade keep the
+# old profile loaded, which is why it only shows after a reboot.
+#
+# /bin and /sbin are symlinks into /usr/bin on Arch and AppArmor attaches by
+# the resolved path, so /usr/{bin,sbin}/unix_chkpwd covers every location.
+# Upgrades may restore the shipped header, so this re-applies every run. The
+# profile is reloaded straight away rather than from a handler so that it
+# attaches before anything below makes sshd enforce its transition to it.
 - name: Make unix-chkpwd AppArmor profile attach so sshd can transition to it
   ansible.builtin.replace:
     path: /etc/apparmor.d/unix-chkpwd
-    regexp: '^(profile unix-chkpwd \S+) flags=\(attach_disconnected\.path=/att/unix-chkpwd/\) \{'
-    replace: '\1 {'
-  notify:
-    - Reload unix-chkpwd AppArmor profile
-    - Reload sshd AppArmor profile
+    regexp: '^profile unix-chkpwd \S+(?: flags=\([^)]*\))? \{$'
+    replace: 'profile unix-chkpwd /usr/{bin,sbin}/unix_chkpwd {'
+    validate: apparmor_parser --skip-kernel-load --skip-cache --base /etc/apparmor.d %s
+  register: apparmor_unix_chkpwd
+  notify: Reload sshd AppArmor profile
+
+- name: Reload unix-chkpwd AppArmor profile
+  ansible.builtin.command:
+    cmd: apparmor_parser -r /etc/apparmor.d/unix-chkpwd
+  changed_when: true
+  when:
+    - apparmor_kernel.stat.exists
+    - apparmor_unix_chkpwd is changed
 
 # curl is the sshd AuthorizedKeysCommand set by the ssh role, which the
 # enforced upstream profile denies. Do not add unix_chkpwd here:

@@ -1,12 +1,4 @@
 ---
-# Handlers run in the order listed here, so unix-chkpwd is reloaded before
-# the sshd profile that transitions to it.
-- name: Reload unix-chkpwd AppArmor profile
-  ansible.builtin.command:
-    cmd: apparmor_parser -r /etc/apparmor.d/unix-chkpwd
-  changed_when: true
-  when: apparmor_kernel.stat.exists
-
 # -r replaces the loaded profile in place, so the running sshd and every
 # session it has spawned pick up the new rules without a restart.
 - name: Reload sshd AppArmor profile
