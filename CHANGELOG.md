@@ -10,6 +10,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 
 ## [Unreleased]
 ### Fixed
+- sshd AppArmor profile is enforced again instead of installed in complain mode, now that the unix-chkpwd attachment fix lets sshd transition to unix_chkpwd after a fresh boot
 - Fix sshd's transition to unix_chkpwd for real: rewrite the unix-chkpwd profile attachment to /usr/{bin,sbin}/unix_chkpwd, because the shipped /{,usr/}{,s}bin/unix_chkpwd glob never matches with apparmor 4.1.8 on linux-hardened (consecutive brace groups with an empty alternative); reload it before sshd is enforced
 - Match leftover root-login sshd drop-ins case-insensitively (9999-permitrootlogin.conf, 9999_permitrootlogin.conf were missed)
 - Temporarily load the sshd AppArmor profile in complain mode: since apparmor 4.1.8 a freshly booted host denies sshd's transition to unix_chkpwd and every SSH login fails at PAM account
