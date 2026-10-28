@@ -380,6 +380,27 @@
     group: root
     mode: "0644"
 
+# Default core-dump limit for systemd-managed services (limits.d only covers
+# login sessions). Running services keep their old limit until restarted.
+- name: Ensure systemd system.conf.d exists
+  ansible.builtin.file:
+    path: /etc/systemd/system.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Disable core dumps for systemd services
+  ansible.builtin.copy:
+    dest: /etc/systemd/system.conf.d/no-core-dumps.conf
+    content: |
+      [Manager]
+      DefaultLimitCORE=0
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Re-execute systemd manager
+
 # Loading an arbitrary TTY line discipline via TIOCSETD historically gave
 # local privilege-escalation primitives; nothing on these hosts needs
 # autoloading (lynis KRNL-6000, #62).
