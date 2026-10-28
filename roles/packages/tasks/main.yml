@@ -382,6 +382,7 @@
       - openssh
       - pacman-contrib
       - pkgstats
+      - qemu-guest-agent
     state: present
     extra_args: "--noconfirm --needed"
 

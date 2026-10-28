@@ -36,3 +36,7 @@ DNS=192.168.xxx.1
 
 IPv6PrivacyExtensions=yes
 ```
+
+## Proxmox QEMU Guest Agent
+
+The playbook installs `qemu-guest-agent` and starts it when the virtio serial port exists. In Proxmox enable **Options > QEMU Guest Agent** for the VM, then do a full VM stop/start (not a reboot) so `/dev/virtio-ports/org.qemu.guest_agent.0` is created. Without it the role skips cleanly.
