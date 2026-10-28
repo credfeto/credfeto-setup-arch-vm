@@ -2,12 +2,23 @@
 # Blacklist kernel modules affected by Dirty Frag (CVE-2026-43284, CVE-2026-43500).
 # esp4/esp6 are the IPsec ESP variants; rxrpc is the AFS RxRPC variant.
 # Reference: https://www.phoronix.com/news/Dirty-Frag-Linux
+#
+# Some entries name modules that are not built for, or have been removed
+# from, the current Arch kernel. They are kept deliberately: a modprobe.d
+# entry for an absent module is harmless and still protects other kernels.
+# Built-in (=y) code cannot be blacklisted; only loadable modules can.
 
 - name: Capture currently loaded modules
   ansible.builtin.command:
     cmd: lsmod
   register: kernel_modules_lsmod_output
   changed_when: false
+
+# Exact first-column names: a substring test on raw lsmod output would match
+# e.g. 'can' inside 'can_raw' or 'hfs' inside 'hfsplus'.
+- name: Extract loaded module names
+  ansible.builtin.set_fact:
+    kernel_modules_loaded: "{{ kernel_modules_lsmod_output.stdout_lines[1:] | map('split') | map('first') | list }}"
 
 - name: Blacklist esp4 (Dirty Frag CVE-2026-43284)
   ansible.builtin.copy:
@@ -24,7 +35,7 @@
   community.general.modprobe:
     name: esp4
     state: absent
-  when: "'esp4' in kernel_modules_lsmod_output.stdout"
+  when: "'esp4' in kernel_modules_loaded"
 
 - name: Blacklist esp6 (Dirty Frag CVE-2026-43284)
   ansible.builtin.copy:
@@ -41,7 +52,7 @@
   community.general.modprobe:
     name: esp6
     state: absent
-  when: "'esp6' in kernel_modules_lsmod_output.stdout"
+  when: "'esp6' in kernel_modules_loaded"
 
 - name: Blacklist rxrpc (Dirty Frag CVE-2026-43500)
   ansible.builtin.copy:
@@ -58,11 +69,13 @@
   community.general.modprobe:
     name: rxrpc
     state: absent
-  when: "'rxrpc' in kernel_modules_lsmod_output.stdout"
+  when: "'rxrpc' in kernel_modules_loaded"
 
 # ---------------------------------------------------------------------------
 # Unused high-risk network protocols (equivalent to ModuleJail conservative)
 # ---------------------------------------------------------------------------
+# DCCP was removed upstream in Linux 6.16 and SCTP may not be built; both are
+# kept as defence-in-depth for other kernels.
 
 - name: Blacklist unused high-risk network protocols (DCCP, SCTP, RDS, TIPC, n_hdlc)
   ansible.builtin.copy:
@@ -93,53 +106,54 @@
   community.general.modprobe:
     name: dccp
     state: absent
-  when: "'dccp' in kernel_modules_lsmod_output.stdout"
+  when: "'dccp' in kernel_modules_loaded"
 
 - name: Unload dccp_ipv4 if currently loaded
   community.general.modprobe:
     name: dccp_ipv4
     state: absent
-  when: "'dccp_ipv4' in kernel_modules_lsmod_output.stdout"
+  when: "'dccp_ipv4' in kernel_modules_loaded"
 
 - name: Unload dccp_ipv6 if currently loaded
   community.general.modprobe:
     name: dccp_ipv6
     state: absent
-  when: "'dccp_ipv6' in kernel_modules_lsmod_output.stdout"
+  when: "'dccp_ipv6' in kernel_modules_loaded"
 
 - name: Unload sctp if currently loaded
   community.general.modprobe:
     name: sctp
     state: absent
-  when: "'sctp' in kernel_modules_lsmod_output.stdout"
+  when: "'sctp' in kernel_modules_loaded"
 
 - name: Unload rds if currently loaded
   community.general.modprobe:
     name: rds
     state: absent
-  when: "'rds' in kernel_modules_lsmod_output.stdout"
+  when: "'rds' in kernel_modules_loaded"
 
 - name: Unload rds_tcp if currently loaded
   community.general.modprobe:
     name: rds_tcp
     state: absent
-  when: "'rds_tcp' in kernel_modules_lsmod_output.stdout"
+  when: "'rds_tcp' in kernel_modules_loaded"
 
 - name: Unload tipc if currently loaded
   community.general.modprobe:
     name: tipc
     state: absent
-  when: "'tipc' in kernel_modules_lsmod_output.stdout"
+  when: "'tipc' in kernel_modules_loaded"
 
 - name: Unload n_hdlc if currently loaded
   community.general.modprobe:
     name: n_hdlc
     state: absent
-  when: "'n_hdlc' in kernel_modules_lsmod_output.stdout"
+  when: "'n_hdlc' in kernel_modules_loaded"
 
 # ---------------------------------------------------------------------------
 # Amateur radio and legacy packet radio protocols
 # ---------------------------------------------------------------------------
+# Not built in the Arch kernel; kept as defence-in-depth for other kernels.
 
 - name: Blacklist amateur radio and legacy packet radio protocols
   ansible.builtin.copy:
@@ -162,37 +176,40 @@
   community.general.modprobe:
     name: ax25
     state: absent
-  when: "'ax25' in kernel_modules_lsmod_output.stdout"
+  when: "'ax25' in kernel_modules_loaded"
 
 - name: Unload netrom if currently loaded
   community.general.modprobe:
     name: netrom
     state: absent
-  when: "'netrom' in kernel_modules_lsmod_output.stdout"
+  when: "'netrom' in kernel_modules_loaded"
 
 - name: Unload rose if currently loaded
   community.general.modprobe:
     name: rose
     state: absent
-  when: "'rose' in kernel_modules_lsmod_output.stdout"
+  when: "'rose' in kernel_modules_loaded"
 
 - name: Unload x25 if currently loaded
   community.general.modprobe:
     name: x25
     state: absent
-  when: "'x25' in kernel_modules_lsmod_output.stdout"
+  when: "'x25' in kernel_modules_loaded"
 
 # ---------------------------------------------------------------------------
 # Other niche and legacy network protocols
 # ---------------------------------------------------------------------------
+# ipx and appletalk were removed upstream; kept for older kernels.
 
 - name: Blacklist other niche and legacy network protocols
   ansible.builtin.copy:
     dest: /etc/modprobe.d/blacklist-legacy-protocols.conf
     content: |
       # Niche/legacy network protocols: absent on a server VM
-      blacklist af_802154
-      install af_802154 /bin/false
+      blacklist ieee802154_socket
+      install ieee802154_socket /bin/false
+      blacklist ieee802154
+      install ieee802154 /bin/false
       blacklist can
       install can /bin/false
       blacklist ipx
@@ -203,33 +220,41 @@
     group: root
     mode: "0644"
 
-- name: Unload af_802154 if currently loaded
+# ieee802154_socket depends on ieee802154, so it must be unloaded first.
+- name: Unload ieee802154_socket if currently loaded
   community.general.modprobe:
-    name: af_802154
+    name: ieee802154_socket
     state: absent
-  when: "'af_802154' in kernel_modules_lsmod_output.stdout"
+  when: "'ieee802154_socket' in kernel_modules_loaded"
+
+- name: Unload ieee802154 if currently loaded
+  community.general.modprobe:
+    name: ieee802154
+    state: absent
+  when: "'ieee802154' in kernel_modules_loaded"
 
 - name: Unload can if currently loaded
   community.general.modprobe:
     name: can
     state: absent
-  when: "'can' in kernel_modules_lsmod_output.stdout"
+  when: "'can' in kernel_modules_loaded"
 
 - name: Unload ipx if currently loaded
   community.general.modprobe:
     name: ipx
     state: absent
-  when: "'ipx' in kernel_modules_lsmod_output.stdout"
+  when: "'ipx' in kernel_modules_loaded"
 
 - name: Unload appletalk if currently loaded
   community.general.modprobe:
     name: appletalk
     state: absent
-  when: "'appletalk' in kernel_modules_lsmod_output.stdout"
+  when: "'appletalk' in kernel_modules_loaded"
 
 # ---------------------------------------------------------------------------
 # Legacy filesystems not used on a server VM
 # ---------------------------------------------------------------------------
+# freevxfs is not built in the Arch kernel; kept for other kernels.
 
 - name: Blacklist unused legacy filesystems
   ansible.builtin.copy:
@@ -256,41 +281,42 @@
   community.general.modprobe:
     name: cramfs
     state: absent
-  when: "'cramfs' in kernel_modules_lsmod_output.stdout"
+  when: "'cramfs' in kernel_modules_loaded"
 
 - name: Unload freevxfs if currently loaded
   community.general.modprobe:
     name: freevxfs
     state: absent
-  when: "'freevxfs' in kernel_modules_lsmod_output.stdout"
+  when: "'freevxfs' in kernel_modules_loaded"
 
 - name: Unload jffs2 if currently loaded
   community.general.modprobe:
     name: jffs2
     state: absent
-  when: "'jffs2' in kernel_modules_lsmod_output.stdout"
+  when: "'jffs2' in kernel_modules_loaded"
 
 - name: Unload hfs if currently loaded
   community.general.modprobe:
     name: hfs
     state: absent
-  when: "'hfs' in kernel_modules_lsmod_output.stdout"
+  when: "'hfs' in kernel_modules_loaded"
 
 - name: Unload hfsplus if currently loaded
   community.general.modprobe:
     name: hfsplus
     state: absent
-  when: "'hfsplus' in kernel_modules_lsmod_output.stdout"
+  when: "'hfsplus' in kernel_modules_loaded"
 
 - name: Unload udf if currently loaded
   community.general.modprobe:
     name: udf
     state: absent
-  when: "'udf' in kernel_modules_lsmod_output.stdout"
+  when: "'udf' in kernel_modules_loaded"
 
 # ---------------------------------------------------------------------------
 # Hardware absent in a VM (Bluetooth, USB storage, kernel test devices)
 # ---------------------------------------------------------------------------
+# vivid is not built in the Arch kernel; kept for other kernels.
 
 - name: Blacklist VM-absent hardware modules (Bluetooth, USB storage, FireWire, vivid)
   ansible.builtin.copy:
@@ -321,40 +347,40 @@
   community.general.modprobe:
     name: bluetooth
     state: absent
-  when: "'bluetooth' in kernel_modules_lsmod_output.stdout"
+  when: "'bluetooth' in kernel_modules_loaded"
 
 - name: Unload btusb if currently loaded
   community.general.modprobe:
     name: btusb
     state: absent
-  when: "'btusb' in kernel_modules_lsmod_output.stdout"
+  when: "'btusb' in kernel_modules_loaded"
 
 - name: Unload usb_storage if currently loaded
   community.general.modprobe:
     name: usb_storage
     state: absent
-  when: "'usb_storage' in kernel_modules_lsmod_output.stdout"
+  when: "'usb_storage' in kernel_modules_loaded"
 
 - name: Unload vivid if currently loaded
   community.general.modprobe:
     name: vivid
     state: absent
-  when: "'vivid' in kernel_modules_lsmod_output.stdout"
+  when: "'vivid' in kernel_modules_loaded"
 
 - name: Unload firewire_sbp2 if currently loaded
   community.general.modprobe:
     name: firewire_sbp2
     state: absent
-  when: "'firewire_sbp2' in kernel_modules_lsmod_output.stdout"
+  when: "'firewire_sbp2' in kernel_modules_loaded"
 
 - name: Unload firewire_ohci if currently loaded
   community.general.modprobe:
     name: firewire_ohci
     state: absent
-  when: "'firewire_ohci' in kernel_modules_lsmod_output.stdout"
+  when: "'firewire_ohci' in kernel_modules_loaded"
 
 - name: Unload firewire_core if currently loaded
   community.general.modprobe:
     name: firewire_core
     state: absent
-  when: "'firewire_core' in kernel_modules_lsmod_output.stdout"
+  when: "'firewire_core' in kernel_modules_loaded"
