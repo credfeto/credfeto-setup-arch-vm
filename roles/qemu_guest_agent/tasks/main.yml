@@ -1,0 +1,22 @@
+---
+# The Arch qemu-guest-agent unit is static and is pulled in by a udev rule
+# when /dev/virtio-ports/org.qemu.guest_agent.0 appears, so it is started
+# (never enabled). Starting it without the device would fail, so skip cleanly
+# when the Proxmox "QEMU Guest Agent" option is off.
+- name: Check for the QEMU guest agent virtio serial port
+  ansible.builtin.stat:
+    path: /dev/virtio-ports/org.qemu.guest_agent.0
+  register: qemu_guest_agent_port
+
+- name: Start qemu-guest-agent
+  ansible.builtin.systemd:
+    name: qemu-guest-agent.service
+    state: started
+  when: qemu_guest_agent_port.stat.exists
+
+- name: Report qemu-guest-agent skipped
+  ansible.builtin.debug:
+    msg: >-
+      /dev/virtio-ports/org.qemu.guest_agent.0 not present; enable Proxmox
+      Options > QEMU Guest Agent and fully stop/start the VM.
+  when: not qemu_guest_agent_port.stat.exists

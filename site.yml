@@ -28,6 +28,7 @@
     - network
     - apparmor
     - services
+    - qemu_guest_agent
     - ansible_pull
     - audit
     - telegraf
