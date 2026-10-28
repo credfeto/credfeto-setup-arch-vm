@@ -9,16 +9,9 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 -->
 
 ## [Unreleased]
-### Fixed
-- sshd AppArmor profile is enforced again instead of installed in complain mode, now that the unix-chkpwd attachment fix lets sshd transition to unix_chkpwd after a fresh boot
-- Fix sshd's transition to unix_chkpwd for real: rewrite the unix-chkpwd profile attachment to /usr/{bin,sbin}/unix_chkpwd, because the shipped /{,usr/}{,s}bin/unix_chkpwd glob never matches with apparmor 4.1.8 on linux-hardened (consecutive brace groups with an empty alternative); reload it before sshd is enforced
-- Match leftover root-login sshd drop-ins case-insensitively (9999-permitrootlogin.conf, 9999_permitrootlogin.conf were missed)
-- Temporarily load the sshd AppArmor profile in complain mode: since apparmor 4.1.8 a freshly booted host denies sshd's transition to unix_chkpwd and every SSH login fails at PAM account
-- Fix the complain-mode rewrite writing a literal \1 into the sshd AppArmor profile (parse error at line 21), and validate the rendered profile with apparmor_parser before installing it
 ### Security
 - Audit: limit execve logging to login sessions (auid >= 1000 or auid 0); daemon, service, timer and container execs are no longer logged, which was saturating the audit backlog and stalling exec-heavy hosts
 - Remove leftover 9*-*RootLogin.conf sshd drop-ins (e.g. 999-/9999-RootLogin.conf) that set PermitRootLogin yes behind 10-permitrootlogin.conf
-### Security
 - Pin actions/checkout references to commit SHA instead of mutable tag in ansible-lint and security-review workflows, hardening against tag repointing
 - Install sshd AppArmor profile from Arch's extra-profiles using Arch paths and enforce it
 ### Added
@@ -83,7 +76,13 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - LYNIS.md security-audit baseline (hardening index 75) with an accepted-findings register, maintained by a mandatory lynis audit and Docker smoke test on every test-VM session
 - Install and enable AppArmor service with the sshd profile from Arch's extra-profiles enforced
 - Warn when Docker or rootful/rootless Podman containers run unconfined or privileged
+- Install and start qemu-guest-agent so Proxmox can connect to each VM (#267)
 ### Fixed
+- sshd AppArmor profile is enforced again instead of installed in complain mode, now that the unix-chkpwd attachment fix lets sshd transition to unix_chkpwd after a fresh boot
+- Fix sshd's transition to unix_chkpwd for real: rewrite the unix-chkpwd profile attachment to /usr/{bin,sbin}/unix_chkpwd, because the shipped /{,usr/}{,s}bin/unix_chkpwd glob never matches with apparmor 4.1.8 on linux-hardened (consecutive brace groups with an empty alternative); reload it before sshd is enforced
+- Match leftover root-login sshd drop-ins case-insensitively (9999-permitrootlogin.conf, 9999_permitrootlogin.conf were missed)
+- Temporarily load the sshd AppArmor profile in complain mode: since apparmor 4.1.8 a freshly booted host denies sshd's transition to unix_chkpwd and every SSH login fails at PAM account
+- Fix the complain-mode rewrite writing a literal \1 into the sshd AppArmor profile (parse error at line 21), and validate the rendered profile with apparmor_parser before installing it
 - SSH lockout after reboot: strip attach_disconnected.path from the packaged unix-chkpwd AppArmor profile so it attaches on linux-hardened and sshd's Px transition for pam_unix's helper works
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
 - Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
