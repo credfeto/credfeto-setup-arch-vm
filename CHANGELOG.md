@@ -16,6 +16,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Temporarily load the sshd AppArmor profile in complain mode: since apparmor 4.1.8 a freshly booted host denies sshd's transition to unix_chkpwd and every SSH login fails at PAM account
 - Fix the complain-mode rewrite writing a literal \1 into the sshd AppArmor profile (parse error at line 21), and validate the rendered profile with apparmor_parser before installing it
 ### Security
+- Audit: limit execve logging to login sessions (auid >= 1000 or auid 0); daemon, service, timer and container execs are no longer logged, which was saturating the audit backlog and stalling exec-heavy hosts
 - Remove leftover 9*-*RootLogin.conf sshd drop-ins (e.g. 999-/9999-RootLogin.conf) that set PermitRootLogin yes behind 10-permitrootlogin.conf
 ### Security
 - Pin actions/checkout references to commit SHA instead of mutable tag in ansible-lint and security-review workflows, hardening against tag repointing

@@ -26,9 +26,17 @@
       # Set buffer size (increase if audit backlog warnings appear)
       -b 8192
 
-      # Log all execve calls (who ran what)
-      -a always,exit -F arch=b64 -S execve -k exec
-      -a always,exit -F arch=b32 -S execve -k exec
+      # Log execve calls from login sessions only (who ran what).
+      # auid is the login UID and survives sudo/su, so anything a human runs
+      # (including root via sudo) is still recorded. Daemons, systemd services
+      # and timers (ansible-pull, docker/podman containers, batch jobs) have an
+      # unset auid and are skipped: logging every execve on exec-heavy hosts
+      # (git, dotnet, podman workloads) filled the audit backlog and stalled
+      # processes in backlog_wait, costing far more than it recorded.
+      -a always,exit -F arch=b64 -S execve -F auid>=1000 -F auid!=unset -k exec
+      -a always,exit -F arch=b32 -S execve -F auid>=1000 -F auid!=unset -k exec
+      -a always,exit -F arch=b64 -S execve -F auid=0 -k exec
+      -a always,exit -F arch=b32 -S execve -F auid=0 -k exec
 
       # Monitor authentication files
       -w /etc/passwd -p wa -k auth
