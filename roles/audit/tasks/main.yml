@@ -71,19 +71,18 @@
 
       # Make rules immutable (requires reboot to change)
       -e 2
-  notify: Restart auditd
 
 # This role is the only one that starts auditd: a start in an earlier role
-# would run before the rules above are written, so the Restart auditd handler
-# would have to restart it again in the same run to load them.
+# would load the old rules before the ones above are written, and with -e 2
+# only a reboot could then apply them.
 - name: Enable auditd service
   ansible.builtin.systemd:
     name: auditd
     enabled: true
 
 # Separate from enabling so that changed here means auditd was actually
-# started, which the Restart auditd handler relies on to skip a second start
-# in the same run.
+# started and so loaded the current rules; the reboot role relies on this to
+# skip scheduling a reboot for a rules file this run has already applied.
 - name: Start auditd service
   ansible.builtin.systemd:
     name: auditd
