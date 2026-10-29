@@ -3,6 +3,18 @@
   ansible.builtin.systemd:
     daemon_reload: true
 
+# Configure Docker daemon validates daemon.json before writing it, but the file
+# on disk may still be one it never wrote; check it here so the restart below
+# never stops a running docker that then cannot start again.
+- name: Check Docker daemon configuration before restarting docker
+  ansible.builtin.command:
+    cmd: dockerd --validate --config-file=/etc/docker/daemon.json
+  register: docker_handler_config_check
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  listen: Restart docker
+
 # A start in this run already read the current daemon.json, so only a docker
 # that was running before the run needs restarting. docker_started is
 # undefined when a task failed before Start docker service and force_handlers
@@ -11,4 +23,6 @@
   ansible.builtin.systemd:
     name: docker
     state: restarted
-  when: docker_started is not defined or docker_started is not changed
+  when:
+    - docker_handler_config_check.rc == 0
+    - docker_started is not defined or docker_started is not changed
