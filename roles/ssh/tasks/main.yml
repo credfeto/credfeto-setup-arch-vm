@@ -372,3 +372,22 @@
     group: root
     mode: "0600"
   notify: Reload sshd
+
+# The drop-ins are fragments of one configuration, so validate: on each copy
+# cannot check them; sshd -t parses sshd_config with every drop-in and the
+# host keys together. failed_when: false so the result is always registered:
+# the Reload sshd handler checks it, because force_handlers would otherwise
+# reload sshd into a broken configuration after the run fails.
+- name: Check sshd configuration
+  ansible.builtin.command:
+    cmd: sshd -t
+  register: ssh_config_check
+  changed_when: false
+  failed_when: false
+
+# Fails before any handler can reload sshd, so the running sshd keeps the
+# configuration it last loaded and SSH access survives a bad drop-in.
+- name: Fail when the sshd configuration is invalid
+  ansible.builtin.fail:
+    msg: "sshd -t failed: {{ ssh_config_check.stdout }} {{ ssh_config_check.stderr }} {{ ssh_config_check.msg | default('') }}"
+  when: ssh_config_check.rc != 0
