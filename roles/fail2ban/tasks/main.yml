@@ -47,15 +47,16 @@
     enabled: true
     daemon_reload: true
 
-# fail2ban-client --test parses the whole configuration (jail.conf plus every
+# systemd-analyze verify checks the installed unit file; fail2ban-client --test parses the whole configuration (jail.conf plus every
 # jail.d file) and exits without contacting the server, so it works whether
 # fail2ban is running or stopped, and it fails on any invalid jail rather
 # than skipping it. failed_when: false so the result is always registered:
 # the Restart fail2ban handler checks it, because force_handlers would
 # otherwise run that restart into a broken configuration after the run fails.
 - name: Check fail2ban configuration
-  ansible.builtin.command:
-    cmd: fail2ban-client --test
+  ansible.builtin.shell:
+    cmd: systemd-analyze verify /etc/systemd/system/fail2ban.service && fail2ban-client --test
+    executable: /bin/bash
   register: fail2ban_config_check
   changed_when: false
   failed_when: false
@@ -66,7 +67,9 @@
 # a fresh host and a running fail2ban is left as it is.
 - name: Fail when the fail2ban configuration is invalid
   ansible.builtin.fail:
-    msg: "fail2ban-client --test failed: {{ fail2ban_config_check.stdout }} {{ fail2ban_config_check.stderr }} {{ fail2ban_config_check.msg | default('') }}"
+    msg: >-
+      fail2ban unit or configuration check failed: {{ fail2ban_config_check.stdout }}
+      {{ fail2ban_config_check.stderr }} {{ fail2ban_config_check.msg | default('') }}
   when: fail2ban_config_check.rc != 0
 
 # Separate from enabling so that changed here means fail2ban was actually
