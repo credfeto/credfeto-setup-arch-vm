@@ -16,3 +16,20 @@
     - ansible_pull_unit_check is defined
     - ansible_pull_unit_check.rc == 0
     - ansible_pull_timer_started is not defined or ansible_pull_timer_started is not changed
+
+# Timer units have no process to fork; is-active on the timer shows it is
+# really armed after the restart.
+- name: Check ansible-pull timer is running after restarting it
+  ansible.builtin.command:
+    cmd: systemctl is-active --quiet ansible-pull.timer  # noqa: command-instead-of-module - read-only probe
+  register: ansible_pull_timer_state
+  changed_when: false
+  until: ansible_pull_timer_state.rc == 0
+  retries: 10
+  delay: 1
+  listen: Restart ansible-pull timer
+  # Same condition as the restart: only check after a restart it made.
+  when:
+    - ansible_pull_unit_check is defined
+    - ansible_pull_unit_check.rc == 0
+    - ansible_pull_timer_started is not defined or ansible_pull_timer_started is not changed

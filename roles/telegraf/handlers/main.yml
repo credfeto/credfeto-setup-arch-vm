@@ -22,3 +22,20 @@
   when:
     - telegraf_handler_config_check.rc == 0
     - telegraf_started is not defined or telegraf_started is not changed
+
+# telegraf.service is Type=notify, so the restart only completes once the
+# service reports ready; is-active polls until the unit is up and fails the
+# run when it never is.
+- name: Check telegraf is running after restarting it
+  ansible.builtin.command:
+    cmd: systemctl is-active --quiet telegraf  # noqa: command-instead-of-module - read-only probe
+  register: telegraf_handler_state
+  changed_when: false
+  until: telegraf_handler_state.rc == 0
+  retries: 10
+  delay: 1
+  listen: Restart telegraf
+  # Same condition as the restart: only check after a restart it made.
+  when:
+    - telegraf_handler_config_check.rc == 0
+    - telegraf_started is not defined or telegraf_started is not changed

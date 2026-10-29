@@ -19,3 +19,17 @@
     state: restarted
     daemon_reload: true
   when: services_fstrim_timer_started is not defined or services_fstrim_timer_started is not changed
+
+# Timer units have no process to fork; is-active on the timer shows it is
+# really armed after the restart.
+- name: Check fstrim timer is running after restarting it
+  ansible.builtin.command:
+    cmd: systemctl is-active --quiet fstrim.timer  # noqa: command-instead-of-module - read-only probe
+  register: services_fstrim_timer_state
+  changed_when: false
+  until: services_fstrim_timer_state.rc == 0
+  retries: 10
+  delay: 1
+  listen: Restart fstrim timer
+  # Same condition as the restart: only check after a restart it made.
+  when: services_fstrim_timer_started is not defined or services_fstrim_timer_started is not changed

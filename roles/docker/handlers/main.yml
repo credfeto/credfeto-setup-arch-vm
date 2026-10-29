@@ -26,3 +26,20 @@
   when:
     - docker_handler_config_check.rc == 0
     - docker_started is not defined or docker_started is not changed
+
+# docker.service is Type=notify, so the restart only completes once dockerd
+# is ready; docker info proves the daemon answers, and polling fails the run
+# when it never does.
+- name: Check docker is running after restarting it
+  ansible.builtin.command:
+    cmd: docker info
+  register: docker_handler_state
+  changed_when: false
+  until: docker_handler_state.rc == 0
+  retries: 10
+  delay: 1
+  listen: Restart docker
+  # Same condition as the restart: only check after a restart it made.
+  when:
+    - docker_handler_config_check.rc == 0
+    - docker_started is not defined or docker_started is not changed
