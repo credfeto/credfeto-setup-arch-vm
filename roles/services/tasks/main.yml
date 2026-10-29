@@ -44,6 +44,23 @@
     mode: "0644"
   notify: Reload systemd
 
+# Verify the installed units before they are loaded; registered without
+# failing so the Reload systemd handler can check it under force_handlers.
+- name: Check paccache-cleanup units
+  ansible.builtin.command:
+    cmd: systemd-analyze verify /etc/systemd/system/paccache-cleanup.service /etc/systemd/system/paccache-cleanup.timer
+  register: services_paccache_unit_check
+  changed_when: false
+  failed_when: false
+
+- name: Fail when the paccache-cleanup units are invalid
+  ansible.builtin.fail:
+    msg: >-
+      paccache-cleanup unit check failed: {{ services_paccache_unit_check.stdout }}
+      {{ services_paccache_unit_check.stderr }} {{ services_paccache_unit_check.msg | default('') }}
+  when:
+    - services_paccache_unit_check.rc != 0
+
 - name: Enable and start paccache-cleanup timer
   ansible.builtin.systemd:
     name: paccache-cleanup.timer
@@ -131,6 +148,25 @@
   notify: Reload systemd
   when: container_runtime == 'docker'
 
+# Verify the installed units before they are loaded; registered without
+# failing so the Reload systemd handler can check it under force_handlers.
+- name: Check docker-cleanup units
+  ansible.builtin.command:
+    cmd: systemd-analyze verify /etc/systemd/system/docker-cleanup.service /etc/systemd/system/docker-cleanup.timer
+  register: services_docker_unit_check
+  changed_when: false
+  failed_when: false
+  when: container_runtime == 'docker'
+
+- name: Fail when the docker-cleanup units are invalid
+  ansible.builtin.fail:
+    msg: >-
+      docker-cleanup unit check failed: {{ services_docker_unit_check.stdout }}
+      {{ services_docker_unit_check.stderr }} {{ services_docker_unit_check.msg | default('') }}
+  when:
+    - container_runtime == 'docker'
+    - services_docker_unit_check.rc != 0
+
 - name: Enable and start docker-cleanup timer
   ansible.builtin.systemd:
     name: docker-cleanup.timer
@@ -183,6 +219,25 @@
     mode: "0644"
   notify: Reload systemd
   when: container_runtime == 'podman'
+
+# Verify the installed units before they are loaded; registered without
+# failing so the Reload systemd handler can check it under force_handlers.
+- name: Check podman-cleanup units
+  ansible.builtin.command:
+    cmd: systemd-analyze verify /etc/systemd/system/podman-cleanup.service /etc/systemd/system/podman-cleanup.timer
+  register: services_podman_unit_check
+  changed_when: false
+  failed_when: false
+  when: container_runtime == 'podman'
+
+- name: Fail when the podman-cleanup units are invalid
+  ansible.builtin.fail:
+    msg: >-
+      podman-cleanup unit check failed: {{ services_podman_unit_check.stdout }}
+      {{ services_podman_unit_check.stderr }} {{ services_podman_unit_check.msg | default('') }}
+  when:
+    - container_runtime == 'podman'
+    - services_podman_unit_check.rc != 0
 
 - name: Enable and start podman-cleanup timer
   ansible.builtin.systemd:

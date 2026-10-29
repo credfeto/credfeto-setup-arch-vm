@@ -12,6 +12,7 @@
     owner: root
     group: root
     mode: "0644"
+    validate: telegraf --config %s --test
   notify: Restart telegraf
 
 # The telegraf system user/group is created by the package above, so this

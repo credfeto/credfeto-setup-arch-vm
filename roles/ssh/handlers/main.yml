@@ -1,5 +1,22 @@
 ---
+# ssh_config_check is undefined when a task failed before Check sshd
+# configuration and force_handlers runs these handlers anyway; check the
+# configuration here then, so the reload below never runs into a broken one.
+# A separate variable, because register on a skipped handler would overwrite
+# the task's result.
+- name: Check sshd configuration before reloading it
+  ansible.builtin.command:
+    cmd: sshd -t
+  register: ssh_handler_config_check
+  changed_when: false
+  failed_when: false
+  when: ssh_config_check is not defined
+  listen: Reload sshd
+
+# Never reload into a configuration that failed the check: sshd would stop
+# accepting logins, and the run has already failed.
 - name: Reload sshd
   ansible.builtin.systemd:
     name: sshd
     state: reloaded
+  when: (ssh_config_check if ssh_config_check is defined else ssh_handler_config_check).rc == 0
