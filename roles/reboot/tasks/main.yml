@@ -18,6 +18,16 @@
     get_checksum: false
   register: reboot_grubcfg_stat
 
+- name: Stat audit rules
+  ansible.builtin.stat:
+    path: /etc/audit/rules.d/hardening.rules
+    get_checksum: false
+  register: reboot_auditrules_stat
+
+# The audit rules end with -e 2 (immutable) and auditd refuses a manual stop,
+# so only a reboot can load a changed rule set. An auditd started by this run
+# (audit_started changed) has already loaded the current rules; audit_started
+# is undefined when the audit role did not reach its start task.
 - name: Determine whether a reboot is needed
   ansible.builtin.set_fact:
     reboot_needed: >-
@@ -27,9 +37,13 @@
         or
         (reboot_grubcfg_stat.stat.exists and
          reboot_grubcfg_stat.stat.mtime | int > reboot_boot_time_result.stdout | int)
+        or
+        (reboot_auditrules_stat.stat.exists and
+         reboot_auditrules_stat.stat.mtime | int > reboot_boot_time_result.stdout | int and
+         (audit_started is not defined or audit_started is not changed))
       }}
 
-- name: Schedule reboot 60 s after Ansible run when kernel or boot config changed
+- name: Schedule reboot 60 s after Ansible run when kernel, boot config or audit rules changed
   ansible.builtin.command:
     cmd: systemd-run --on-active=60 systemctl reboot
   when: reboot_needed | bool

@@ -139,6 +139,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - A broken fail2ban jail configuration now fails the run before fail2ban is touched, so the running fail2ban keeps protecting the host
 - The sshd AppArmor profile no longer blocks curl, the SSH AuthorizedKeysCommand, so key-based SSH logins work again on hosts enforcing it
 - Block the ieee802154_socket kernel module (not the non-existent af_802154) and tighten lsmod matching when unloading legacy protocol modules
+- Changed audit rules now flag a reboot instead of a refused auditd restart (#258)
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
