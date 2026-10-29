@@ -12,4 +12,7 @@
     name: ansible-pull.timer
     state: restarted
     daemon_reload: true
-  when: ansible_pull_timer_started is not defined or ansible_pull_timer_started is not changed
+  when:
+    - ansible_pull_unit_check is defined
+    - ansible_pull_unit_check.rc == 0
+    - ansible_pull_timer_started is not defined or ansible_pull_timer_started is not changed

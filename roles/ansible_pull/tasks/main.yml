@@ -28,6 +28,23 @@
     mode: "0644"
   notify: Restart ansible-pull timer
 
+# Verify both installed units before anything enables, starts or restarts the
+# timer. failed_when: false so the result is always registered and the
+# Restart ansible-pull timer handler can check it under force_handlers.
+- name: Check ansible-pull units
+  ansible.builtin.command:
+    cmd: systemd-analyze verify /etc/systemd/system/ansible-pull.service /etc/systemd/system/ansible-pull.timer
+  register: ansible_pull_unit_check
+  changed_when: false
+  failed_when: false
+
+- name: Fail when the ansible-pull units are invalid
+  ansible.builtin.fail:
+    msg: >-
+      ansible-pull unit check failed: {{ ansible_pull_unit_check.stdout }}
+      {{ ansible_pull_unit_check.stderr }} {{ ansible_pull_unit_check.msg | default('') }}
+  when: ansible_pull_unit_check.rc != 0
+
 - name: Enable ansible-pull timer
   ansible.builtin.systemd:
     name: ansible-pull.timer
