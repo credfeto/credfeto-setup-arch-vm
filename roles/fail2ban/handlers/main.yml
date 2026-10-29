@@ -28,3 +28,22 @@
   when:
     - (fail2ban_config_check if fail2ban_config_check is defined else fail2ban_handler_config_check).rc == 0
     - fail2ban_started is not defined or fail2ban_started is not changed
+
+# fail2ban.service is Type=simple, so the restart reports success as soon as
+# the process is forked, even when fail2ban then exits, and is-active can
+# read active just before it dies. fail2ban-client ping succeeds only once
+# the server answers on its socket, so poll it and fail the run when it
+# never does.
+- name: Check fail2ban is running after restarting it
+  ansible.builtin.command:
+    cmd: fail2ban-client ping
+  register: fail2ban_handler_state
+  changed_when: false
+  until: fail2ban_handler_state.rc == 0
+  retries: 10
+  delay: 1
+  listen: Restart fail2ban
+  # Same condition as the restart: only check after a restart it made.
+  when:
+    - (fail2ban_config_check if fail2ban_config_check is defined else fail2ban_handler_config_check).rc == 0
+    - fail2ban_started is not defined or fail2ban_started is not changed

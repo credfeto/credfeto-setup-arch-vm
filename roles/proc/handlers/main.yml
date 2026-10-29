@@ -7,3 +7,16 @@
   ansible.builtin.systemd:
     name: systemd-logind
     state: restarted
+
+# systemd-logind.service is Type=notify, so the restart only completes once
+# the service reports ready; is-active polls until the unit is up and fails
+# the run when it never is.
+- name: Check systemd-logind is running after restarting it
+  ansible.builtin.command:
+    cmd: systemctl is-active --quiet systemd-logind  # noqa: command-instead-of-module - read-only probe
+  register: proc_logind_state
+  changed_when: false
+  until: proc_logind_state.rc == 0
+  retries: 10
+  delay: 1
+  listen: Restart systemd-logind

@@ -9,3 +9,18 @@
     name: systemd-resolved
     state: restarted
   when: network_resolved_started is not defined or network_resolved_started is not changed
+
+# systemd-resolved.service is Type=notify; resolvectl status succeeds only
+# once the resolver answers on D-Bus, so poll it and fail the run when it
+# never does.
+- name: Check systemd-resolved is running after restarting it
+  ansible.builtin.command:
+    cmd: resolvectl status
+  register: network_resolved_state
+  changed_when: false
+  until: network_resolved_state.rc == 0
+  retries: 10
+  delay: 1
+  listen: Restart systemd-resolved
+  # Same condition as the restart: only check after a restart it made.
+  when: network_resolved_started is not defined or network_resolved_started is not changed
