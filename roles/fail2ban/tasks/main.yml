@@ -47,7 +47,8 @@
     enabled: true
     daemon_reload: true
 
-# systemd-analyze verify checks the installed unit file; fail2ban-client --test parses the whole configuration (jail.conf plus every
+# systemd-analyze verify checks the installed unit file; fail2ban-client --test
+# parses the whole configuration (jail.conf plus every
 # jail.d file) and exits without contacting the server, so it works whether
 # fail2ban is running or stopped, and it fails on any invalid jail rather
 # than skipping it. failed_when: false so the result is always registered:
