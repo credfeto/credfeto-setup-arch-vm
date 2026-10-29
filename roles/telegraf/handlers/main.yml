@@ -1,4 +1,16 @@
 ---
+# Deploy telegraf configuration validates telegraf.conf before writing it, but
+# the file on disk may still be one it never wrote; check it here so the
+# restart below never stops a running telegraf that then cannot start again.
+- name: Check telegraf configuration before restarting telegraf
+  ansible.builtin.command:
+    cmd: telegraf --config /etc/telegraf/telegraf.conf --test
+  register: telegraf_handler_config_check
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  listen: Restart telegraf
+
 # A start in this run already read the current telegraf.conf, so only a
 # telegraf that was running before the run needs restarting. telegraf_started
 # is undefined when a task failed before Start telegraf service and
@@ -7,4 +19,6 @@
   ansible.builtin.systemd:
     name: telegraf
     state: restarted
-  when: telegraf_started is not defined or telegraf_started is not changed
+  when:
+    - telegraf_handler_config_check.rc == 0
+    - telegraf_started is not defined or telegraf_started is not changed
