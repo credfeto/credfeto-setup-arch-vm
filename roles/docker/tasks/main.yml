@@ -23,7 +23,9 @@
   ansible.builtin.file:
     path: /etc/systemd/system/docker.service.d/security.conf
     state: absent
-  notify: Reload systemd
+  notify:
+    - Reload systemd
+    - Restart docker
   when: container_runtime == 'docker'
 
 - name: Enable and start docker.socket
