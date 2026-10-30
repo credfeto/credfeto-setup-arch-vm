@@ -30,3 +30,16 @@
     path: "{{ handler_retry_dir }}/Restart systemd-resolved"
     state: absent
   listen: Restart systemd-resolved
+
+# networkctl reload always reports a change, so it is only reached via notify
+# when eth0.network changed.
+- name: Reload networkctl
+  ansible.builtin.command:
+    cmd: networkctl reload
+  changed_when: true
+
+- name: Clear pending marker for Reload networkctl
+  ansible.builtin.file:
+    path: "{{ handler_retry_dir }}/Reload networkctl"
+    state: absent
+  listen: Reload networkctl
