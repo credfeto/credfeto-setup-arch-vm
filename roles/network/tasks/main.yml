@@ -28,9 +28,10 @@
 # Trade-off: this is a live snapshot, not a merge with whatever was there
 # before. If an address is transiently absent from the interface at the
 # exact moment this runs (e.g. a failover/VIP address mid-reassignment), it
-# is genuinely absent from the rewritten file, and "Reload networkctl" below
-# applies that immediately. There is no guard against this beyond the address
-# being consistently present when ansible-pull runs on its normal schedule.
+# is genuinely absent from the rewritten file, and the "Reload networkctl"
+# handler applies that at the end of the play, only when the file changed.
+# There is no guard against this beyond the address being consistently present
+# when ansible-pull runs on its normal schedule.
 - name: Detect primary network interface
   ansible.builtin.shell:
     cmd: |
@@ -120,6 +121,16 @@
     - not ansible_check_mode
     - network_nic.stdout | length > 0
     - network_ipv4.stdout | length > 0
+  register: network_write_systemd_networkd_configuration_for_primary_interface
+  notify: Reload networkctl
+
+- name: Record Reload networkctl as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload networkctl]
+  when: network_write_systemd_networkd_configuration_for_primary_interface is changed  # noqa: no-handler - marker must precede the handler
 
 # DNS servers get the static file directly (glibc only reads the first 3
 # nameserver lines; see the comments in templates/resolv.conf.j2). Every
@@ -197,8 +208,3 @@
     state: link
     force: true
   when: not host_is_dns_server
-
-- name: Reload networkctl
-  ansible.builtin.command:
-    cmd: networkctl reload
-  changed_when: true
