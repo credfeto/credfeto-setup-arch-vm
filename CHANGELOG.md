@@ -145,6 +145,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Docker: restart docker after removing the legacy docker.service.d/security.conf drop-in so the running dockerd drops the old settings (#259)
 - Restart handlers (auditd, docker, telegraf, systemd-resolved, systemd-logind, fail2ban, ansible-pull timer, fstrim timer) now verify the service is really running after restart and fail the run if not
 - Retry handlers that failed on an earlier run so services stay in step with their config (#255)
+- Made sysctl kexec_load_disabled and networkctl reload tasks idempotent (#243)
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
