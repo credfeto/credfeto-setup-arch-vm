@@ -83,7 +83,7 @@
 # otherwise run that restart into a broken configuration after the run fails.
 - name: Check fail2ban configuration
   ansible.builtin.shell:
-    cmd: systemd-analyze verify /etc/systemd/system/fail2ban.service && fail2ban-client --test
+    cmd: systemd-analyze verify --man=no /etc/systemd/system/fail2ban.service && fail2ban-client --test
     executable: /bin/bash
   register: fail2ban_config_check
   changed_when: false

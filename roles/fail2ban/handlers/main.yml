@@ -6,7 +6,7 @@
 # the task's result.
 - name: Check fail2ban configuration before restarting it
   ansible.builtin.shell:
-    cmd: systemd-analyze verify /etc/systemd/system/fail2ban.service && fail2ban-client --test
+    cmd: systemd-analyze verify --man=no /etc/systemd/system/fail2ban.service && fail2ban-client --test
     executable: /bin/bash
   register: fail2ban_handler_config_check
   changed_when: false
