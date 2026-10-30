@@ -2,3 +2,9 @@
 - name: Re-execute systemd manager
   ansible.builtin.systemd:
     daemon_reexec: true
+
+- name: Clear pending marker for Re-execute systemd manager
+  ansible.builtin.file:
+    path: "{{ handler_retry_dir }}/Re-execute systemd manager"
+    state: absent
+  listen: Re-execute systemd manager

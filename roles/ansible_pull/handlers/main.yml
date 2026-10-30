@@ -3,6 +3,15 @@
   ansible.builtin.systemd:
     daemon_reload: true
 
+# Only here: when several roles define a handler of the same name, the last
+# one loaded is the one that runs, and this role loads after every other role
+# that defines Reload systemd.
+- name: Clear pending marker for Reload systemd
+  ansible.builtin.file:
+    path: "{{ handler_retry_dir }}/Reload systemd"
+    state: absent
+  listen: Reload systemd
+
 # A start in this run already used the current timer unit, so only a timer
 # that was running before the run needs restarting. ansible_pull_timer_started
 # is undefined when a task failed before Start ansible-pull timer and
@@ -33,3 +42,10 @@
     - ansible_pull_unit_check is defined
     - ansible_pull_unit_check.rc == 0
     - ansible_pull_timer_started is not defined or ansible_pull_timer_started is not changed
+
+- name: Clear pending marker for Restart ansible-pull timer
+  ansible.builtin.file:
+    path: "{{ handler_retry_dir }}/Restart ansible-pull timer"
+    state: absent
+  listen: Restart ansible-pull timer
+  when: ansible_pull_unit_check is defined and ansible_pull_unit_check.rc == 0

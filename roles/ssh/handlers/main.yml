@@ -20,3 +20,12 @@
     name: sshd
     state: reloaded
   when: (ssh_config_check if ssh_config_check is defined else ssh_handler_config_check).rc == 0
+
+# Same condition as the reload, so a reload refused over a broken
+# configuration is retried on the next run.
+- name: Clear pending marker for Reload sshd
+  ansible.builtin.file:
+    path: "{{ handler_retry_dir }}/Reload sshd"
+    state: absent
+  listen: Reload sshd
+  when: (ssh_config_check if ssh_config_check is defined else ssh_handler_config_check).rc == 0

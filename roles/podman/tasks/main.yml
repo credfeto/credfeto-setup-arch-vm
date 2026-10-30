@@ -41,8 +41,17 @@
     owner: root
     group: root
     mode: "0644"
+  register: podman_install_podman_security_audit_service_unit
   notify: Reload systemd
   when: container_runtime == 'podman'
+
+- name: Record Reload systemd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload systemd]
+  when: podman_install_podman_security_audit_service_unit is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Install podman-security-audit.timer unit
   ansible.builtin.copy:
@@ -51,8 +60,17 @@
     owner: root
     group: root
     mode: "0644"
+  register: podman_install_podman_security_audit_timer_unit
   notify: Reload systemd
   when: container_runtime == 'podman'
+
+- name: Record Reload systemd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload systemd]
+  when: podman_install_podman_security_audit_timer_unit is changed  # noqa: no-handler - marker must precede the handler
 
 # Verify both installed units before anything reloads systemd or enables the
 # timer. failed_when: false so the result is always registered and the

@@ -1,0 +1,24 @@
+---
+- name: Create pending handler marker directory
+  ansible.builtin.file:
+    path: "{{ handler_retry_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Find pending handler markers
+  ansible.builtin.find:
+    paths: "{{ handler_retry_dir }}"
+    file_type: file
+  register: handler_retry_markers
+
+# A marker survives only when its handler failed or never ran after the
+# change was written to disk. The task that made the change now reports ok
+# and will never notify again, so notify the handler from here instead.
+- name: Re-notify handlers left pending by an earlier run
+  ansible.builtin.debug:
+    msg: "Retrying {{ item }}"
+  changed_when: true
+  notify: "{{ item }}"
+  loop: "{{ handler_retry_markers.files | map(attribute='path') | map('basename') | sort }}"

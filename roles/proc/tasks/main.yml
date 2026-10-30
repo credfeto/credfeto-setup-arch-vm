@@ -22,9 +22,18 @@
     owner: root
     group: root
     mode: "0644"
+  register: proc_write_systemd_logind_proc_group_drop_in
   notify:
     - Reload systemd
     - Restart systemd-logind
+
+- name: Record Reload systemd and Restart systemd-logind as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload systemd, Restart systemd-logind]
+  when: proc_write_systemd_logind_proc_group_drop_in is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Write proc mount hidepid drop-in directory
   ansible.builtin.file:
@@ -43,7 +52,16 @@
     owner: root
     group: root
     mode: "0644"
+  register: proc_write_proc_mount_hidepid_drop_in
   notify: Reload systemd
+
+- name: Record Reload systemd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload systemd]
+  when: proc_write_proc_mount_hidepid_drop_in is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Check if /proc already has hidepid configured
   ansible.builtin.command:

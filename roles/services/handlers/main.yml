@@ -33,3 +33,9 @@
   listen: Restart fstrim timer
   # Same condition as the restart: only check after a restart it made.
   when: services_fstrim_timer_started is not defined or services_fstrim_timer_started is not changed
+
+- name: Clear pending marker for Restart fstrim timer
+  ansible.builtin.file:
+    path: "{{ handler_retry_dir }}/Restart fstrim timer"
+    state: absent
+  listen: Restart fstrim timer

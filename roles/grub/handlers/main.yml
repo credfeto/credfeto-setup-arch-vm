@@ -10,3 +10,9 @@
     cmd: mkinitcpio -P
   changed_when: true
   listen: boot-config-changed
+
+- name: Clear pending marker for boot-config-changed
+  ansible.builtin.file:
+    path: "{{ handler_retry_dir }}/boot-config-changed"
+    state: absent
+  listen: boot-config-changed

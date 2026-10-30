@@ -1,0 +1,2 @@
+---
+handler_retry_dir: /var/lib/ansible-pending-handlers

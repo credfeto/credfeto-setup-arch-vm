@@ -5,4 +5,14 @@
   ansible.builtin.command:
     cmd: apparmor_parser -r /etc/apparmor.d/usr.sbin.sshd
   changed_when: true
-  when: apparmor_kernel.stat.exists
+  # apparmor_kernel is undefined when a marker left by an earlier run notified
+  # this and a task failed before the apparmor role ran; force_handlers still
+  # runs it then, and the marker stays for the next run.
+  when: apparmor_kernel is defined and apparmor_kernel.stat.exists
+
+- name: Clear pending marker for Reload sshd AppArmor profile
+  ansible.builtin.file:
+    path: "{{ handler_retry_dir }}/Reload sshd AppArmor profile"
+    state: absent
+  listen: Reload sshd AppArmor profile
+  when: apparmor_kernel is defined

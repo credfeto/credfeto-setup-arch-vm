@@ -6,7 +6,16 @@
     owner: root
     group: root
     mode: "0644"
+  register: ansible_pull_install_ansible_pull_service_unit
   notify: Reload systemd
+
+- name: Record Reload systemd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload systemd]
+  when: ansible_pull_install_ansible_pull_service_unit is changed  # noqa: no-handler - marker must precede the handler
 
 # Restart (not just daemon-reload) on change: a running timer keeps the
 # schedule it was started with, so without the restart the fleet would only
@@ -26,7 +35,16 @@
     owner: root
     group: root
     mode: "0644"
+  register: ansible_pull_install_ansible_pull_timer_unit
   notify: Restart ansible-pull timer
+
+- name: Record Restart ansible-pull timer as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Restart ansible-pull timer]
+  when: ansible_pull_install_ansible_pull_timer_unit is changed  # noqa: no-handler - marker must precede the handler
 
 # Verify both installed units before anything enables, starts or restarts the
 # timer. failed_when: false so the result is always registered and the

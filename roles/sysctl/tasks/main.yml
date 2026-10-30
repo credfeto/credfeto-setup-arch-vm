@@ -399,7 +399,16 @@
     owner: root
     group: root
     mode: "0644"
+  register: sysctl_disable_core_dumps_for_systemd_services
   notify: Re-execute systemd manager
+
+- name: Record Re-execute systemd manager as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Re-execute systemd manager]
+  when: sysctl_disable_core_dumps_for_systemd_services is changed  # noqa: no-handler - marker must precede the handler
 
 # Loading an arbitrary TTY line discipline via TIOCSETD historically gave
 # local privilege-escalation primitives; nothing on these hosts needs

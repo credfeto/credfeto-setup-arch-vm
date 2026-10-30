@@ -13,7 +13,16 @@
     group: root
     mode: "0644"
     validate: telegraf --config %s --test
+  register: telegraf_deploy_telegraf_configuration
   notify: Restart telegraf
+
+- name: Record Restart telegraf as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Restart telegraf]
+  when: telegraf_deploy_telegraf_configuration is changed  # noqa: no-handler - marker must precede the handler
 
 # The telegraf system user/group is created by the package above, so this
 # must run after the install task. Only needed when container_runtime is

@@ -4,6 +4,12 @@
     cmd: firewall-cmd --reload
   changed_when: true
 
+- name: Clear pending marker for Reload firewalld
+  ansible.builtin.file:
+    path: "{{ handler_retry_dir }}/Reload firewalld"
+    state: absent
+  listen: Reload firewalld
+
 # A start in this run already ran without the removed drop-in, so only a
 # firewalld that was running before the run needs restarting.
 # firewall_firewalld_started is undefined when a task failed before Start
@@ -32,3 +38,9 @@
   listen: Restart firewalld
   # Same condition as Restart firewalld: only check after a restart it made.
   when: firewall_firewalld_started is not defined or firewall_firewalld_started is not changed
+
+- name: Clear pending marker for Restart firewalld
+  ansible.builtin.file:
+    path: "{{ handler_retry_dir }}/Restart firewalld"
+    state: absent
+  listen: Restart firewalld

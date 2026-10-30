@@ -13,6 +13,9 @@
   force_handlers: true
 
   roles:
+    # First, because the marker writes in every later role need its directory
+    # to exist already.
+    - handler_retry
     - packages
     - users
     - starship

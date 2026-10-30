@@ -47,3 +47,12 @@
   when:
     - (fail2ban_config_check if fail2ban_config_check is defined else fail2ban_handler_config_check).rc == 0
     - fail2ban_started is not defined or fail2ban_started is not changed
+
+# A restart skipped because fail2ban was started in this run still leaves it
+# on the current configuration, so only a failed check keeps the marker.
+- name: Clear pending marker for Restart fail2ban
+  ansible.builtin.file:
+    path: "{{ handler_retry_dir }}/Restart fail2ban"
+    state: absent
+  listen: Restart fail2ban
+  when: (fail2ban_config_check if fail2ban_config_check is defined else fail2ban_handler_config_check).rc == 0

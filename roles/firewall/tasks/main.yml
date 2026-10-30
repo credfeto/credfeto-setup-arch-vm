@@ -6,7 +6,16 @@
   ansible.builtin.file:
     path: /etc/systemd/system/firewalld.service.d/security.conf
     state: absent
+  register: firewall_legacy_dropin
   notify: Restart firewalld
+
+- name: Record Restart firewalld as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Restart firewalld]
+  when: firewall_legacy_dropin is changed  # noqa: no-handler - marker must precede the handler
 
 # daemon_reload so that a start below no longer applies a just-removed
 # drop-in.
@@ -33,7 +42,16 @@
       port protocol="tcp" port="22" accept
     permanent: true
     state: enabled
+  register: firewall_ssh_10
   notify: Reload firewalld
+
+- name: Record Reload firewalld as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload firewalld]
+  when: firewall_ssh_10 is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Allow SSH from 192.168.0.0/16 (IPv4)
   ansible.posix.firewalld:
@@ -42,7 +60,16 @@
       port protocol="tcp" port="22" accept
     permanent: true
     state: enabled
+  register: firewall_ssh_192
   notify: Reload firewalld
+
+- name: Record Reload firewalld as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload firewalld]
+  when: firewall_ssh_192 is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Allow SSH from 172.16.0.0/12 (IPv4)
   ansible.posix.firewalld:
@@ -51,7 +78,16 @@
       port protocol="tcp" port="22" accept
     permanent: true
     state: enabled
+  register: firewall_ssh_172
   notify: Reload firewalld
+
+- name: Record Reload firewalld as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload firewalld]
+  when: firewall_ssh_172 is changed  # noqa: no-handler - marker must precede the handler
 
 # Remove legacy incorrect 172.16.0.0/20 rule if present
 - name: Remove legacy SSH rule for 172.16.0.0/20
@@ -61,7 +97,16 @@
       port protocol="tcp" port="22" accept
     permanent: true
     state: disabled
+  register: firewall_legacy_ssh_172_20
   notify: Reload firewalld
+
+- name: Record Reload firewalld as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload firewalld]
+  when: firewall_legacy_ssh_172_20 is changed  # noqa: no-handler - marker must precede the handler
 
 # Allow SSH from IPv6 ULA and link-local ranges
 - name: Allow SSH from fc00::/7 (IPv6 ULA)
@@ -71,7 +116,16 @@
       port protocol="tcp" port="22" accept
     permanent: true
     state: enabled
+  register: firewall_ssh_fc00
   notify: Reload firewalld
+
+- name: Record Reload firewalld as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload firewalld]
+  when: firewall_ssh_fc00 is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Allow SSH from fe80::/10 (IPv6 link-local)
   ansible.posix.firewalld:
@@ -80,14 +134,32 @@
       port protocol="tcp" port="22" accept
     permanent: true
     state: enabled
+  register: firewall_ssh_fe80
   notify: Reload firewalld
+
+- name: Record Reload firewalld as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload firewalld]
+  when: firewall_ssh_fe80 is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Enable masquerade permanently
   ansible.posix.firewalld:
     masquerade: true
     permanent: true
     state: enabled
+  register: firewall_masquerade
   notify: Reload firewalld
+
+- name: Record Reload firewalld as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload firewalld]
+  when: firewall_masquerade is changed  # noqa: no-handler - marker must precede the handler
 
 # Docker zone: only needed when container_runtime is docker.
 # Docker uses the nftables backend and does not register a firewalld zone.
@@ -123,8 +195,17 @@
     source: 172.16.0.0/12
     permanent: true
     state: enabled
+  register: firewall_docker_ipv4_source
   notify: Reload firewalld
   when: container_runtime == 'docker'
+
+- name: Record Reload firewalld as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload firewalld]
+  when: firewall_docker_ipv4_source is changed  # noqa: no-handler - marker must precede the handler
 
 # Docker's IPv6 support here isn't backed by a fixed default-address-pools
 # in daemon.json, so each Docker network gets its own randomly-assigned
@@ -139,5 +220,14 @@
     source: fd00::/8
     permanent: true
     state: enabled
+  register: firewall_docker_ipv6_source
   notify: Reload firewalld
   when: container_runtime == 'docker'
+
+- name: Record Reload firewalld as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload firewalld]
+  when: firewall_docker_ipv6_source is changed  # noqa: no-handler - marker must precede the handler

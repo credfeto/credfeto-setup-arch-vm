@@ -5,7 +5,16 @@
     path: /etc/default/grub
     regexp: 'hardend_usercopy'
     replace: 'hardened_usercopy'
+  register: grub_fix_hardened_usercopy_typo_in_grub_config
   notify: boot-config-changed
+
+- name: Record boot-config-changed as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [boot-config-changed]
+  when: grub_fix_hardened_usercopy_typo_in_grub_config is changed  # noqa: no-handler - marker must precede the handler
 
 # Ensure lsm= includes integrity
 - name: Ensure lsm parameter includes integrity
@@ -13,7 +22,16 @@
     path: /etc/default/grub
     regexp: '(GRUB_CMDLINE_LINUX="[^"]*)\blsm=(?!.*\bintegrity\b)([^" ]*)'
     replace: '\1lsm=landlock,lockdown,yama,integrity,apparmor,bpf'
+  register: grub_ensure_lsm_parameter_includes_integrity
   notify: boot-config-changed
+
+- name: Record boot-config-changed as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [boot-config-changed]
+  when: grub_ensure_lsm_parameter_includes_integrity is changed  # noqa: no-handler - marker must precede the handler
 
 # Add each required kernel parameter if not already present
 - name: Ensure panic=20 in GRUB_CMDLINE_LINUX
@@ -22,7 +40,16 @@
     backrefs: true
     regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\bpanic=).*)"$'
     line: '\1 panic=20"'
+  register: grub_ensure_panic_20_in_grub_cmdline_linux
   notify: boot-config-changed
+
+- name: Record boot-config-changed as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [boot-config-changed]
+  when: grub_ensure_panic_20_in_grub_cmdline_linux is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Ensure mce=0 in GRUB_CMDLINE_LINUX
   ansible.builtin.lineinfile:
@@ -30,7 +57,16 @@
     backrefs: true
     regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\bmce=).*)"$'
     line: '\1 mce=0"'
+  register: grub_ensure_mce_0_in_grub_cmdline_linux
   notify: boot-config-changed
+
+- name: Record boot-config-changed as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [boot-config-changed]
+  when: grub_ensure_mce_0_in_grub_cmdline_linux is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Ensure oops=panic in GRUB_CMDLINE_LINUX
   ansible.builtin.lineinfile:
@@ -38,7 +74,16 @@
     backrefs: true
     regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\boops=).*)"$'
     line: '\1 oops=panic"'
+  register: grub_ensure_oops_panic_in_grub_cmdline_linux
   notify: boot-config-changed
+
+- name: Record boot-config-changed as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [boot-config-changed]
+  when: grub_ensure_oops_panic_in_grub_cmdline_linux is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Ensure mitigations=auto in GRUB_CMDLINE_LINUX
   ansible.builtin.lineinfile:
@@ -46,7 +91,16 @@
     backrefs: true
     regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\bmitigations=).*)"$'
     line: '\1 mitigations=auto"'
+  register: grub_ensure_mitigations_auto_in_grub_cmdline_linux
   notify: boot-config-changed
+
+- name: Record boot-config-changed as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [boot-config-changed]
+  when: grub_ensure_mitigations_auto_in_grub_cmdline_linux is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Ensure slab_nomerge in GRUB_CMDLINE_LINUX
   ansible.builtin.lineinfile:
@@ -54,7 +108,16 @@
     backrefs: true
     regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\bslab_nomerge\b).*)"$'
     line: '\1 slab_nomerge"'
+  register: grub_ensure_slab_nomerge_in_grub_cmdline_linux
   notify: boot-config-changed
+
+- name: Record boot-config-changed as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [boot-config-changed]
+  when: grub_ensure_slab_nomerge_in_grub_cmdline_linux is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Ensure slub_debug=FZ in GRUB_CMDLINE_LINUX
   ansible.builtin.lineinfile:
@@ -62,7 +125,16 @@
     backrefs: true
     regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\bslub_debug=).*)"$'
     line: '\1 slub_debug=FZ"'
+  register: grub_ensure_slub_debug_fz_in_grub_cmdline_linux
   notify: boot-config-changed
+
+- name: Record boot-config-changed as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [boot-config-changed]
+  when: grub_ensure_slub_debug_fz_in_grub_cmdline_linux is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Ensure init_on_alloc=1 in GRUB_CMDLINE_LINUX
   ansible.builtin.lineinfile:
@@ -70,7 +142,16 @@
     backrefs: true
     regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\binit_on_alloc=).*)"$'
     line: '\1 init_on_alloc=1"'
+  register: grub_ensure_init_on_alloc_1_in_grub_cmdline_linux
   notify: boot-config-changed
+
+- name: Record boot-config-changed as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [boot-config-changed]
+  when: grub_ensure_init_on_alloc_1_in_grub_cmdline_linux is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Ensure init_on_free=1 in GRUB_CMDLINE_LINUX
   ansible.builtin.lineinfile:
@@ -78,7 +159,16 @@
     backrefs: true
     regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\binit_on_free=).*)"$'
     line: '\1 init_on_free=1"'
+  register: grub_ensure_init_on_free_1_in_grub_cmdline_linux
   notify: boot-config-changed
+
+- name: Record boot-config-changed as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [boot-config-changed]
+  when: grub_ensure_init_on_free_1_in_grub_cmdline_linux is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Ensure pti=on in GRUB_CMDLINE_LINUX
   ansible.builtin.lineinfile:
@@ -86,7 +176,16 @@
     backrefs: true
     regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\bpti=).*)"$'
     line: '\1 pti=on"'
+  register: grub_ensure_pti_on_in_grub_cmdline_linux
   notify: boot-config-changed
+
+- name: Record boot-config-changed as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [boot-config-changed]
+  when: grub_ensure_pti_on_in_grub_cmdline_linux is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Ensure lsm= in GRUB_CMDLINE_LINUX
   ansible.builtin.lineinfile:
@@ -94,7 +193,16 @@
     backrefs: true
     regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\blsm=).*)"$'
     line: '\1 lsm=landlock,lockdown,yama,integrity,apparmor,bpf"'
+  register: grub_ensure_lsm_in_grub_cmdline_linux
   notify: boot-config-changed
+
+- name: Record boot-config-changed as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [boot-config-changed]
+  when: grub_ensure_lsm_in_grub_cmdline_linux is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Ensure apparmor=1 in GRUB_CMDLINE_LINUX
   ansible.builtin.lineinfile:
@@ -102,7 +210,16 @@
     backrefs: true
     regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\bapparmor=).*)"$'
     line: '\1 apparmor=1"'
+  register: grub_ensure_apparmor_1_in_grub_cmdline_linux
   notify: boot-config-changed
+
+- name: Record boot-config-changed as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [boot-config-changed]
+  when: grub_ensure_apparmor_1_in_grub_cmdline_linux is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Ensure security=apparmor in GRUB_CMDLINE_LINUX
   ansible.builtin.lineinfile:
@@ -110,7 +227,16 @@
     backrefs: true
     regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\bsecurity=).*)"$'
     line: '\1 security=apparmor"'
+  register: grub_ensure_security_apparmor_in_grub_cmdline_linux
   notify: boot-config-changed
+
+- name: Record boot-config-changed as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [boot-config-changed]
+  when: grub_ensure_security_apparmor_in_grub_cmdline_linux is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Ensure lockdown=confidentiality in GRUB_CMDLINE_LINUX
   ansible.builtin.lineinfile:
@@ -118,7 +244,16 @@
     backrefs: true
     regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\blockdown=).*)"$'
     line: '\1 lockdown=confidentiality"'
+  register: grub_ensure_lockdown_confidentiality_in_grub_cmdline_linux
   notify: boot-config-changed
+
+- name: Record boot-config-changed as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [boot-config-changed]
+  when: grub_ensure_lockdown_confidentiality_in_grub_cmdline_linux is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Ensure hardened_usercopy=on in GRUB_CMDLINE_LINUX
   ansible.builtin.lineinfile:
@@ -126,7 +261,16 @@
     backrefs: true
     regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\bhardened_usercopy=).*)"$'
     line: '\1 hardened_usercopy=on"'
+  register: grub_ensure_hardened_usercopy_on_in_grub_cmdline_linux
   notify: boot-config-changed
+
+- name: Record boot-config-changed as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [boot-config-changed]
+  when: grub_ensure_hardened_usercopy_on_in_grub_cmdline_linux is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Ensure ia32_emulation=0 in GRUB_CMDLINE_LINUX
   ansible.builtin.lineinfile:
@@ -134,7 +278,16 @@
     backrefs: true
     regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\bia32_emulation=).*)"$'
     line: '\1 ia32_emulation=0"'
+  register: grub_ensure_ia32_emulation_0_in_grub_cmdline_linux
   notify: boot-config-changed
+
+- name: Record boot-config-changed as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [boot-config-changed]
+  when: grub_ensure_ia32_emulation_0_in_grub_cmdline_linux is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Ensure module.sig_enforce=1 in GRUB_CMDLINE_LINUX
   ansible.builtin.lineinfile:
@@ -142,7 +295,16 @@
     backrefs: true
     regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\bmodule\.sig_enforce=).*)"$'
     line: '\1 module.sig_enforce=1"'
+  register: grub_ensure_module_sig_enforce_1_in_grub_cmdline_linux
   notify: boot-config-changed
+
+- name: Record boot-config-changed as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [boot-config-changed]
+  when: grub_ensure_module_sig_enforce_1_in_grub_cmdline_linux is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Ensure intel_iommu=on in GRUB_CMDLINE_LINUX
   ansible.builtin.lineinfile:
@@ -150,7 +312,16 @@
     backrefs: true
     regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\bintel_iommu=).*)"$'
     line: '\1 intel_iommu=on"'
+  register: grub_ensure_intel_iommu_on_in_grub_cmdline_linux
   notify: boot-config-changed
+
+- name: Record boot-config-changed as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [boot-config-changed]
+  when: grub_ensure_intel_iommu_on_in_grub_cmdline_linux is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Ensure amd_iommu=on in GRUB_CMDLINE_LINUX
   ansible.builtin.lineinfile:
@@ -158,7 +329,16 @@
     backrefs: true
     regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\bamd_iommu=).*)"$'
     line: '\1 amd_iommu=on"'
+  register: grub_ensure_amd_iommu_on_in_grub_cmdline_linux
   notify: boot-config-changed
+
+- name: Record boot-config-changed as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [boot-config-changed]
+  when: grub_ensure_amd_iommu_on_in_grub_cmdline_linux is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Ensure iommu=force in GRUB_CMDLINE_LINUX
   ansible.builtin.lineinfile:
@@ -166,7 +346,16 @@
     backrefs: true
     regexp: '^(GRUB_CMDLINE_LINUX="(?!.*\biommu=).*)"$'
     line: '\1 iommu=force"'
+  register: grub_ensure_iommu_force_in_grub_cmdline_linux
   notify: boot-config-changed
+
+- name: Record boot-config-changed as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [boot-config-changed]
+  when: grub_ensure_iommu_force_in_grub_cmdline_linux is changed  # noqa: no-handler - marker must precede the handler
 
 # grub.cfg leaks the kernel command line and boot layout to any local
 # user; lynis FILE-7524 (#62). /boot is a vfat ESP, where per-file chmod

@@ -33,13 +33,31 @@
   ansible.builtin.file:
     path: /etc/ssh/sshd_config.d/10-logingraceime.conf
     state: absent
+  register: ssh_remove_legacy_misnamed_logingraceime_config_file
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_remove_legacy_misnamed_logingraceime_config_file is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Remove legacy sshd systemd security drop-in
   ansible.builtin.file:
     path: /etc/systemd/system/sshd.service.d/security.conf
     state: absent
+  register: ssh_remove_legacy_sshd_systemd_security_drop_in
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_remove_legacy_sshd_systemd_security_drop_in is changed  # noqa: no-handler - marker must precede the handler
 
 # Host keys
 - name: Configure sshd HostKey ed25519
@@ -49,7 +67,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_hostkey_ed25519
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_hostkey_ed25519 is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Configure sshd HostKey rsa
   ansible.builtin.copy:
@@ -58,7 +85,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_hostkey_rsa
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_hostkey_rsa is changed  # noqa: no-handler - marker must precede the handler
 
 # Key exchange, ciphers, MACs
 - name: Configure sshd KexAlgorithms
@@ -69,7 +105,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_kexalgorithms
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_kexalgorithms is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Configure sshd Ciphers
   ansible.builtin.copy:
@@ -78,7 +123,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_ciphers
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_ciphers is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Configure sshd MACs
   ansible.builtin.copy:
@@ -87,7 +141,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_macs
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_macs is changed  # noqa: no-handler - marker must precede the handler
 
 # Authentication
 - name: Configure sshd PubkeyAuthentication
@@ -97,7 +160,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_pubkeyauthentication
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_pubkeyauthentication is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Configure sshd PermitEmptyPasswords
   ansible.builtin.copy:
@@ -106,7 +178,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_permitemptypasswords
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_permitemptypasswords is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Configure sshd PermitRootLogin
   ansible.builtin.copy:
@@ -115,7 +196,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_permitrootlogin
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_permitrootlogin is changed  # noqa: no-handler - marker must precede the handler
 
 # Older runs wrote PermitRootLogin yes into 9*-*rootlogin.conf files. sshd
 # takes the first value it reads, so 10-permitrootlogin.conf wins today, but
@@ -137,7 +227,16 @@
   loop: "{{ ssh_leftover_rootlogin.files }}"
   loop_control:
     label: "{{ item.path }}"
+  register: ssh_remove_leftover_permitrootlogin_override_files
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_remove_leftover_permitrootlogin_override_files is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Configure sshd PasswordAuthentication
   ansible.builtin.copy:
@@ -146,7 +245,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_passwordauthentication
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_passwordauthentication is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Configure sshd KbdInteractiveAuthentication
   ansible.builtin.copy:
@@ -155,7 +263,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_kbdinteractiveauthentication
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_kbdinteractiveauthentication is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Configure sshd ChallengeResponseAuthentication
   ansible.builtin.copy:
@@ -164,7 +281,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_challengeresponseauthentication
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_challengeresponseauthentication is changed  # noqa: no-handler - marker must precede the handler
 
 # Key lookup
 # %H is not a real sshd_config token for AuthorizedKeysCommand (the
@@ -193,7 +319,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_authorizedkeyscommand
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_authorizedkeyscommand is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Configure sshd AuthorizedKeysCommandUser
   ansible.builtin.copy:
@@ -202,7 +337,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_authorizedkeyscommanduser
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_authorizedkeyscommanduser is changed  # noqa: no-handler - marker must precede the handler
 
 # The users role installs the consent banner text; without this sshd
 # never shows it (Banner defaults to none), which would leave the file
@@ -214,7 +358,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_banner
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_banner is changed  # noqa: no-handler - marker must precede the handler
 
 # Session
 - name: Configure sshd X11Forwarding
@@ -224,7 +377,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_x11forwarding
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_x11forwarding is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Configure sshd PrintMotd
   ansible.builtin.copy:
@@ -233,7 +395,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_printmotd
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_printmotd is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Configure sshd TCPKeepAlive
   ansible.builtin.copy:
@@ -242,7 +413,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_tcpkeepalive
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_tcpkeepalive is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Configure sshd PermitUserEnvironment
   ansible.builtin.copy:
@@ -251,7 +431,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_permituserenvironment
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_permituserenvironment is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Configure sshd ClientAliveInterval
   ansible.builtin.copy:
@@ -260,7 +449,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_clientaliveinterval
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_clientaliveinterval is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Configure sshd ClientAliveCountMax
   ansible.builtin.copy:
@@ -269,7 +467,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_clientalivecountmax
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_clientalivecountmax is changed  # noqa: no-handler - marker must precede the handler
 
 # Logging
 - name: Configure sshd SyslogFacility
@@ -279,7 +486,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_syslogfacility
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_syslogfacility is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Configure sshd LogLevel
   ansible.builtin.copy:
@@ -288,7 +504,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_loglevel
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_loglevel is changed  # noqa: no-handler - marker must precede the handler
 
 # Rate limiting and access
 - name: Configure sshd MaxAuthTries
@@ -298,7 +523,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_maxauthtries
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_maxauthtries is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Configure sshd MaxSessions
   ansible.builtin.copy:
@@ -307,7 +541,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_maxsessions
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_maxsessions is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Configure sshd LoginGraceTime
   ansible.builtin.copy:
@@ -316,7 +559,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_logingracetime
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_logingracetime is changed  # noqa: no-handler - marker must precede the handler
 
 # Disable unsafe features
 - name: Configure sshd HostbasedAuthentication
@@ -326,7 +578,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_hostbasedauthentication
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_hostbasedauthentication is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Configure sshd IgnoreRhosts
   ansible.builtin.copy:
@@ -335,7 +596,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_ignorerhosts
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_ignorerhosts is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Configure sshd PermitTunnel
   ansible.builtin.copy:
@@ -344,7 +614,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_permittunnel
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_permittunnel is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Configure sshd AllowAgentForwarding
   ansible.builtin.copy:
@@ -353,7 +632,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_allowagentforwarding
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_allowagentforwarding is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Configure sshd GatewayPorts
   ansible.builtin.copy:
@@ -362,7 +650,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_gatewayports
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_gatewayports is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Configure sshd VersionAddendum
   ansible.builtin.copy:
@@ -371,7 +668,16 @@
     owner: root
     group: root
     mode: "0600"
+  register: ssh_versionaddendum
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: ssh_versionaddendum is changed  # noqa: no-handler - marker must precede the handler
 
 # The drop-ins are fragments of one configuration, so validate: on each copy
 # cannot check them; sshd -t parses sshd_config with every drop-in and the

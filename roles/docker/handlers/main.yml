@@ -43,3 +43,12 @@
   when:
     - docker_handler_config_check.rc == 0
     - docker_started is not defined or docker_started is not changed
+
+# A restart skipped because docker was started in this run still leaves it on
+# the current daemon.json, so only a failed validation keeps the marker.
+- name: Clear pending marker for Restart docker
+  ansible.builtin.file:
+    path: "{{ handler_retry_dir }}/Restart docker"
+    state: absent
+  listen: Restart docker
+  when: docker_handler_config_check.rc == 0
