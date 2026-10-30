@@ -20,6 +20,29 @@
     sysctl_file: /etc/sysctl.d/10-net.core.bpf_jit_harden.conf
     reload: true
 
+# kernel.kexec_load_disabled is a one-way switch: once the kernel has it at
+# 1 it cannot be changed again until reboot. The live value is therefore
+# read first, the drop-in file is kept in place on every run without
+# touching the kernel, and the live set (with its reload) only runs while the
+# kernel is not yet at 1, so a host that is already locked down reports no
+# change. failed_when is off so a kernel without the key falls through to
+# the ignoreerrors set below, as before.
+- name: Read live kernel.kexec_load_disabled
+  ansible.builtin.command:
+    cmd: sysctl -n kernel.kexec_load_disabled
+  register: sysctl_kexec_load_disabled_live
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Persist kernel.kexec_load_disabled
+  ansible.posix.sysctl:
+    name: kernel.kexec_load_disabled
+    value: "1"
+    sysctl_file: /etc/sysctl.d/10-kernel.kexec_load_disabled.conf
+    reload: false
+    sysctl_set: false
+
 - name: Set kernel.kexec_load_disabled
   ansible.posix.sysctl:
     name: kernel.kexec_load_disabled
@@ -27,6 +50,7 @@
     sysctl_file: /etc/sysctl.d/10-kernel.kexec_load_disabled.conf
     reload: true
     ignoreerrors: true
+  when: sysctl_kexec_load_disabled_live.stdout | trim != "1"
 
 - name: Set kernel.kptr_restrict
   ansible.posix.sysctl:
