@@ -39,3 +39,12 @@
   when:
     - telegraf_handler_config_check.rc == 0
     - telegraf_started is not defined or telegraf_started is not changed
+
+# A restart skipped because telegraf was started in this run still leaves it
+# on the current telegraf.conf, so only a failed check keeps the marker.
+- name: Clear pending marker for Restart telegraf
+  ansible.builtin.file:
+    path: "{{ handler_retry_dir }}/Restart telegraf"
+    state: absent
+  listen: Restart telegraf
+  when: telegraf_handler_config_check.rc == 0

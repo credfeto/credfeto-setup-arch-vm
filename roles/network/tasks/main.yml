@@ -163,7 +163,16 @@
     group: root
     mode: "0644"
   when: not host_is_dns_server
+  register: network_write_systemd_resolved_global_dns_server_list
   notify: Restart systemd-resolved
+
+- name: Record Restart systemd-resolved as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Restart systemd-resolved]
+  when: network_write_systemd_resolved_global_dns_server_list is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Enable systemd-resolved
   ansible.builtin.systemd:

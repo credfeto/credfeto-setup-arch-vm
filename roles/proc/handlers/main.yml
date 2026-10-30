@@ -20,3 +20,9 @@
   retries: 10
   delay: 1
   listen: Restart systemd-logind
+
+- name: Clear pending marker for Restart systemd-logind
+  ansible.builtin.file:
+    path: "{{ handler_retry_dir }}/Restart systemd-logind"
+    state: absent
+  listen: Restart systemd-logind

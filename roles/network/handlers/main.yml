@@ -24,3 +24,9 @@
   listen: Restart systemd-resolved
   # Same condition as the restart: only check after a restart it made.
   when: network_resolved_started is not defined or network_resolved_started is not changed
+
+- name: Clear pending marker for Restart systemd-resolved
+  ansible.builtin.file:
+    path: "{{ handler_retry_dir }}/Restart systemd-resolved"
+    state: absent
+  listen: Restart systemd-resolved

@@ -40,3 +40,40 @@ IPv6PrivacyExtensions=yes
 ## Proxmox QEMU Guest Agent
 
 The playbook installs `qemu-guest-agent` and starts it when the virtio serial port exists. In Proxmox enable **Options > QEMU Guest Agent** for the VM, then do a full VM stop/start (not a reboot) so `/dev/virtio-ports/org.qemu.guest_agent.0` is created. Without it the role skips cleanly.
+
+## Retrying failed handlers
+
+A handler that fails (or never runs because the play stopped) would otherwise never be retried: the task that changed the file reports `ok` on the next run and does not notify again. The `handler_retry` role, which runs first in `site.yml`, closes that gap with marker files in `/var/lib/ansible-pending-handlers` (owned by `root`, mode `0750`, set by `handler_retry_dir`):
+
+1. When a notifying task reports `changed`, the task directly after it writes a marker named after each handler it notifies.
+2. The handler removes the marker as its last step, once it has succeeded.
+3. At the start of each run `handler_retry` notifies every handler whose marker is still present.
+
+To wire up a new notifying task:
+
+- Give the task a `register` and, directly after it, record its handlers as pending:
+
+  ```yaml
+  - name: Record Restart example as pending
+    ansible.builtin.include_role:
+      name: handler_retry
+      tasks_from: pending
+    vars:
+      handler_retry_pending: [Restart example]
+    when: example_config is changed
+  ```
+
+- Add a uniquely named clear listener as the last handler on that topic, with the same guard as the handler it follows so that a skipped or refused handler keeps its marker:
+
+  ```yaml
+  - name: Clear pending marker for Restart example
+    ansible.builtin.file:
+      path: "{{ handler_retry_dir }}/Restart example"
+      state: absent
+    listen: Restart example
+  ```
+
+  This example has no `when:` because its handler has none; copy the handler's `when:` onto the clear when it has one.
+- Write every handler guard so that it is safe when the variables it reads are undefined: a handler notified from a marker can run in a play that failed before the role that sets them.
+
+The marker file name is the handler name verbatim. After renaming a handler, delete any marker left under its old name by hand (`/var/lib/ansible-pending-handlers/<old name>`), otherwise every run tries to notify a handler that no longer exists.

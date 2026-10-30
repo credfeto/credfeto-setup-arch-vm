@@ -65,7 +65,16 @@
     # bad rewrite fails the run instead of leaving a profile that will not
     # load.
     validate: apparmor_parser --skip-kernel-load --skip-cache --base /etc/apparmor.d %s
+  register: apparmor_install_arch_adjusted_sshd_apparmor_profile
   notify: Reload sshd AppArmor profile
+
+- name: Record Reload sshd AppArmor profile as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd AppArmor profile]
+  when: apparmor_install_arch_adjusted_sshd_apparmor_profile is changed  # noqa: no-handler - marker must precede the handler
 
 # sshd's Px transition to unix_chkpwd comes from abstractions/authentication
 # and relies on the unix-chkpwd profile attaching by path. apparmor 4.1.8
@@ -94,6 +103,14 @@
   register: apparmor_unix_chkpwd
   notify: Reload sshd AppArmor profile
 
+- name: Record Reload sshd AppArmor profile as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd AppArmor profile]
+  when: apparmor_unix_chkpwd is changed  # noqa: no-handler - marker must precede the handler
+
 - name: Reload unix-chkpwd AppArmor profile
   ansible.builtin.command:
     cmd: apparmor_parser -r /etc/apparmor.d/unix-chkpwd
@@ -115,7 +132,16 @@
     owner: root
     group: root
     mode: "0644"
+  register: apparmor_allow_sshd_apparmor_profile_to_run_curl
   notify: Reload sshd AppArmor profile
+
+- name: Record Reload sshd AppArmor profile as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd AppArmor profile]
+  when: apparmor_allow_sshd_apparmor_profile_to_run_curl is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Read loaded AppArmor profile modes
   ansible.builtin.command:
@@ -137,7 +163,16 @@
   when:
     - apparmor_kernel.stat.exists
     - (apparmor_status.stdout | from_json).profiles['/usr/{bin,sbin}/sshd'] | default('') != 'enforce'
+  register: apparmor_enforce_sshd_apparmor_profile
   notify: Reload sshd
+
+- name: Record Reload sshd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload sshd]
+  when: apparmor_enforce_sshd_apparmor_profile is changed  # noqa: no-handler - marker must precede the handler
 
 # Everything below only reads container state and reports what it finds; it
 # never fails the run or touches a container. Before the reboot that enables

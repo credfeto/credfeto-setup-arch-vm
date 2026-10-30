@@ -12,13 +12,31 @@
   ansible.builtin.file:
     path: /etc/systemd/system/auto-update.timer
     state: absent
+  register: services_remove_auto_update_timer_unit
   notify: Reload systemd
+
+- name: Record Reload systemd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload systemd]
+  when: services_remove_auto_update_timer_unit is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Remove auto-update.service unit
   ansible.builtin.file:
     path: /etc/systemd/system/auto-update.service
     state: absent
+  register: services_remove_auto_update_service_unit
   notify: Reload systemd
+
+- name: Record Reload systemd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload systemd]
+  when: services_remove_auto_update_service_unit is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Remove auto-update script
   ansible.builtin.file:
@@ -33,7 +51,16 @@
     owner: root
     group: root
     mode: "0644"
+  register: services_install_paccache_cleanup_service_unit
   notify: Reload systemd
+
+- name: Record Reload systemd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload systemd]
+  when: services_install_paccache_cleanup_service_unit is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Install paccache-cleanup.timer unit
   ansible.builtin.copy:
@@ -42,7 +69,16 @@
     owner: root
     group: root
     mode: "0644"
+  register: services_install_paccache_cleanup_timer_unit
   notify: Reload systemd
+
+- name: Record Reload systemd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload systemd]
+  when: services_install_paccache_cleanup_timer_unit is changed  # noqa: no-handler - marker must precede the handler
 
 # Verify the installed units before they are loaded; registered without
 # failing so the Reload systemd handler can check it under force_handlers.
@@ -86,7 +122,16 @@
     owner: root
     group: root
     mode: "0644"
+  register: services_install_fstrim_timer_daily_drop_in
   notify: Restart fstrim timer
+
+- name: Record Restart fstrim timer as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Restart fstrim timer]
+  when: services_install_fstrim_timer_daily_drop_in is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Enable fstrim timer
   ansible.builtin.systemd:
@@ -118,14 +163,32 @@
     path: /etc/systemd/system/docker-cleanup.timer
     state: absent
   when: container_runtime != 'docker'
+  register: services_remove_docker_cleanup_timer_unit_if_runtime_is_not_docker
   notify: Reload systemd
+
+- name: Record Reload systemd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload systemd]
+  when: services_remove_docker_cleanup_timer_unit_if_runtime_is_not_docker is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Remove docker-cleanup.service unit if runtime is not Docker
   ansible.builtin.file:
     path: /etc/systemd/system/docker-cleanup.service
     state: absent
   when: container_runtime != 'docker'
+  register: services_remove_docker_cleanup_service_unit_if_runtime_is_not_docker
   notify: Reload systemd
+
+- name: Record Reload systemd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload systemd]
+  when: services_remove_docker_cleanup_service_unit_if_runtime_is_not_docker is changed  # noqa: no-handler - marker must precede the handler
 
 # docker-cleanup service + timer (Docker runtime only)
 - name: Install docker-cleanup.service unit
@@ -135,8 +198,17 @@
     owner: root
     group: root
     mode: "0644"
+  register: services_install_docker_cleanup_service_unit
   notify: Reload systemd
   when: container_runtime == 'docker'
+
+- name: Record Reload systemd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload systemd]
+  when: services_install_docker_cleanup_service_unit is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Install docker-cleanup.timer unit
   ansible.builtin.copy:
@@ -145,8 +217,17 @@
     owner: root
     group: root
     mode: "0644"
+  register: services_install_docker_cleanup_timer_unit
   notify: Reload systemd
   when: container_runtime == 'docker'
+
+- name: Record Reload systemd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload systemd]
+  when: services_install_docker_cleanup_timer_unit is changed  # noqa: no-handler - marker must precede the handler
 
 # Verify the installed units before they are loaded; registered without
 # failing so the Reload systemd handler can check it under force_handlers.
@@ -190,14 +271,32 @@
     path: /etc/systemd/system/podman-cleanup.timer
     state: absent
   when: container_runtime != 'podman'
+  register: services_remove_podman_cleanup_timer_unit_if_runtime_is_not_podman
   notify: Reload systemd
+
+- name: Record Reload systemd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload systemd]
+  when: services_remove_podman_cleanup_timer_unit_if_runtime_is_not_podman is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Remove podman-cleanup.service unit if runtime is not Podman
   ansible.builtin.file:
     path: /etc/systemd/system/podman-cleanup.service
     state: absent
   when: container_runtime != 'podman'
+  register: services_remove_podman_cleanup_service_unit_if_runtime_is_not_podman
   notify: Reload systemd
+
+- name: Record Reload systemd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload systemd]
+  when: services_remove_podman_cleanup_service_unit_if_runtime_is_not_podman is changed  # noqa: no-handler - marker must precede the handler
 
 # podman-cleanup service + timer (Podman runtime only)
 - name: Install podman-cleanup.service unit
@@ -207,8 +306,17 @@
     owner: root
     group: root
     mode: "0644"
+  register: services_install_podman_cleanup_service_unit
   notify: Reload systemd
   when: container_runtime == 'podman'
+
+- name: Record Reload systemd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload systemd]
+  when: services_install_podman_cleanup_service_unit is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Install podman-cleanup.timer unit
   ansible.builtin.copy:
@@ -217,8 +325,17 @@
     owner: root
     group: root
     mode: "0644"
+  register: services_install_podman_cleanup_timer_unit
   notify: Reload systemd
   when: container_runtime == 'podman'
+
+- name: Record Reload systemd as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload systemd]
+  when: services_install_podman_cleanup_timer_unit is changed  # noqa: no-handler - marker must precede the handler
 
 # Verify the installed units before they are loaded; registered without
 # failing so the Reload systemd handler can check it under force_handlers.

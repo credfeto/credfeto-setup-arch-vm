@@ -10,7 +10,16 @@
     owner: root
     group: root
     mode: "0644"
+  register: fail2ban_configure_fail2ban_default_jail_settings
   notify: Restart fail2ban
+
+- name: Record Restart fail2ban as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Restart fail2ban]
+  when: fail2ban_configure_fail2ban_default_jail_settings is changed  # noqa: no-handler - marker must precede the handler
 
 - name: Configure fail2ban sshd jail
   ansible.builtin.copy:
@@ -22,7 +31,16 @@
     owner: root
     group: root
     mode: "0644"
+  register: fail2ban_configure_fail2ban_sshd_jail
   notify: Restart fail2ban
+
+- name: Record Restart fail2ban as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Restart fail2ban]
+  when: fail2ban_configure_fail2ban_sshd_jail is changed  # noqa: no-handler - marker must precede the handler
 
 # Full unit, not a drop-in: the packaged unit's PartOf= on firewalld.service
 # (and the units firewalld Conflicts= with) cannot be reset from a .d file,
@@ -35,7 +53,16 @@
     owner: root
     group: root
     mode: "0644"
+  register: fail2ban_install_fail2ban_service_unit_without_firewall_unit_coupling
   notify: Restart fail2ban
+
+- name: Record Restart fail2ban as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Restart fail2ban]
+  when: fail2ban_install_fail2ban_service_unit_without_firewall_unit_coupling is changed  # noqa: no-handler - marker must precede the handler
 
 # daemon_reload here, not only in the handler: handlers flush at play end in
 # definition order, so the firewall role's Restart firewalld runs before
