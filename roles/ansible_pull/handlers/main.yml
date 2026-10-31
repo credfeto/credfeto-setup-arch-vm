@@ -6,16 +6,27 @@
 # Only here: when several roles define a handler of the same name, the last
 # one loaded is the one that runs, and this role loads after every other role
 # that defines Reload systemd.
+# Kept while any unit check that ran failed, so the next run re-notifies
+# Reload systemd and that check runs again rather than being skipped as
+# unchanged. A skipped check verified nothing but also found nothing wrong:
+# it only skips when its own units are unchanged and no marker is pending.
 - name: Clear pending marker for Reload systemd
   ansible.builtin.file:
     path: "{{ handler_retry_dir }}/Reload systemd"
     state: absent
   listen: Reload systemd
+  when:
+    - ansible_pull_unit_check is not defined or ansible_pull_unit_check is skipped or ansible_pull_unit_check.rc == 0
+    - services_unit_check is not defined or services_unit_check is skipped or services_unit_check.rc == 0
+    - podman_unit_check is not defined or podman_unit_check is skipped or podman_unit_check.rc == 0
 
 # A start in this run already used the current timer unit, so only a timer
 # that was running before the run needs restarting. ansible_pull_timer_started
 # is undefined when a task failed before Start ansible-pull timer and
 # force_handlers runs this anyway; restart then, as the start never happened.
+# A skipped unit check verified nothing, so it never allows a restart. It
+# cannot happen in practice: the change or pending marker that notifies this
+# handler is the same condition that makes the check run.
 - name: Restart ansible-pull timer
   ansible.builtin.systemd:
     name: ansible-pull.timer
@@ -23,6 +34,7 @@
     daemon_reload: true
   when:
     - ansible_pull_unit_check is defined
+    - ansible_pull_unit_check is not skipped
     - ansible_pull_unit_check.rc == 0
     - ansible_pull_timer_started is not defined or ansible_pull_timer_started is not changed
 
@@ -40,6 +52,7 @@
   # Same condition as the restart: only check after a restart it made.
   when:
     - ansible_pull_unit_check is defined
+    - ansible_pull_unit_check is not skipped
     - ansible_pull_unit_check.rc == 0
     - ansible_pull_timer_started is not defined or ansible_pull_timer_started is not changed
 
@@ -48,4 +61,7 @@
     path: "{{ handler_retry_dir }}/Restart ansible-pull timer"
     state: absent
   listen: Restart ansible-pull timer
-  when: ansible_pull_unit_check is defined and ansible_pull_unit_check.rc == 0
+  when:
+    - ansible_pull_unit_check is defined
+    - ansible_pull_unit_check is not skipped
+    - ansible_pull_unit_check.rc == 0

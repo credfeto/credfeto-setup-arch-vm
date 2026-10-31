@@ -13,8 +13,8 @@
   force_handlers: true
 
   roles:
-    # First, because the marker writes in every later role need its directory
-    # to exist already.
+    # First, because it reads the pending handler markers and publishes
+    # handler_retry_pending_handlers, which later roles' verify checks use.
     - handler_retry
     - packages
     - users

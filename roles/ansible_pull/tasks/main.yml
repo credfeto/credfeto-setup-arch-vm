@@ -49,19 +49,27 @@
 # Verify both installed units before anything enables, starts or restarts the
 # timer. failed_when: false so the result is always registered and the
 # Restart ansible-pull timer handler can check it under force_handlers.
+# Only a change or a pending marker leads to a reload or restart, so an
+# unchanged unit with nothing pending was already verified by the run that
+# installed it and the check is skipped.
 - name: Check ansible-pull units
   ansible.builtin.command:
     cmd: systemd-analyze verify /etc/systemd/system/ansible-pull.service /etc/systemd/system/ansible-pull.timer
   register: ansible_pull_unit_check
   changed_when: false
   failed_when: false
+  when: >-  # noqa: no-handler - the check must run before the handlers it guards
+    ansible_pull_install_ansible_pull_service_unit is changed
+    or ansible_pull_install_ansible_pull_timer_unit is changed
+    or 'Reload systemd' in handler_retry_pending_handlers
+    or 'Restart ansible-pull timer' in handler_retry_pending_handlers
 
 - name: Fail when the ansible-pull units are invalid
   ansible.builtin.fail:
     msg: >-
       ansible-pull unit check failed: {{ ansible_pull_unit_check.stdout }}
       {{ ansible_pull_unit_check.stderr }} {{ ansible_pull_unit_check.msg | default('') }}
-  when: ansible_pull_unit_check.rc != 0
+  when: ansible_pull_unit_check is not skipped and ansible_pull_unit_check.rc != 0
 
 - name: Enable ansible-pull timer
   ansible.builtin.systemd:
