@@ -4,6 +4,13 @@
   "no-new-privileges": true,
   "userland-proxy": false,
   "firewall-backend": "nftables",
+  "ipv6": true,
+  "fixed-cidr-v6": "fd00:d0c::/64",
+  "default-network-opts": {
+    "bridge": {
+      "com.docker.network.enable_ipv6": "true"
+    }
+  },
   "log-driver": "json-file",
   "log-opts": {
     "max-size": "100m",

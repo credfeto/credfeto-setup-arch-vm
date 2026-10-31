@@ -16,6 +16,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Install sshd AppArmor profile from Arch's extra-profiles using Arch paths and enforce it
 - Restore DefaultLimitCORE=0 systemd drop-in (system.conf.d/no-core-dumps.conf) so systemd services cannot write core dumps
 ### Added
+- Docker: enable IPv6 (default bridge fd00:d0c::/64 and IPv6 on every new bridge network via default-network-opts), so build and default-network containers can use the IPv6-first DNS servers and reach IPv6 hosts; the firewall role already trusts fd00::/8 in the docker zone
 - Git workflow instructions: never-squash-commits rule to preserve the full commit history however messy the path
 - AI instructions: mandatory git identity and GPG signing check before any commit — abort if identity is `andy@nanoclaw.ai` or GPG signing is disabled
 - SSH hardening with strong crypto, key-only auth, and no root login
