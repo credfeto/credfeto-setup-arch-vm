@@ -1,17 +1,24 @@
 ---
-- name: Create pending handler marker directory
-  ansible.builtin.file:
+# The directory only exists once a marker has been written (pending.yml
+# creates it), so a host that never had a pending handler skips the find.
+- name: Check for pending handler marker directory
+  ansible.builtin.stat:
     path: "{{ handler_retry_dir }}"
-    state: directory
-    owner: root
-    group: root
-    mode: "0750"
+  register: handler_retry_dir_stat
 
 - name: Find pending handler markers
   ansible.builtin.find:
     paths: "{{ handler_retry_dir }}"
     file_type: file
   register: handler_retry_markers
+  when: handler_retry_dir_stat.stat.exists
+
+# Always defined, so later roles can gate their verify checks on
+# "'<handler>' in handler_retry_pending_handlers" without a missing-variable
+# error on hosts that have no marker directory.
+- name: Record handlers left pending by an earlier run
+  ansible.builtin.set_fact:
+    handler_retry_pending_handlers: "{{ handler_retry_markers.files | default([]) | map(attribute='path') | map('basename') | sort }}"
 
 # A marker survives only when its handler failed or never ran after the
 # change was written to disk. The task that made the change now reports ok
@@ -21,4 +28,4 @@
     msg: "Retrying {{ item }}"
   changed_when: true
   notify: "{{ item }}"
-  loop: "{{ handler_retry_markers.files | map(attribute='path') | map('basename') | sort }}"
+  loop: "{{ handler_retry_pending_handlers }}"

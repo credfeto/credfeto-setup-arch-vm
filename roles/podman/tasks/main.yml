@@ -74,23 +74,28 @@
 
 # Verify both installed units before anything reloads systemd or enables the
 # timer. failed_when: false so the result is always registered and the
-# Reload systemd handler can check it under force_handlers.
+# Reload systemd handler can check it under force_handlers. Skipped when both
+# units are unchanged and no Reload systemd marker is pending: nothing will
+# reload them, and the run that installed them already verified them.
 - name: Check podman-security-audit units
   ansible.builtin.command:
     cmd: systemd-analyze verify /etc/systemd/system/podman-security-audit.service /etc/systemd/system/podman-security-audit.timer
   register: podman_unit_check
   changed_when: false
   failed_when: false
-  when: container_runtime == 'podman'
+  when:
+    - container_runtime == 'podman'
+    - >-
+      podman_install_podman_security_audit_service_unit is changed
+      or podman_install_podman_security_audit_timer_unit is changed
+      or 'Reload systemd' in handler_retry_pending_handlers
 
 - name: Fail when the podman-security-audit units are invalid
   ansible.builtin.fail:
     msg: >-
       podman-security-audit unit check failed: {{ podman_unit_check.stdout }}
       {{ podman_unit_check.stderr }} {{ podman_unit_check.msg | default('') }}
-  when:
-    - container_runtime == 'podman'
-    - podman_unit_check.rc != 0
+  when: podman_unit_check is not skipped and podman_unit_check.rc != 0
 
 - name: Enable and start podman-security-audit timer
   ansible.builtin.systemd:

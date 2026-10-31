@@ -1,13 +1,10 @@
 ---
-# Only reload when every unit check that ran passed (undefined or skipped
-# checks did not run, e.g. other container runtime).
+# Only reload when the cleanup unit check passed, or did not run (unchanged
+# units with no pending marker).
 - name: Reload systemd
   ansible.builtin.systemd:
     daemon_reload: true
-  when:
-    - services_paccache_unit_check is not defined or services_paccache_unit_check.rc | default(0) == 0
-    - services_docker_unit_check is not defined or services_docker_unit_check.rc | default(0) == 0
-    - services_podman_unit_check is not defined or services_podman_unit_check.rc | default(0) == 0
+  when: services_unit_check is not defined or services_unit_check is skipped or services_unit_check.rc == 0
 
 # A start in this run already used the current drop-in, so only a timer that
 # was running before the run needs restarting. services_fstrim_timer_started

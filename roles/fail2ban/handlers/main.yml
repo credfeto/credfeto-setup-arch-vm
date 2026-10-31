@@ -1,9 +1,9 @@
 ---
 # fail2ban_config_check is undefined when a task failed before Check fail2ban
-# configuration and force_handlers runs these handlers anyway; check the
-# configuration here then, so the restart below never runs into a broken one.
-# A separate variable, because register on a skipped handler would overwrite
-# the task's result.
+# configuration and force_handlers runs these handlers anyway, and skipped
+# when nothing it covers changed; check the configuration here then, so the
+# restart below never runs into an unchecked one. A separate variable,
+# because register on a skipped handler would overwrite the task's result.
 - name: Check fail2ban configuration before restarting it
   ansible.builtin.shell:
     cmd: systemd-analyze verify --man=no /etc/systemd/system/fail2ban.service && fail2ban-client --test
@@ -11,7 +11,7 @@
   register: fail2ban_handler_config_check
   changed_when: false
   failed_when: false
-  when: fail2ban_config_check is not defined
+  when: fail2ban_config_check is not defined or fail2ban_config_check is skipped
   listen: Restart fail2ban
 
 # A start in this run already read the current jail files and the reloaded
@@ -26,7 +26,9 @@
     state: restarted
     daemon_reload: true
   when:
-    - (fail2ban_config_check if fail2ban_config_check is defined else fail2ban_handler_config_check).rc == 0
+    - >-
+      (fail2ban_config_check if fail2ban_config_check is defined and fail2ban_config_check is not skipped
+      else fail2ban_handler_config_check).rc == 0
     - fail2ban_started is not defined or fail2ban_started is not changed
 
 # fail2ban.service is Type=simple, so the restart reports success as soon as
@@ -45,7 +47,9 @@
   listen: Restart fail2ban
   # Same condition as the restart: only check after a restart it made.
   when:
-    - (fail2ban_config_check if fail2ban_config_check is defined else fail2ban_handler_config_check).rc == 0
+    - >-
+      (fail2ban_config_check if fail2ban_config_check is defined and fail2ban_config_check is not skipped
+      else fail2ban_handler_config_check).rc == 0
     - fail2ban_started is not defined or fail2ban_started is not changed
 
 # A restart skipped because fail2ban was started in this run still leaves it
@@ -55,4 +59,6 @@
     path: "{{ handler_retry_dir }}/Restart fail2ban"
     state: absent
   listen: Restart fail2ban
-  when: (fail2ban_config_check if fail2ban_config_check is defined else fail2ban_handler_config_check).rc == 0
+  when: >-
+    (fail2ban_config_check if fail2ban_config_check is defined and fail2ban_config_check is not skipped
+    else fail2ban_handler_config_check).rc == 0
