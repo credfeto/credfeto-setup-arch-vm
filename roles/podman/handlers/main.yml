@@ -1,6 +1,7 @@
 ---
-# Only reload when the unit check passed (or did not run: no podman units).
+# Only reload when the unit check passed, or did not run (no podman units, or
+# unchanged units with no pending marker).
 - name: Reload systemd
   ansible.builtin.systemd:
     daemon_reload: true
-  when: podman_unit_check is not defined or podman_unit_check.rc | default(0) == 0
+  when: podman_unit_check is not defined or podman_unit_check is skipped or podman_unit_check.rc == 0

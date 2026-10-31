@@ -81,6 +81,9 @@
 # than skipping it. failed_when: false so the result is always registered:
 # the Restart fail2ban handler checks it, because force_handlers would
 # otherwise run that restart into a broken configuration after the run fails.
+# Skipped when no file it covers changed and no Restart fail2ban marker is
+# pending: nothing will restart fail2ban, and the run that wrote the files
+# already checked them.
 - name: Check fail2ban configuration
   ansible.builtin.shell:
     cmd: systemd-analyze verify --man=no /etc/systemd/system/fail2ban.service && fail2ban-client --test
@@ -88,6 +91,12 @@
   register: fail2ban_config_check
   changed_when: false
   failed_when: false
+  when:
+    - >-
+      fail2ban_configure_fail2ban_default_jail_settings is changed
+      or fail2ban_configure_fail2ban_sshd_jail is changed
+      or fail2ban_install_fail2ban_service_unit_without_firewall_unit_coupling is changed
+      or 'Restart fail2ban' in handler_retry_pending_handlers
 
 # After Enable fail2ban, whose daemon-reload touches no running process and
 # must happen before the firewall role's Restart firewalld even on a failed
@@ -98,7 +107,7 @@
     msg: >-
       fail2ban unit or configuration check failed: {{ fail2ban_config_check.stdout }}
       {{ fail2ban_config_check.stderr }} {{ fail2ban_config_check.msg | default('') }}
-  when: fail2ban_config_check.rc != 0
+  when: fail2ban_config_check is not skipped and fail2ban_config_check.rc != 0
 
 # Separate from enabling so that changed here means fail2ban was actually
 # started, which the Restart fail2ban handler relies on to skip a second

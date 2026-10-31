@@ -80,74 +80,6 @@
     handler_retry_pending: [Reload systemd]
   when: services_install_paccache_cleanup_timer_unit is changed  # noqa: no-handler - marker must precede the handler
 
-# Verify the installed units before they are loaded; registered without
-# failing so the Reload systemd handler can check it under force_handlers.
-- name: Check paccache-cleanup units
-  ansible.builtin.command:
-    cmd: systemd-analyze verify /etc/systemd/system/paccache-cleanup.service /etc/systemd/system/paccache-cleanup.timer
-  register: services_paccache_unit_check
-  changed_when: false
-  failed_when: false
-
-- name: Fail when the paccache-cleanup units are invalid
-  ansible.builtin.fail:
-    msg: >-
-      paccache-cleanup unit check failed: {{ services_paccache_unit_check.stdout }}
-      {{ services_paccache_unit_check.stderr }} {{ services_paccache_unit_check.msg | default('') }}
-  when:
-    - services_paccache_unit_check.rc != 0
-
-- name: Enable and start paccache-cleanup timer
-  ansible.builtin.systemd:
-    name: paccache-cleanup.timer
-    enabled: true
-    state: started
-    daemon_reload: true
-
-# fstrim.timer daily drop-in
-- name: Create fstrim.timer drop-in directory
-  ansible.builtin.file:
-    path: /etc/systemd/system/fstrim.timer.d
-    state: directory
-    owner: root
-    group: root
-    mode: "0755"
-
-# Restart (not just daemon-reload) on change: a running timer keeps the
-# schedule it was started with.
-- name: Install fstrim.timer daily drop-in
-  ansible.builtin.copy:
-    src: fstrim-daily.conf
-    dest: /etc/systemd/system/fstrim.timer.d/daily.conf
-    owner: root
-    group: root
-    mode: "0644"
-  register: services_install_fstrim_timer_daily_drop_in
-  notify: Restart fstrim timer
-
-- name: Record Restart fstrim timer as pending
-  ansible.builtin.include_role:
-    name: handler_retry
-    tasks_from: pending
-  vars:
-    handler_retry_pending: [Restart fstrim timer]
-  when: services_install_fstrim_timer_daily_drop_in is changed  # noqa: no-handler - marker must precede the handler
-
-- name: Enable fstrim timer
-  ansible.builtin.systemd:
-    name: fstrim.timer
-    enabled: true
-    daemon_reload: true
-
-# Separate from enabling so that changed here means the timer was actually
-# started, which the Restart fstrim timer handler relies on to skip a second
-# start in the same run.
-- name: Start fstrim timer
-  ansible.builtin.systemd:
-    name: fstrim.timer
-    state: started
-  register: services_fstrim_timer_started
-
 # Cleanup stale docker-cleanup units if container runtime is not Docker
 - name: Disable docker-cleanup timer if present
   ansible.builtin.systemd:
@@ -228,33 +160,6 @@
   vars:
     handler_retry_pending: [Reload systemd]
   when: services_install_docker_cleanup_timer_unit is changed  # noqa: no-handler - marker must precede the handler
-
-# Verify the installed units before they are loaded; registered without
-# failing so the Reload systemd handler can check it under force_handlers.
-- name: Check docker-cleanup units
-  ansible.builtin.command:
-    cmd: systemd-analyze verify /etc/systemd/system/docker-cleanup.service /etc/systemd/system/docker-cleanup.timer
-  register: services_docker_unit_check
-  changed_when: false
-  failed_when: false
-  when: container_runtime == 'docker'
-
-- name: Fail when the docker-cleanup units are invalid
-  ansible.builtin.fail:
-    msg: >-
-      docker-cleanup unit check failed: {{ services_docker_unit_check.stdout }}
-      {{ services_docker_unit_check.stderr }} {{ services_docker_unit_check.msg | default('') }}
-  when:
-    - container_runtime == 'docker'
-    - services_docker_unit_check.rc != 0
-
-- name: Enable and start docker-cleanup timer
-  ansible.builtin.systemd:
-    name: docker-cleanup.timer
-    enabled: true
-    state: started
-    daemon_reload: true
-  when: container_runtime == 'docker'
 
 # Cleanup stale podman-cleanup units if container runtime is not Podman
 - name: Disable podman-cleanup timer if present
@@ -337,24 +242,61 @@
     handler_retry_pending: [Reload systemd]
   when: services_install_podman_cleanup_timer_unit is changed  # noqa: no-handler - marker must precede the handler
 
-# Verify the installed units before they are loaded; registered without
-# failing so the Reload systemd handler can check it under force_handlers.
-- name: Check podman-cleanup units
+# Verify the installed cleanup units in one call before any of their timers is
+# enabled. failed_when: false so the result is always registered and the
+# Reload systemd handler can check it under force_handlers. A unit pair is
+# only verified when it changed or a Reload systemd marker is pending: nothing
+# else reloads it, and the run that installed it already verified it.
+- name: Check cleanup units
   ansible.builtin.command:
-    cmd: systemd-analyze verify /etc/systemd/system/podman-cleanup.service /etc/systemd/system/podman-cleanup.timer
-  register: services_podman_unit_check
+    argv: "{{ ['systemd-analyze', 'verify'] + services_verify_units }}"
+  vars:
+    services_verify_units: >-
+      {{
+        (['/etc/systemd/system/paccache-cleanup.service', '/etc/systemd/system/paccache-cleanup.timer']
+          if services_install_paccache_cleanup_service_unit is changed
+            or services_install_paccache_cleanup_timer_unit is changed
+            or 'Reload systemd' in handler_retry_pending_handlers
+          else [])
+        + (['/etc/systemd/system/docker-cleanup.service', '/etc/systemd/system/docker-cleanup.timer']
+          if container_runtime == 'docker'
+            and (services_install_docker_cleanup_service_unit is changed
+              or services_install_docker_cleanup_timer_unit is changed
+              or 'Reload systemd' in handler_retry_pending_handlers)
+          else [])
+        + (['/etc/systemd/system/podman-cleanup.service', '/etc/systemd/system/podman-cleanup.timer']
+          if container_runtime == 'podman'
+            and (services_install_podman_cleanup_service_unit is changed
+              or services_install_podman_cleanup_timer_unit is changed
+              or 'Reload systemd' in handler_retry_pending_handlers)
+          else [])
+      }}
+  register: services_unit_check
   changed_when: false
   failed_when: false
-  when: container_runtime == 'podman'
+  when: services_verify_units | length > 0
 
-- name: Fail when the podman-cleanup units are invalid
+- name: Fail when the cleanup units are invalid
   ansible.builtin.fail:
     msg: >-
-      podman-cleanup unit check failed: {{ services_podman_unit_check.stdout }}
-      {{ services_podman_unit_check.stderr }} {{ services_podman_unit_check.msg | default('') }}
-  when:
-    - container_runtime == 'podman'
-    - services_podman_unit_check.rc != 0
+      cleanup unit check failed: {{ services_unit_check.stdout }}
+      {{ services_unit_check.stderr }} {{ services_unit_check.msg | default('') }}
+  when: services_unit_check is not skipped and services_unit_check.rc != 0
+
+- name: Enable and start paccache-cleanup timer
+  ansible.builtin.systemd:
+    name: paccache-cleanup.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Enable and start docker-cleanup timer
+  ansible.builtin.systemd:
+    name: docker-cleanup.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: container_runtime == 'docker'
 
 - name: Enable and start podman-cleanup timer
   ansible.builtin.systemd:
@@ -363,6 +305,50 @@
     state: started
     daemon_reload: true
   when: container_runtime == 'podman'
+
+# fstrim.timer daily drop-in
+- name: Create fstrim.timer drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/fstrim.timer.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+# Restart (not just daemon-reload) on change: a running timer keeps the
+# schedule it was started with.
+- name: Install fstrim.timer daily drop-in
+  ansible.builtin.copy:
+    src: fstrim-daily.conf
+    dest: /etc/systemd/system/fstrim.timer.d/daily.conf
+    owner: root
+    group: root
+    mode: "0644"
+  register: services_install_fstrim_timer_daily_drop_in
+  notify: Restart fstrim timer
+
+- name: Record Restart fstrim timer as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Restart fstrim timer]
+  when: services_install_fstrim_timer_daily_drop_in is changed  # noqa: no-handler - marker must precede the handler
+
+- name: Enable fstrim timer
+  ansible.builtin.systemd:
+    name: fstrim.timer
+    enabled: true
+    daemon_reload: true
+
+# Separate from enabling so that changed here means the timer was actually
+# started, which the Restart fstrim timer handler relies on to skip a second
+# start in the same run.
+- name: Start fstrim timer
+  ansible.builtin.systemd:
+    name: fstrim.timer
+    state: started
+  register: services_fstrim_timer_started
 
 # pkgstats timer (ships with the pkgstats package)
 - name: Enable and start pkgstats timer

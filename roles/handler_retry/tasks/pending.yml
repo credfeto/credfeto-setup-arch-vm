@@ -1,4 +1,12 @@
 ---
+- name: Create pending handler marker directory
+  ansible.builtin.file:
+    path: "{{ handler_retry_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
 - name: Write pending handler marker
   ansible.builtin.copy:
     dest: "{{ handler_retry_dir }}/{{ item }}"
