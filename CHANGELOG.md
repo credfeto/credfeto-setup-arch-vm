@@ -198,6 +198,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Run fstrim.timer daily instead of weekly and enable it explicitly, so thin-provisioned ZFS/Ceph host storage reclaims blocks freed in the guest promptly
 - Fail2ban, docker, auditd, the ansible-pull and fstrim timers, telegraf, systemd-resolved and firewalld are each started or restarted at most once per run, instead of possibly several times
 - The run now fails if the upstream sshd AppArmor profile no longer has the paths or the local include the Arch adjustments rely on
+- Reduced per-run CPU cost of verify-before-restart checks and pending-handler retry (#277)
 ### Deprecated
 ### Removed
 - Remove criu and pigz packages — neither is used or configured by the script
