@@ -30,6 +30,7 @@ ok "Ansible Galaxy collections installed"
 # ── Run ansible-pull to apply full configuration ─────────────────────────────
 echo "Running ansible-pull to apply full configuration..."
 ansible-pull \
+    --full \
     -U https://github.com/credfeto/credfeto-setup-arch-vm.git \
     -C main \
     site.yml \
