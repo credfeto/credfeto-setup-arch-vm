@@ -202,6 +202,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Reduced per-run CPU cost of verify-before-restart checks and pending-handler retry (#277)
 ### Deprecated
 ### Removed
+- users: stop adding markr's authorized keys from https://github.com/credfeto.keys; sshd already looks keys up from keys.markridgwell.com via AuthorizedKeysCommand, and a GitHub .keys outage (HTTP 504) was failing every ansible-pull run
 - Remove criu and pigz packages — neither is used or configured by the script
 - Remove curl-based security script in favour of ansible-pull timer
 - auto-update bash script, service, and timer — superseded by the packages role running pacman -Syyu on every hourly ansible-pull run

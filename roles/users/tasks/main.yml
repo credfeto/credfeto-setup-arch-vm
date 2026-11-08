@@ -65,12 +65,6 @@
     mode: "0440"
     validate: visudo -c -f %s
 
-- name: Add authorized SSH keys for markr from GitHub
-  ansible.posix.authorized_key:
-    user: markr
-    state: present
-    key: https://github.com/credfeto.keys
-
 # lynis AUTH-9230 (#62). ENCRYPT_METHOD is already YESCRYPT (the Arch
 # default); the cost factor defaults to 5 - raise it so any password
 # hash that does get created (accounts are key-only, but local recovery
