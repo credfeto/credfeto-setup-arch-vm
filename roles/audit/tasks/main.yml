@@ -72,6 +72,36 @@
       # Make rules immutable (requires reboot to change)
       -e 2
 
+# auditd's defaults flush to disk every 50 records (flush = INCREMENTAL_ASYNC,
+# freq = 50). On a CoW root (btrfs) each of those small syncs rewrites whole
+# extents, so a few MB/h of audit log became hundreds of kB/s of disk writes.
+# Flushing every 1000 records keeps the same durability model (async, by
+# record count) at a fraction of the write load.
+- name: Set auditd flush frequency
+  ansible.builtin.lineinfile:
+    path: /etc/audit/auditd.conf
+    regexp: "^\\s*{{ item.key }}\\s*="
+    line: "{{ item.key }} = {{ item.value }}"
+  loop:
+    - { key: flush, value: INCREMENTAL_ASYNC }
+    - { key: freq, value: "1000" }
+  register: auditd_conf
+
+- name: Check whether auditd is already running
+  ansible.builtin.command: systemctl is-active --quiet auditd
+  register: auditd_active
+  changed_when: false
+  failed_when: false
+  when: auditd_conf is changed
+
+# auditd refuses a manual stop/restart (RefuseManualStop) and the unit has no
+# ExecReload; SIGHUP via auditctl makes the running daemon re-read auditd.conf.
+# When auditd isn't running yet, the start below reads the new file instead.
+- name: Reload auditd configuration
+  ansible.builtin.command: auditctl --signal reload
+  when: auditd_conf is changed and auditd_active.rc == 0
+  changed_when: true
+
 # This role is the only one that starts auditd: a start in an earlier role
 # would load the old rules before the ones above are written, and with -e 2
 # only a reboot could then apply them.
