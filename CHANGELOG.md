@@ -15,6 +15,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Pin actions/checkout references to commit SHA instead of mutable tag in ansible-lint and security-review workflows, hardening against tag repointing
 - Install sshd AppArmor profile from Arch's extra-profiles using Arch paths and enforce it
 - Restore DefaultLimitCORE=0 systemd drop-in (system.conf.d/no-core-dumps.conf) so systemd services cannot write core dumps
+- Add custom AppArmor profile for fail2ban-server, installed in complain mode (#252)
 ### Added
 - Docker: enable IPv6 (default bridge fd00:d0c::/64 and IPv6 on every new bridge network via default-network-opts), so build and default-network containers can use the IPv6-first DNS servers and reach IPv6 hosts; the firewall role already trusts fd00::/8 in the docker zone
 - Git workflow instructions: never-squash-commits rule to preserve the full commit history however messy the path
