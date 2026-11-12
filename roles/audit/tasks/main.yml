@@ -83,23 +83,24 @@
     regexp: "^\\s*{{ item.key }}\\s*="
     line: "{{ item.key }} = {{ item.value }}"
   loop:
-    - { key: flush, value: INCREMENTAL_ASYNC }
-    - { key: freq, value: "1000" }
-  register: auditd_conf
+    - {key: flush, value: INCREMENTAL_ASYNC}
+    - {key: freq, value: "1000"}
+  register: audit_auditd_conf
 
 - name: Check whether auditd is already running
-  ansible.builtin.command: systemctl is-active --quiet auditd
-  register: auditd_active
+  ansible.builtin.command:
+    cmd: systemctl is-active --quiet auditd  # noqa: command-instead-of-module - read-only probe
+  register: audit_auditd_active
   changed_when: false
   failed_when: false
-  when: auditd_conf is changed
+  when: audit_auditd_conf is changed  # noqa: no-handler - the probe must run before the reload it guards
 
 # auditd refuses a manual stop/restart (RefuseManualStop) and the unit has no
 # ExecReload; SIGHUP via auditctl makes the running daemon re-read auditd.conf.
 # When auditd isn't running yet, the start below reads the new file instead.
 - name: Reload auditd configuration
   ansible.builtin.command: auditctl --signal reload
-  when: auditd_conf is changed and auditd_active.rc == 0
+  when: audit_auditd_conf is changed and audit_auditd_active.rc == 0
   changed_when: true
 
 # This role is the only one that starts auditd: a start in an earlier role

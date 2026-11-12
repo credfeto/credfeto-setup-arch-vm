@@ -174,6 +174,54 @@
     handler_retry_pending: [Reload sshd]
   when: apparmor_enforce_sshd_apparmor_profile is changed  # noqa: no-handler - marker must precede the handler
 
+# The mode is set by the flags in the installed file, not by how this role
+# loads it, because apparmor.service loads /etc/apparmor.d at boot. The shipped
+# profile is in complain mode, which only logs what enforce would deny.
+- name: Install fail2ban-server AppArmor profile
+  ansible.builtin.copy:
+    content: >-
+      {{ apparmor_fail2ban_profile | regex_replace(' flags=[(]complain[)]', '')
+         if apparmor_fail2ban_enforce else apparmor_fail2ban_profile }}
+    dest: /etc/apparmor.d/usr.bin.fail2ban-server
+    owner: root
+    group: root
+    mode: "0644"
+    validate: apparmor_parser --skip-kernel-load --skip-cache --base /etc/apparmor.d %s
+  vars:
+    apparmor_fail2ban_profile: "{{ lookup('ansible.builtin.file', 'usr.bin.fail2ban-server') }}"
+  register: apparmor_install_fail2ban_server_apparmor_profile
+  notify: Reload fail2ban-server AppArmor profile
+
+- name: Record Reload fail2ban-server AppArmor profile as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Reload fail2ban-server AppArmor profile]
+  when: apparmor_install_fail2ban_server_apparmor_profile is changed  # noqa: no-handler - marker must precede the handler
+
+# A profile only attaches at exec, so the fail2ban-server already running when
+# the profile is first loaded stays unconfined until it restarts. Loaded here
+# rather than left to the handler, because the fail2ban role's handlers flush
+# before this role's, so the restart would otherwise run before the load.
+- name: Load fail2ban-server AppArmor profile
+  ansible.builtin.command:
+    cmd: apparmor_parser -r /etc/apparmor.d/usr.bin.fail2ban-server
+  changed_when: true
+  when:
+    - apparmor_kernel.stat.exists
+    - (apparmor_status.stdout | from_json).profiles['fail2ban-server'] is not defined
+  register: apparmor_load_fail2ban_server_apparmor_profile
+  notify: Restart fail2ban
+
+- name: Record Restart fail2ban as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Restart fail2ban]
+  when: apparmor_load_fail2ban_server_apparmor_profile is changed  # noqa: no-handler - marker must precede the handler
+
 # Everything below only reads container state and reports what it finds; it
 # never fails the run or touches a container. Before the reboot that enables
 # AppArmor every container lacks a profile, so there is nothing to report.

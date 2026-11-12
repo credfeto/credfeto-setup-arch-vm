@@ -16,3 +16,20 @@
     state: absent
   listen: Reload sshd AppArmor profile
   when: apparmor_kernel is defined
+
+# -r replaces the loaded profile in place, so a running fail2ban-server picks
+# up changed rules, or a switch between complain and enforce, without a
+# restart.
+- name: Reload fail2ban-server AppArmor profile
+  ansible.builtin.command:
+    cmd: apparmor_parser -r /etc/apparmor.d/usr.bin.fail2ban-server
+  changed_when: true
+  # Undefined for the same reason as in Reload sshd AppArmor profile.
+  when: apparmor_kernel is defined and apparmor_kernel.stat.exists
+
+- name: Clear pending marker for Reload fail2ban-server AppArmor profile
+  ansible.builtin.file:
+    path: "{{ handler_retry_dir }}/Reload fail2ban-server AppArmor profile"
+    state: absent
+  listen: Reload fail2ban-server AppArmor profile
+  when: apparmor_kernel is defined
