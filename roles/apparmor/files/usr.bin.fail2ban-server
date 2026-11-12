@@ -27,11 +27,18 @@ profile fail2ban-server /usr/bin/fail2ban-server flags=(complain) {
   network unix stream,
 
   signal (receive) peer=unconfined,
+  # Ban action commands run as children inside this profile; the server
+  # signals them when an action times out or on shutdown.
+  signal (send, receive) peer=fail2ban-server,
 
   /usr/bin/fail2ban-server r,
-  /usr/bin/python3.[0-9]* ix,
+  # The kernel maps the interpreter named in the script's shebang.
+  /usr/bin/python3.[0-9]* mrix,
   /usr/bin/bash ix,
+  # Ban action shell commands call grep and sed alongside nft.
+  /usr/bin/grep ix,
   /usr/bin/nft ix,
+  /usr/bin/sed ix,
 
   /etc/fail2ban/ r,
   /etc/fail2ban/** r,
