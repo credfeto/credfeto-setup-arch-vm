@@ -1,0 +1,62 @@
+# Managed by the apparmor Ansible role.
+#
+# The Arch apparmor package ships no profile for fail2ban. The role strips the
+# complain flag from the profile line below when apparmor_fail2ban_enforce is
+# true; leave the flag in this file so that the default stays complain mode. Add host-specific
+# rules to /etc/apparmor.d/local/usr.bin.fail2ban-server, never here.
+#
+# fail2ban-server is a python script, so the profile attaches by the script's
+# path and the interpreter runs inside it. Ban actions run as shell commands
+# that call nft, which inherit the profile too.
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+profile fail2ban-server /usr/bin/fail2ban-server flags=(complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice>
+  include <abstractions/python>
+
+  # Reading root-only logs and the journal, and managing nftables rules.
+  capability dac_read_search,
+  capability net_admin,
+
+  network netlink raw,
+  # fail2ban-client talks to the server over /run/fail2ban/fail2ban.sock.
+  network unix stream,
+
+  signal (receive) peer=unconfined,
+
+  /usr/bin/fail2ban-server r,
+  /usr/bin/python3.[0-9]* ix,
+  /usr/bin/bash ix,
+  /usr/bin/nft ix,
+
+  /etc/fail2ban/ r,
+  /etc/fail2ban/** r,
+
+  /run/fail2ban/ rw,
+  /run/fail2ban/** rwk,
+
+  /var/lib/fail2ban/ rw,
+  /var/lib/fail2ban/** rwk,
+
+  /var/log/ r,
+  /var/log/** r,
+  /var/log/fail2ban.log* rw,
+
+  # The sshd jail reads the systemd journal on Arch.
+  /etc/machine-id r,
+  @{PROC}/sys/kernel/random/boot_id r,
+  /var/log/journal/ r,
+  /var/log/journal/** r,
+  /run/log/journal/ r,
+  /run/log/journal/** r,
+
+  @{PROC}/@{pid}/fd/ r,
+  @{PROC}/@{pid}/stat r,
+  @{PROC}/@{pid}/mounts r,
+
+  include if exists <local/usr.bin.fail2ban-server>
+}

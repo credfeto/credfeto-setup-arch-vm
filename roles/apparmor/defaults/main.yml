@@ -1,0 +1,4 @@
+---
+# Leave false until the test VM has run with the profile in complain mode and
+# shown no ALLOWED events for fail2ban-server; see the README.
+apparmor_fail2ban_enforce: false

@@ -7,6 +7,7 @@ Sets up an Arch Linux VM with Docker, Git, and supporting tooling. The `install`
 - **firewalld** firewall
 - **SSH hardening**: strong crypto only, key-based auth, no root login
 - **fail2ban**: bans hosts after repeated failed SSH logins (`sshd` jail in aggressive mode, nftables ban action in its own `inet f2b-table`, which firewalld never flushes and which runs before firewalld so it also covers `docker`-zone sources, 1h ban time); firewalld reloads and restarts leave the bans in place, and fail2ban restores them from its database whenever it restarts
+- **AppArmor**: enforces the upstream `sshd` profile and installs a custom `fail2ban-server` profile, in complain mode until it has been observed on the test VM (see [AppArmor profile for fail2ban](#apparmor-profile-for-fail2ban))
 - **sysctl hardening**: network, kernel, and filesystem protections, including persistent IPv4/IPv6 forwarding
 - **Core dump disabling**: via sysctl and systemd
 - **Kernel module blacklisting**: unused/dangerous protocols and filesystems
@@ -40,6 +41,41 @@ IPv6PrivacyExtensions=yes
 ## Proxmox QEMU Guest Agent
 
 The playbook installs `qemu-guest-agent` and starts it when the virtio serial port exists. In Proxmox enable **Options > QEMU Guest Agent** for the VM, then do a full VM stop/start (not a reboot) so `/dev/virtio-ports/org.qemu.guest_agent.0` is created. Without it the role skips cleanly.
+
+## AppArmor profile for fail2ban
+
+The Arch `apparmor` package ships no profile for `fail2ban-server`, so the `apparmor` role installs its own as `/etc/apparmor.d/usr.bin.fail2ban-server` from `roles/apparmor/files/usr.bin.fail2ban-server`. It ships in complain mode: nothing is denied, and every access the profile does not allow is logged as an `apparmor="ALLOWED"` audit event. Site-specific rules go in `/etc/apparmor.d/local/usr.bin.fail2ban-server`, which the profile includes.
+
+The role loads the profile with `apparmor_parser -r` and restarts fail2ban the first time, because a profile only attaches when the process starts. On a host whose kernel does not have AppArmor enabled yet, the file is installed and the boot that enables AppArmor loads it.
+
+To move the profile from complain to enforce:
+
+1. Apply the playbook to the test VM and confirm the profile is loaded in complain mode:
+
+   ```sh
+   sudo aa-status | grep fail2ban-server
+   ```
+
+2. Run fail2ban normally for an observation period, including a restart and a ban and unban:
+
+   ```sh
+   sudo systemctl restart fail2ban
+   sudo fail2ban-client set sshd banip 192.0.2.1
+   sudo fail2ban-client set sshd unbanip 192.0.2.1
+   ```
+
+3. Look for accesses the profile would have denied:
+
+   ```sh
+   sudo ausearch -m apparmor -i | grep fail2ban-server
+   sudo journalctl -k --grep 'apparmor="ALLOWED".*fail2ban-server'
+   ```
+
+   Add a rule to the profile for each legitimate access found (`aa-logprof` can suggest them) and repeat until a full period shows none.
+
+4. Set `apparmor_fail2ban_enforce: true` (default `false`, in `roles/apparmor/defaults/main.yml`). The role then installs the profile without the complain flag and reloads it in place; fail2ban does not need restarting.
+
+5. Confirm `aa-status` lists `fail2ban-server` in enforce mode and that `fail2ban-client ping` and a ban and unban still work. To go back, set the variable to `false` again.
 
 ## Retrying failed handlers
 
