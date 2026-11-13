@@ -362,10 +362,20 @@
     - /etc/xdg/reflector/reflector.conf.pacsave
   when: host_is_dns_server
 
+# A package published minutes ago can be listed in the repo database before
+# every mirror has its files: the package cache then gets 404/500 for the
+# .pkg.tar.zst or .sig from all mirrors (chaotic-aur claude-code is the usual
+# case), or a fetch stalls ("Operation too slow") while the cache has no live
+# upstream, and the whole run fails. Both clear within minutes, so retry rather
+# than fail the run.
 - name: Update all packages
   community.general.pacman:
     update_cache: true
     upgrade: true
+  register: packages_upgrade_result
+  retries: 2
+  delay: 300
+  until: packages_upgrade_result is succeeded
 
 - name: Install required packages
   community.general.pacman:
