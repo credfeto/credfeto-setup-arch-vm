@@ -12,6 +12,23 @@
   # unrelated reboot.
   force_handlers: true
 
+  # inventory_hostname is always "localhost" under ansible-pull, so Ansible
+  # never auto-loads host_vars/<hostname>.yml; load it by the real node name.
+  # Tagged always so --tags <role> runs still see the per-host overrides.
+  pre_tasks:
+    - name: Load per-host variable overrides
+      ansible.builtin.include_vars:
+        file: "{{ item }}"
+      loop: "{{ query('ansible.builtin.first_found', files=[ansible_nodename ~ '.yml'], paths=[playbook_dir ~ '/host_vars'], skip=True) }}"
+      tags: always
+
+    - name: Validate container_runtime
+      ansible.builtin.assert:
+        that: container_runtime in ['docker', 'podman', 'none']
+        fail_msg: "container_runtime must be docker, podman or none, not '{{ container_runtime }}'"
+        quiet: true
+      tags: always
+
   roles:
     # First, because it reads the pending handler markers and publishes
     # handler_retry_pending_handlers, which later roles' verify checks use.

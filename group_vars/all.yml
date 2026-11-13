@@ -1,6 +1,10 @@
 ---
-# container_runtime controls which container engine is installed.
-# Use 'docker' for new VMs (default). Set to 'podman' for existing Podman hosts.
+# container_runtime controls which container engine is installed: 'docker'
+# (default), 'podman', or 'none' for hosts that run neither (both runtime roles
+# skip and the services role removes any stale cleanup units of either).
+# Override per host in host_vars/<ansible_nodename>.yml (e.g. proxy.lan.yml).
+# site.yml loads that file explicitly: the play targets localhost, so Ansible's
+# own host_vars lookup (keyed by inventory_hostname) never matches it.
 container_runtime: docker
 
 # DNS server hosts (dns-01, dns-02, ...) get special handling in several

@@ -19,7 +19,7 @@ This is an index of local instructions that apply to just this project.
 | [arch-linux.instructions.md](arch-linux.instructions.md) | Arch Linux administration, pacman workflows, rolling-release best practices, kernel and systemd specifics |
 | [git-workflow.instructions.md](git-workflow.instructions.md) | Repo-specific commit rules: no empty commits, no squash, delete branches on PR close, CI monitoring, co-authored-by trailer |
 | [install-script.instructions.md](install-script.instructions.md) | Idempotency, hardening scope, live-and-persistent change pattern, POSIX sh style, shellcheck/checkbashisms |
-| [docker-compatibility.instructions.md](docker-compatibility.instructions.md) | Settings that must never break Docker or container networking |
+| [docker-compatibility.instructions.md](docker-compatibility.instructions.md) | Settings that must never break the active container runtime (Docker, Podman or none) or container networking |
 | [output-formatting.instructions.md](output-formatting.instructions.md) | ok / skip / die helper functions and coloured indicators for the install script |
 | [changelog.instructions.md](changelog.instructions.md) | Repo-specific changelog rules: install-script audience, when to add/skip entries, valid types including Deployment Changes |
 | [github-actions.instructions.md](github-actions.instructions.md) | Super-linter checks required, shell script pitfalls (SC2129, pipefail), GitHub Models API endpoint |

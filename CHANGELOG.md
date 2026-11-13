@@ -80,6 +80,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Install and enable AppArmor service with the sshd profile from Arch's extra-profiles enforced
 - Warn when Docker or rootful/rootless Podman containers run unconfined or privileged
 - Install and start qemu-guest-agent so Proxmox can connect to each VM (#267)
+- Support container_runtime: none for hosts using neither Docker nor Podman, with per-host overrides via host_vars/ (#236)
 ### Fixed
 - ansible-pull now clones with --full (service unit and install): with the default depth-1 checkout, a burst of several upstream commits made the git module report "Unable to advance to origin/main because local commits will be lost" on every run, because it could not see that the old HEAD was an ancestor of the new main; seen on 19 hosts on 2026-11-03 until the checkouts were unshallowed by hand
 - fail2ban: run systemd-analyze verify with --man=no so the unit's Documentation=man:fail2ban(1) does not fail the check on hosts without man installed (was failing every ansible-pull run)

@@ -1,5 +1,5 @@
 ---
-description: 'Rules ensuring all configuration is compatible with the active container runtime (Docker or Podman).'
+description: 'Rules ensuring all configuration is compatible with the active container runtime (Docker, Podman or none).'
 applyTo: '**'
 ---
 
@@ -7,7 +7,7 @@ applyTo: '**'
 
 [Back to Local Instructions Index](index.md)
 
-The active container runtime is controlled by the `container_runtime` variable (default: `podman`). All settings must be compatible with whichever runtime is active.
+The active container runtime is controlled by the `container_runtime` variable (default: `docker`, set in `group_vars/all.yml`). All settings must be compatible with whichever runtime is active.
 
 Never add a kernel parameter, sysctl value, or any other configuration that will break the active container runtime or container-based workloads.
 
@@ -35,9 +35,18 @@ To allow Docker containers to reach LAN hosts, the `172.16.0.0/12` subnet (cover
 
 Podman (rootful) uses CNI or netavark networking. No dedicated firewalld zone is required; the `docker` zone tasks are skipped entirely when `container_runtime == 'podman'`.
 
+## No Container Runtime (`container_runtime: none`)
+
+Hosts that must run neither Docker nor Podman set `container_runtime: none`. Both the `docker` and `podman` roles skip every task, no companion packages or `docker` firewalld zone are installed, the telegraf `docker` input is omitted, and the `services` role removes any stale `docker-cleanup` and `podman-cleanup` units left from a previous runtime.
+
+## Per-Host Overrides
+
+Override the default for a single host in `host_vars/<ansible_nodename>.yml` (the full node name, e.g. `host_vars/proxy.lan.yml`). `site.yml` loads this file explicitly in `pre_tasks`, because the play targets `localhost` under `ansible-pull` and Ansible's own `host_vars` lookup never matches the real hostname. `site.yml` also fails the run if `container_runtime` is not `docker`, `podman` or `none`.
+
 ## Runtime Selection
 
 | Variable value | Runtime installed | Companion packages | Firewall zone | Cleanup timer |
 | --- | --- | --- | --- | --- |
-| `podman` (default) | `podman`, `buildah` | `podman-compose` | None | `podman-cleanup.timer` |
-| `docker` | `docker` | `docker-buildx`, `docker-compose` | `docker` zone (ACCEPT, 172.16.0.0/12) | `docker-cleanup.timer` |
+| `docker` (default) | `docker` | `docker-buildx`, `docker-compose` | `docker` zone (ACCEPT, 172.16.0.0/12) | `docker-cleanup.timer` |
+| `podman` | `podman`, `buildah` | `podman-compose` | None | `podman-cleanup.timer` |
+| `none` | None | None | None | None (stale units from either runtime removed) |
