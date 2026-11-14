@@ -48,16 +48,26 @@ trap 'rm -f -- "$tmp"' EXIT
 # refuse connections as well as drop them. -q so no .curlrc can change the
 # request. --location --max-redirs 0 makes a redirect an error, so its body
 # never replaces the cached keys.
-if curl -q --silent --fail --location --max-redirs 0 \
+http_code=$(curl -q --silent --fail --location --max-redirs 0 \
     --connect-timeout 2 --max-time 3 \
     --retry 3 --retry-delay 1 --retry-max-time 6 --retry-connrefused \
     --max-filesize 65536 \
-    --output "$tmp" \
-    "$base_url/$user" &&
-    [ -s "$tmp" ]; then
+    --output "$tmp" --write-out '%{http_code}' \
+    "$base_url/$user")
+status=$?
+
+if [ "$status" -eq 0 ] && [ -s "$tmp" ]; then
     cat -- "$tmp"
     mv -f -- "$tmp" "$cache_file" 2>/dev/null
     exit 0
+fi
+
+# A 404 is the key server's answer that the user has no keys (revoked or never
+# issued), not an outage, so the cached keys must not outlive it.
+if [ "$http_code" = 404 ]; then
+    rm -f -- "$cache_file" 2>/dev/null
+    logger -t ssh-authorized-keys-lookup -p auth.notice "key server has no keys for $user; cleared cached keys" 2>/dev/null
+    exit 1
 fi
 
 print_cached_keys
