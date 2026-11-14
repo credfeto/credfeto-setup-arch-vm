@@ -152,6 +152,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Retry handlers that failed on an earlier run so services stay in step with their config (#255)
 - Made sysctl kexec_load_disabled and networkctl reload tasks idempotent (#243)
 - SSH: keep key-based logins working while firewalld reloads by wrapping the AuthorizedKeysCommand with retries, timeouts and a last-good key cache (#254)
+- Restored daily logrotate configuration (14 rotations) and enabled logrotate.timer via the services role
 ### Changed
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
