@@ -1,0 +1,73 @@
+#!/bin/sh
+# sshd AuthorizedKeysCommand: prints the user's keys from the key server and
+# keeps the last good answer, so a short outage (a firewalld reload dropping
+# outbound traffic, for one) does not refuse every login.
+#
+# Usage: ssh-authorized-keys-lookup <key server base URL> <user>
+#
+# sshd parses stdout as authorized_keys lines, so nothing else may be written
+# there; sshd discards stderr.
+
+PATH=/usr/bin
+export PATH
+LC_ALL=C
+export LC_ALL
+umask 077
+
+cache_dir=/var/cache/ssh-authorized-keys
+
+[ "$#" -eq 2 ] || exit 1
+
+base_url=$1
+user=$2
+
+case "$user" in
+    '' | [!a-z_]* | *[!a-z0-9_-]*) exit 1 ;;
+esac
+
+cache_file="$cache_dir/$user"
+
+print_cached_keys() {
+    if [ -s "$cache_file" ]; then
+        logger -t ssh-authorized-keys-lookup -p auth.warning "key server lookup for $user failed; using cached keys" 2>/dev/null
+        cat -- "$cache_file"
+        exit 0
+    fi
+
+    logger -t ssh-authorized-keys-lookup -p auth.warning "key server lookup for $user failed and no keys are cached" 2>/dev/null
+    exit 1
+}
+
+# Same directory as the cache file so the rename into place is atomic. If the
+# cache cannot be written the lookup still runs, it just is not cached.
+tmp=$(mktemp "$cache_dir/.$user.XXXXXX" 2>/dev/null || mktemp) || exit 1
+trap 'rm -f -- "$tmp"' EXIT
+
+# sshd runs this once per offered key within LoginGraceTime (30s), so the
+# retries are capped well inside that. --retry-connrefused because a reload can
+# refuse connections as well as drop them. -q so no .curlrc can change the
+# request. --location --max-redirs 0 makes a redirect an error, so its body
+# never replaces the cached keys.
+http_code=$(curl -q --silent --fail --location --max-redirs 0 \
+    --connect-timeout 2 --max-time 3 \
+    --retry 3 --retry-delay 1 --retry-max-time 6 --retry-connrefused \
+    --max-filesize 65536 \
+    --output "$tmp" --write-out '%{http_code}' \
+    "$base_url/$user")
+status=$?
+
+if [ "$status" -eq 0 ] && [ -s "$tmp" ]; then
+    cat -- "$tmp"
+    mv -f -- "$tmp" "$cache_file" 2>/dev/null
+    exit 0
+fi
+
+# A 404 is the key server's answer that the user has no keys (revoked or never
+# issued), not an outage, so the cached keys must not outlive it.
+if [ "$http_code" = 404 ]; then
+    rm -f -- "$cache_file" 2>/dev/null
+    logger -t ssh-authorized-keys-lookup -p auth.notice "key server has no keys for $user; cleared cached keys" 2>/dev/null
+    exit 1
+fi
+
+print_cached_keys
