@@ -28,8 +28,8 @@
 
 # The path rewrite and the local rules below silently do nothing if upstream
 # renames or moves any of these, which would leave a profile that never
-# attaches to sshd or denies its helpers or curl; stop the run instead so the
-# change gets looked at.
+# attaches to sshd or denies its helpers or the key lookup; stop the run
+# instead so the change gets looked at.
 - name: Check upstream sshd AppArmor profile still has the paths and local include this role relies on
   ansible.builtin.assert:
     that:
@@ -119,20 +119,22 @@
     - apparmor_kernel.stat.exists
     - apparmor_unix_chkpwd is changed
 
-# curl is the sshd AuthorizedKeysCommand set by the ssh role, which the
-# enforced upstream profile denies. Do not add unix_chkpwd here:
+# ssh-authorized-keys-lookup is the sshd AuthorizedKeysCommand set by the ssh
+# role, which the enforced upstream profile denies. It runs unconfined, as
+# curl did when it was the command, so the profile needs no rules for curl,
+# logger or the key cache. Do not add unix_chkpwd here:
 # abstractions/authentication already transitions it with Px, and a rule
 # giving it a different exec mode conflicts with that and stops the profile
 # loading.
-- name: Allow sshd AppArmor profile to run curl
+- name: Allow sshd AppArmor profile to run the ssh key lookup
   ansible.builtin.copy:
     content: |
-      /usr/bin/curl Ux,
+      /usr/local/bin/ssh-authorized-keys-lookup Ux,
     dest: /etc/apparmor.d/local/usr.sbin.sshd
     owner: root
     group: root
     mode: "0644"
-  register: apparmor_allow_sshd_apparmor_profile_to_run_curl
+  register: apparmor_allow_sshd_apparmor_profile_to_run_key_lookup
   notify: Reload sshd AppArmor profile
 
 - name: Record Reload sshd AppArmor profile as pending
@@ -141,7 +143,19 @@
     tasks_from: pending
   vars:
     handler_retry_pending: [Reload sshd AppArmor profile]
-  when: apparmor_allow_sshd_apparmor_profile_to_run_curl is changed  # noqa: no-handler - marker must precede the handler
+  when: apparmor_allow_sshd_apparmor_profile_to_run_key_lookup is changed  # noqa: no-handler - marker must precede the handler
+
+# The ssh role runs first and its Reload sshd handler flushes before this
+# role's handlers, so left to the handler sshd would switch to a key lookup
+# command the loaded profile still denies, refusing every login until the
+# profile reload. Reloading here, before any handler runs, closes that gap.
+- name: Reload sshd AppArmor profile so sshd can run the ssh key lookup
+  ansible.builtin.command:
+    cmd: apparmor_parser -r /etc/apparmor.d/usr.sbin.sshd
+  changed_when: true
+  when:
+    - apparmor_kernel.stat.exists
+    - apparmor_allow_sshd_apparmor_profile_to_run_key_lookup is changed
 
 - name: Read loaded AppArmor profile modes
   ansible.builtin.command:

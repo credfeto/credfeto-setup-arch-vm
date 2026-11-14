@@ -5,7 +5,7 @@ Sets up an Arch Linux VM with Docker, Git, and supporting tooling. The `install`
 - **`linux-hardened` kernel**: security-hardened kernel with additional patches and stricter defaults
 - **Docker** (with Docker Compose and Buildx)
 - **firewalld** firewall
-- **SSH hardening**: strong crypto only, key-based auth, no root login
+- **SSH hardening**: strong crypto only, key-based auth, no root login; keys are looked up from the key server by a dedicated `sshkeys` user, which caches each user's last good answer in `/var/cache/ssh-authorized-keys` and serves it while the key server is unreachable (for example during a firewalld reload)
 - **fail2ban**: bans hosts after repeated failed SSH logins (`sshd` jail in aggressive mode, nftables ban action in its own `inet f2b-table`, which firewalld never flushes and which runs before firewalld so it also covers `docker`-zone sources, 1h ban time); firewalld reloads and restarts leave the bans in place, and fail2ban restores them from its database whenever it restarts
 - **AppArmor**: enforces the upstream `sshd` profile and installs a custom `fail2ban-server` profile, in complain mode until it has been observed on the test VM (see [AppArmor profile for fail2ban](#apparmor-profile-for-fail2ban))
 - **sysctl hardening**: network, kernel, and filesystem protections, including persistent IPv4/IPv6 forwarding

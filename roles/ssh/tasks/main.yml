@@ -293,6 +293,37 @@
   when: ssh_challengeresponseauthentication is changed  # noqa: no-handler - marker must precede the handler
 
 # Key lookup
+# The lookup caches each user's last good answer and serves it while the key
+# server is unreachable, so a firewalld reload no longer refuses logins.
+# A dedicated user rather than nobody writes that cache: a directory nobody
+# can write is writable by every other service running as nobody.
+- name: Create ssh key lookup system user
+  ansible.builtin.user:
+    name: sshkeys
+    system: true
+    create_home: false
+    home: /
+    shell: /usr/sbin/nologin
+    state: present
+
+- name: Ensure ssh key lookup cache directory exists
+  ansible.builtin.file:
+    path: /var/cache/ssh-authorized-keys
+    state: directory
+    owner: sshkeys
+    group: sshkeys
+    mode: "0700"
+
+# sshd refuses an AuthorizedKeysCommand that is not owned by root or is
+# group or world writable.
+- name: Install ssh key lookup command
+  ansible.builtin.copy:
+    src: ssh-authorized-keys-lookup
+    dest: /usr/local/bin/ssh-authorized-keys-lookup
+    owner: root
+    group: root
+    mode: "0755"
+
 # %H is not a real sshd_config token for AuthorizedKeysCommand (the
 # documented set is %f %h %k %t %U %u - all about the connecting user;
 # %h there means home directory, not hostname, unlike client-side
@@ -315,7 +346,7 @@
 - name: Configure sshd AuthorizedKeysCommand
   ansible.builtin.copy:
     dest: /etc/ssh/sshd_config.d/10-authorizedkeyscommand.conf
-    content: "AuthorizedKeysCommand /usr/bin/curl -s https://keys.markridgwell.com/keys/{{ ansible_nodename }}/%u\n"
+    content: "AuthorizedKeysCommand /usr/local/bin/ssh-authorized-keys-lookup https://keys.markridgwell.com/keys/{{ ansible_nodename }} %u\n"
     owner: root
     group: root
     mode: "0600"
@@ -333,7 +364,7 @@
 - name: Configure sshd AuthorizedKeysCommandUser
   ansible.builtin.copy:
     dest: /etc/ssh/sshd_config.d/10-authorizedkeyscommanduser.conf
-    content: "AuthorizedKeysCommandUser nobody\n"
+    content: "AuthorizedKeysCommandUser sshkeys\n"
     owner: root
     group: root
     mode: "0600"
