@@ -358,6 +358,23 @@
     state: started
     daemon_reload: true
 
+# logrotate re-reads its configuration on every run, so a change needs no
+# handler. logrotate.timer ships with the logrotate package.
+- name: Install logrotate configuration
+  ansible.builtin.copy:
+    src: logrotate.conf
+    dest: /etc/logrotate.conf
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Enable and start logrotate timer
+  ansible.builtin.systemd:
+    name: logrotate.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+
 # Serial console getty: gives a real, browser-copy/paste-capable console via
 # the hypervisor's serial channel, and keeps working even when the VM's own
 # networking is down.
