@@ -4,8 +4,6 @@
 # Fixes applied:
 #   1. Wrong /25 subnet mask in /etc/systemd/network/eth0.network → corrected
 #      to /24 and applied live so all hosts on 192.168.x.0/24 are reachable.
-#   2. Duplicate [chaotic-aur] section in /etc/pacman.conf → unmanaged copy
-#      removed, leaving only the Ansible-managed block.
 #
 # Safe to re-run: all checks are idempotent.
 # Must be run as root.
@@ -48,48 +46,6 @@ if [ -f "${NETFILE}" ]; then
     fi
 else
     skip "${NETFILE} does not exist, skipping subnet fix"
-fi
-
-# ── Fix 2: duplicate [chaotic-aur] in pacman.conf ────────────────────────────
-PACMANCONF="/etc/pacman.conf"
-
-if grep -q '^\[chaotic-aur\]' "${PACMANCONF}"; then
-    # Count how many [chaotic-aur] sections exist
-    COUNT=$(grep -c '^\[chaotic-aur\]' "${PACMANCONF}")
-    if [ "${COUNT}" -gt 1 ]; then
-        python3 - "${PACMANCONF}" <<'EOF'
-import sys
-
-path = sys.argv[1]
-with open(path) as f:
-    lines = f.readlines()
-
-in_managed = False
-new_lines = []
-i = 0
-while i < len(lines):
-    if '# BEGIN ANSIBLE MANAGED BLOCK - chaotic-aur' in lines[i]:
-        in_managed = True
-    if '# END ANSIBLE MANAGED BLOCK - chaotic-aur' in lines[i]:
-        in_managed = False
-    # Remove unmanaged [chaotic-aur] blocks (outside the ansible-managed block)
-    if not in_managed and lines[i].strip() == '[chaotic-aur]':
-        i += 1
-        while i < len(lines) and lines[i].startswith(('Include = ', 'CacheServer = ', 'Server = ')):
-            i += 1
-        continue
-    new_lines.append(lines[i])
-    i += 1
-
-with open(path, 'w') as f:
-    f.writelines(new_lines)
-EOF
-        ok "Removed duplicate [chaotic-aur] section from ${PACMANCONF}"
-    else
-        skip "Only one [chaotic-aur] section found in ${PACMANCONF} (no duplicate to remove)"
-    fi
-else
-    skip "No [chaotic-aur] section found in ${PACMANCONF}, skipping"
 fi
 
 ok "Remediation complete"
