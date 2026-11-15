@@ -17,10 +17,7 @@
 # own compiled-in SYS_BASHRC behaviour) and login interactive shells (Arch's
 # /etc/profile explicitly sources it whenever $PS1 is set) - this one file
 # covers every interactive bash shell for every user, present and future.
-# It's a pacman-owned config file: a .pacnew may appear on package upgrade -
-# roles/packages accepts the same risk for its pacman.conf blockinfile,
-# though that one also has a companion cleanup task for unmanaged sections
-# that this block doesn't need (nothing else ever writes to this marker).
+# It's a pacman-owned config file: a .pacnew may appear on package upgrade.
 - name: Enable Starship prompt for all users via system-wide bash.bashrc
   ansible.builtin.blockinfile:
     path: /etc/bash.bashrc

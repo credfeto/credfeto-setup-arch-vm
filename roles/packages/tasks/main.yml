@@ -58,67 +58,6 @@
       | reject('search', 'No such file or directory')
       | list | length > 0)
 
-# Two mutually exclusive pacman.conf shapes for the main Arch repos
-# (#224). Non-DNS hosts: try the internal cache first, fall back to the
-# public mirrorlist (CacheServer + Include). DNS hosts: the egress
-# firewall can never allow-list rotating public mirrors, so the internal
-# cache is the ONLY source - Server= with no Include at all. It must be
-# Server= rather than CacheServer= there: CacheServer is try-first-then-
-# fall-back, so with a mirrorlist still included pacman silently resumes
-# exactly the public traffic this exists to eliminate. Each direction
-# reverses the other's edits, so a host that changes class (or a DNS host
-# whose hostname briefly gathers wrong) converges to the correct shape on
-# the next run instead of drifting. The non-DNS restore must run before
-# the CacheServer lineinfile below: that task anchors on the Include line
-# and appends at end of file when it is missing, which would land the
-# line inside the [chaotic-aur] section at the bottom of the file.
-- name: Restore public mirrorlist Includes on non-DNS hosts
-  ansible.builtin.replace:
-    path: /etc/pacman.conf
-    regexp: "^Server = {{ pacman_cache_main_server | regex_escape }}$"
-    replace: "Include = /etc/pacman.d/mirrorlist"
-  when: not host_is_dns_server
-
-- name: Configure pacman cache server
-  ansible.builtin.lineinfile:
-    path: /etc/pacman.conf
-    line: "CacheServer = {{ pacman_cache_main_server }}"
-    insertafter: "^Include = /etc/pacman.d/mirrorlist$"
-    state: present
-  when: not host_is_dns_server
-
-- name: Remove pacman cache fallback line on DNS hosts
-  ansible.builtin.lineinfile:
-    path: /etc/pacman.conf
-    regexp: "^CacheServer = {{ pacman_cache_main_server | regex_escape }}$"
-    state: absent
-  when: host_is_dns_server
-
-- name: Point main repos only at the internal cache on DNS hosts
-  ansible.builtin.replace:
-    path: /etc/pacman.conf
-    regexp: '^Include = /etc/pacman\.d/mirrorlist$'
-    replace: "Server = {{ pacman_cache_main_server }}"
-  when: host_is_dns_server
-
-# ILoveCandy, CheckSpace and VerbosePkgLists are plain flag directives (no
-# "= value") under [options]. Each may already be present (commented or
-# not, per the shipped pacman.conf template) or entirely absent (ILoveCandy
-# isn't in the template at all), so match on an optional leading "#" and
-# fall back to inserting a fresh line straight after the [options] header
-# when there's nothing to match.
-- name: Enable pacman [options] flags
-  ansible.builtin.lineinfile:
-    path: /etc/pacman.conf
-    regexp: "^#?{{ item }}$"
-    line: "{{ item }}"
-    insertafter: "^\\[options\\]$"
-    state: present
-  loop:
-    - ILoveCandy
-    - CheckSpace
-    - VerbosePkgLists
-
 - name: Check if Chaotic AUR signing key is already trusted
   ansible.builtin.command:
     cmd: pacman-key --list-keys 3056513887B78AEB
@@ -219,7 +158,7 @@
 # The mirrorlist package only exists to provide /etc/pacman.d/chaotic-
 # mirrorlist for the Include below; DNS hosts use a Server=-only section
 # that never references it, so it is removed there rather than installed
-# (the removal itself sits AFTER the blockinfile rewrite below, so the
+# (the removal itself sits AFTER the pacman.conf template below, so the
 # file never disappears while pacman.conf still Includes it). The URL
 # install is bootstrap-only, as for the keyring above.
 - name: Install Chaotic AUR mirrorlist
@@ -232,84 +171,29 @@
     - packages_chaotic_key_trusted
     - packages_chaotic_mirrorlist_check.rc != 0
 
-- name: Remove any unmanaged chaotic-aur section from pacman.conf
-  ansible.builtin.shell:
-    cmd: |
-      python3 -c "
-      with open('/etc/pacman.conf') as f:
-          lines = f.readlines()
-      in_managed = False
-      new_lines = []
-      i = 0
-      while i < len(lines):
-          if '# BEGIN ANSIBLE MANAGED BLOCK - chaotic-aur' in lines[i]:
-              in_managed = True
-          if '# END ANSIBLE MANAGED BLOCK - chaotic-aur' in lines[i]:
-              in_managed = False
-          if not in_managed and lines[i].strip() == '[chaotic-aur]':
-              i += 1
-              while (i < len(lines) and
-                     lines[i].startswith(
-                         ('Include = ', 'CacheServer = ', 'Server = '))):
-                  i += 1
-              continue
-          new_lines.append(lines[i])
-          i += 1
-      if new_lines != lines:
-          with open('/etc/pacman.conf', 'w') as f:
-              f.writelines(new_lines)
-          print('changed')
-      else:
-          print('ok')
-      "
-    executable: /bin/bash
-  register: packages_chaotic_cleanup
-  changed_when: "'changed' in packages_chaotic_cleanup.stdout"
+# The whole file is rendered on every run, so a host that changes class (or
+# a DNS host whose hostname briefly gathers wrong) converges to the correct
+# shape on the next run, and no stray or duplicate section can survive.
+# Deliberately AFTER the Chaotic AUR mirrorlist install above: pacman.conf
+# must never Include /etc/pacman.d/chaotic-mirrorlist before it exists.
+- name: Configure pacman.conf
+  ansible.builtin.template:
+    src: pacman.conf.j2
+    dest: /etc/pacman.conf
+    owner: root
+    group: root
+    mode: "0644"
 
-# Same marker for both variants, so a host only ever carries one of them
-# and blockinfile itself swaps the content over. DNS hosts get Server=
-# only - no Include, no CacheServer - for the same no-public-fallback
-# reason as the main repos above.
-- name: Add Chaotic AUR repository to pacman.conf
-  ansible.builtin.blockinfile:
-    path: /etc/pacman.conf
-    marker: "# {mark} ANSIBLE MANAGED BLOCK - chaotic-aur"
-    block: |
-      [chaotic-aur]
-      Include = /etc/pacman.d/chaotic-mirrorlist
-      CacheServer = {{ pacman_cache_chaotic_server }}
-    state: present
-  when:
-    - not host_is_dns_server
-    - packages_chaotic_key_trusted
-
-- name: Add cache-only Chaotic AUR repository to pacman.conf on DNS hosts
-  ansible.builtin.blockinfile:
-    path: /etc/pacman.conf
-    marker: "# {mark} ANSIBLE MANAGED BLOCK - chaotic-aur"
-    block: |
-      [chaotic-aur]
-      Server = {{ pacman_cache_chaotic_server }}
-    state: present
-  when:
-    - host_is_dns_server
-    - packages_chaotic_key_trusted
-
-# Deliberately AFTER the section rewrite above: removing the package
+# Deliberately AFTER the pacman.conf template above: removing the package
 # deletes /etc/pacman.d/chaotic-mirrorlist, and doing that while
 # pacman.conf still carried the previous run's Include line would leave a
 # window (or, if the play aborted inside it, a whole hour until the next
-# pull) where every pacman invocation fails to parse its own config. The
-# key-trusted gate matches the blockinfile above for the same reason: on a
-# rescue-path run (keyserver unreachable) the rewrite is skipped, so a
-# leftover non-DNS block would still Include the file this deletes.
+# pull) where every pacman invocation fails to parse its own config.
 - name: Remove Chaotic AUR mirrorlist package on DNS hosts
   community.general.pacman:
     name: chaotic-mirrorlist
     state: absent
-  when:
-    - host_is_dns_server
-    - packages_chaotic_key_trusted
+  when: host_is_dns_server
 
 # Removal path for DNS hosts (#224), deliberately placed BEFORE "Update
 # all packages": the whole point is eliminating non-allow-listable egress,
