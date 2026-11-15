@@ -205,6 +205,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Fail2ban, docker, auditd, the ansible-pull and fstrim timers, telegraf, systemd-resolved and firewalld are each started or restarted at most once per run, instead of possibly several times
 - The run now fails if the upstream sshd AppArmor profile no longer has the paths or the local include the Arch adjustments rely on
 - Reduced per-run CPU cost of verify-before-restart checks and pending-handler retry (#277)
+- LYNIS.md: record TIME-3185 (timesyncd recent-sync warning) as an expected false positive (#248)
 ### Deprecated
 ### Removed
 - users: stop adding markr's authorized keys from https://github.com/credfeto.keys; sshd already looks keys up from keys.markridgwell.com via AuthorizedKeysCommand, and a GitHub .keys outage (HTTP 504) was failing every ansible-pull run
