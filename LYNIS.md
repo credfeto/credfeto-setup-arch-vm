@@ -24,6 +24,12 @@ review-pass fixes added the sshd Banner and the root core-dump limit);
   release this is routinely non-empty and clears as fixed versions land
   via the hourly update. Investigate only if `arch-audit` shows
   something exploitable in a service this fleet actually exposes.
+- `TIME-3185` (systemd-timesyncd last sync stale) - false positive; a
+  well-synced systemd-timesyncd backs off to its maximum poll interval
+  (about 34 minutes), so lynis can judge the last sync stale between
+  polls while `timedatectl` shows `NTP=yes` and `NTPSynchronized=yes`.
+  Investigate only if `timedatectl timesync-status` shows no recent sync
+  or a large offset.
 
 ## Accepted suggestions
 
