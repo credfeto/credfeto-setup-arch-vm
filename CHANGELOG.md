@@ -15,6 +15,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Pin actions/checkout references to commit SHA instead of mutable tag in ansible-lint and security-review workflows, hardening against tag repointing
 - Install sshd AppArmor profile from Arch's extra-profiles using Arch paths and enforce it
 - Restore DefaultLimitCORE=0 systemd drop-in (system.conf.d/no-core-dumps.conf) so systemd services cannot write core dumps
+- Docker: default container core-dump limit of 0 (daemon.json default-ulimits). docker.service sets LimitCORE=infinity itself, so DefaultLimitCORE=0 never reached containers and crashing container processes (e.g. chromium) filled /var/lib/systemd/coredump
 - Confine fail2ban-server with a custom AppArmor profile to limit the damage a compromised fail2ban can do; the profile is installed in complain mode by default (log violations, do not block) and apparmor_fail2ban_enforce switches it to enforce; the apparmor role gains the tasks, handler and README docs for this, and the audit role's yamllint/ansible-lint findings are fixed (#252)
 ### Added
 - Docker: enable IPv6 (default bridge fd00:d0c::/64 and IPv6 on every new bridge network via default-network-opts), so build and default-network containers can use the IPv6-first DNS servers and reach IPv6 hosts; the firewall role already trusts fd00::/8 in the docker zone
