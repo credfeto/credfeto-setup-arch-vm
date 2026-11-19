@@ -384,3 +384,51 @@
     enabled: true
     state: started
     daemon_reload: true
+
+# Cap the persistent journal so every VM uses the same, small amount of disk.
+# Without a cap journald takes up to 10% of the filesystem (about 1.5 GB on a
+# 15 GB root), so identical VMs drift apart in size as their journals age.
+- name: Create journald drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/journald.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install journald size limit drop-in
+  ansible.builtin.copy:
+    src: journald-size.conf
+    dest: /etc/systemd/journald.conf.d/10-size.conf
+    owner: root
+    group: root
+    mode: "0644"
+  register: services_journald_size
+  notify: Restart journald
+
+- name: Record Restart journald as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Restart journald]
+  when: services_journald_size is changed  # noqa: no-handler - marker must precede the handler
+
+# A VM cloned from another keeps the source's journal directory under the old
+# machine-id. journald only vacuums its own machine-id directory, so the copy
+# is never rotated and stays on disk for good.
+- name: Find journal directories left by other machine-ids
+  ansible.builtin.find:
+    paths: /var/log/journal
+    file_type: directory
+    patterns: "[0-9a-f]*"
+    excludes: "{{ ansible_machine_id }}"
+  register: services_foreign_journals
+
+- name: Remove journal directories left by other machine-ids
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ services_foreign_journals.files | selectattr('path', 'match', '^/var/log/journal/[0-9a-f]{32}$') | list }}"
+  loop_control:
+    label: "{{ item.path }}"

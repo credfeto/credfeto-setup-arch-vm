@@ -36,3 +36,16 @@
     path: "{{ handler_retry_dir }}/Restart fstrim timer"
     state: absent
   listen: Restart fstrim timer
+
+# journald re-reads its drop-ins only on restart; it re-opens the journal
+# files, so no log lines are lost.
+- name: Restart journald
+  ansible.builtin.systemd:
+    name: systemd-journald
+    state: restarted
+
+- name: Clear pending marker for Restart journald
+  ansible.builtin.file:
+    path: "{{ handler_retry_dir }}/Restart journald"
+    state: absent
+  listen: Restart journald
