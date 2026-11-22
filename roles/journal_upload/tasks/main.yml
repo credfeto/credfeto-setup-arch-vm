@@ -1,0 +1,78 @@
+---
+# Forward the systemd journal to the central log store (#234).
+# systemd-journal-upload ships with the systemd package, so nothing to install.
+
+- name: Check for an existing journal-upload position
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop: "{{ journal_upload_state_files }}"
+  register: journal_upload_state
+  when: journal_upload_url | length > 0
+
+# With no saved position systemd-journal-upload starts from the oldest entry
+# and would push the whole journal (up to the journald size cap) on its first
+# run. Start from the newest entry instead; history stays on the host.
+- name: Start journal upload from the current end of the journal
+  ansible.builtin.shell:
+    cmd: |
+      set -eu
+      cursor="$(journalctl --quiet -n 1 -o export | sed -n 's/^__CURSOR=//p')"
+      [ -n "${cursor}" ]
+      install -d -m 0755 /var/lib/systemd/journal-upload
+      printf '# This is private data. Do not parse.\nLAST_CURSOR=%s\n' "${cursor}" > /var/lib/systemd/journal-upload/state
+  changed_when: true
+  when:
+    - journal_upload_url | length > 0
+    - journal_upload_state.results | selectattr('stat.exists') | list | length == 0
+
+- name: Create journal-upload drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/journal-upload.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: journal_upload_url | length > 0
+
+- name: Configure journal-upload destination
+  ansible.builtin.copy:
+    dest: /etc/systemd/journal-upload.conf.d/10-central.conf
+    content: |
+      # Managed by credfeto-setup-arch-vm (roles/journal_upload)
+      [Upload]
+      URL={{ journal_upload_url }}
+    owner: root
+    group: root
+    mode: "0644"
+  register: journal_upload_config
+  notify: Restart systemd-journal-upload
+  when: journal_upload_url | length > 0
+
+- name: Record Restart systemd-journal-upload as pending
+  ansible.builtin.include_role:
+    name: handler_retry
+    tasks_from: pending
+  vars:
+    handler_retry_pending: [Restart systemd-journal-upload]
+  when: journal_upload_config is changed  # noqa: no-handler - marker must precede the handler
+
+- name: Enable and start systemd-journal-upload
+  ansible.builtin.systemd:
+    name: systemd-journal-upload.service
+    enabled: true
+    state: started
+  register: journal_upload_started
+  when: journal_upload_url | length > 0
+
+- name: Stop and disable systemd-journal-upload
+  ansible.builtin.systemd:
+    name: systemd-journal-upload.service
+    enabled: false
+    state: stopped
+  when: journal_upload_url | length == 0
+
+- name: Remove journal-upload destination
+  ansible.builtin.file:
+    path: /etc/systemd/journal-upload.conf.d/10-central.conf
+    state: absent
+  when: journal_upload_url | length == 0

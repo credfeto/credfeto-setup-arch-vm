@@ -17,6 +17,7 @@ Sets up an Arch Linux VM with Docker, Git, and supporting tooling. The `install`
 - **reflector**: automatic mirror ranking (not on DNS hosts, which use only the internal pacman cache)
 - **pacman cache pruning**: weekly `paccache -r` via systemd timer
 - **Telegraf**: reports host and (on Docker hosts) container metrics to `https://metrics.markridgwell.com`
+- **Journal upload**: forwards the systemd journal to VictoriaLogs on `monitoring.lan` (`systemd-journal-upload`, `journal_upload_url`; set it to `""` in host_vars to opt a host out). The first run starts from the current end of the journal rather than uploading the history
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/credfeto/credfeto-setup-arch-vm/refs/heads/main/install | sh

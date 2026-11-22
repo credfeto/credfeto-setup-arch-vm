@@ -1,0 +1,18 @@
+---
+# A start in this run already read the new destination, so only an upload
+# service that was running before the run needs restarting. The guards are
+# safe when the role's variables are undefined (handler notified from a
+# pending marker in a run that failed earlier).
+- name: Restart systemd-journal-upload
+  ansible.builtin.systemd:
+    name: systemd-journal-upload.service
+    state: restarted
+  when:
+    - (journal_upload_url | default('')) | length > 0
+    - journal_upload_started is not defined or journal_upload_started is not changed
+
+- name: Clear pending marker for Restart systemd-journal-upload
+  ansible.builtin.file:
+    path: "{{ handler_retry_dir }}/Restart systemd-journal-upload"
+    state: absent
+  listen: Restart systemd-journal-upload

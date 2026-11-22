@@ -1,0 +1,12 @@
+---
+# Where systemd-journal-upload sends this host's journal: the VictoriaLogs
+# journald endpoint on the monitoring VM (credfeto-monitoring, port 9428).
+# systemd-journal-upload appends /upload itself. Set to "" (e.g. in
+# host_vars/<ansible_nodename>.yml) to stop forwarding on a host.
+journal_upload_url: http://monitoring.lan:9428/insert/journald
+
+# systemd-journal-upload keeps its position in this file (StateDirectory of
+# the DynamicUser unit; systemd moves it under /var/lib/private on first start).
+journal_upload_state_files:
+  - /var/lib/systemd/journal-upload/state
+  - /var/lib/private/systemd/journal-upload/state

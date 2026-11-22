@@ -52,4 +52,5 @@
     - ansible_pull
     - audit
     - telegraf
+    - journal_upload
     - reboot
