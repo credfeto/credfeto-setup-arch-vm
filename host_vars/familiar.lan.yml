@@ -1,7 +1,0 @@
----
-# familiar.lan runs the familiar agent and its broker in Docker. Changing
-# daemon.json makes ansible-pull restart dockerd, which would restart the
-# agent mid-task (and a dockerd restart there has previously failed to
-# recreate the container networks). Keep json-file here; switch by hand
-# at a convenient moment if its container logs are wanted centrally.
-docker_log_driver: json-file
