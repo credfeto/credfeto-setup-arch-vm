@@ -119,3 +119,30 @@
     name: auditd
     state: started
   register: audit_started
+
+# Also feed kernel audit records into the journal (the systemd journald audit
+# socket), so journal_upload forwards them to VictoriaLogs with structured
+# fields (_AUDIT_TYPE_NAME, _AUDIT_FIELD_*). auditd keeps writing
+# /var/log/audit/audit.log as before; both read the kernel's audit multicast.
+- name: Enable journald audit socket
+  ansible.builtin.systemd:
+    name: systemd-journald-audit.socket
+    enabled: true
+
+- name: Check whether the journald audit socket is listening
+  ansible.builtin.command:
+    cmd: systemctl is-active --quiet systemd-journald-audit.socket  # noqa: command-instead-of-module - read-only probe
+  register: audit_journald_socket_active
+  changed_when: false
+  failed_when: false
+
+# systemd refuses to start a socket whose service is already running
+# ("Socket service systemd-journald.service already active, refusing"), and
+# journald only adopts the audit socket when it starts. So stop journald and
+# start both together: its other sockets stay open (held by systemd), so log
+# writes are buffered for the second or two this takes and nothing is lost.
+- name: Start the journald audit socket
+  ansible.builtin.shell:
+    cmd: systemctl stop systemd-journald.service; systemctl start systemd-journald-audit.socket systemd-journald.service
+  changed_when: true
+  when: audit_journald_socket_active.rc != 0
