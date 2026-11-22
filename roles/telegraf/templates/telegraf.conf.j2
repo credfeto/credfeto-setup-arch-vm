@@ -24,6 +24,10 @@
 
 [[inputs.disk]]
   ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs"]
+  # telegraf runs sandboxed (DynamicUser, so ProtectSystem=strict) and sees
+  # every mount as "ro", except briefly after boot; the tag is meaningless and
+  # flipping it starts new series that break trend-based alerts.
+  tagexclude = ["mode"]
 
 [[inputs.diskio]]
 

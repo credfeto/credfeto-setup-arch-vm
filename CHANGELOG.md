@@ -83,6 +83,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Install and start qemu-guest-agent so Proxmox can connect to each VM (#267)
 - Support container_runtime: none for hosts using neither Docker nor Podman, with per-host overrides via host_vars/ (#236)
 ### Fixed
+- telegraf disk metrics no longer carry the `mode` tag: telegraf runs sandboxed (DynamicUser implies ProtectSystem=strict), so it reported every mount as "ro" except for a few minutes after boot, and each flip started new series that set off false disk-fill alerts
 - ansible-pull: raise the connection/become timeout from the 10 s default to 30 s (new ansible.cfg), so runs on busy hosts no longer fail with "Timed out waiting for become success" when sudo is slow to start
 - journald: cap the persistent journal at 500M (journald.conf.d/10-size.conf) so identical VMs use the same disk space, and remove journal directories left behind by other machine-ids (cloned VMs keep the source's journal, which journald never vacuums)
 - packages: retry "Update all packages" twice, 5 minutes apart, so a package whose files have not reached every mirror yet no longer fails the whole ansible-pull run
