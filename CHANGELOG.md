@@ -160,6 +160,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - SSH: keep key-based logins working while firewalld reloads by wrapping the AuthorizedKeysCommand with retries, timeouts and a last-good key cache (#254)
 - Restored daily logrotate configuration (14 rotations) and enabled logrotate.timer via the services role
 ### Changed
+- Docker container logs go to the systemd journal: `daemon.json` (now a template) uses the journald log driver with `tag={{.Name}}` (`docker_log_driver`, default `journald`), so container output reaches VictoriaLogs through `journal_upload` with CONTAINER_NAME / IMAGE_NAME fields. familiar.lan stays on json-file (host_vars) because a dockerd restart there restarts the agent. Containers switch when they are next recreated
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
 - PasswordAuthentication only disabled over SSH if at least one user has authorized_keys configured, preventing lockout

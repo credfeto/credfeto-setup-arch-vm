@@ -18,9 +18,16 @@
       "Soft": 0
     }
   },
+{% if docker_log_driver == 'journald' %}
+  "log-driver": "journald",
+  "log-opts": {
+    "tag": "{{ '{{' }}.Name{{ '}}' }}"
+  }
+{% else %}
   "log-driver": "json-file",
   "log-opts": {
     "max-size": "100m",
     "max-file": "3"
   }
+{% endif %}
 }

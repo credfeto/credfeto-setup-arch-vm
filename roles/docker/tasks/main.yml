@@ -9,8 +9,8 @@
   when: container_runtime == 'docker'
 
 - name: Configure Docker daemon
-  ansible.builtin.copy:
-    src: daemon.json
+  ansible.builtin.template:
+    src: daemon.json.j2
     dest: /etc/docker/daemon.json
     owner: root
     group: root

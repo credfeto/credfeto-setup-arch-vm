@@ -1,0 +1,10 @@
+---
+
+# Container log driver. journald sends container output to the systemd
+# journal (fields CONTAINER_NAME, CONTAINER_ID, IMAGE_NAME; SYSLOG_IDENTIFIER
+# is the container name via the tag option), so the journal_upload role
+# forwards it to VictoriaLogs with everything else. `docker logs` keeps
+# working. Set to json-file in host_vars for a host that must not have its
+# Docker daemon restarted by ansible-pull. Only containers created after the
+# change use the new driver; running ones keep theirs until recreated.
+docker_log_driver: journald
