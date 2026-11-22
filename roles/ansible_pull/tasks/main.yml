@@ -1,4 +1,22 @@
 ---
+# Installed before the unit that runs it (ExecStartPre), so a run never
+# starts with the unit in place but the script missing.
+- name: Create /usr/local/libexec
+  ansible.builtin.file:
+    path: /usr/local/libexec
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install ansible-pull-reset-checkout
+  ansible.builtin.copy:
+    src: ansible-pull-reset-checkout
+    dest: /usr/local/libexec/ansible-pull-reset-checkout
+    owner: root
+    group: root
+    mode: "0755"
+
 - name: Install ansible-pull.service unit
   ansible.builtin.copy:
     src: ansible-pull.service
