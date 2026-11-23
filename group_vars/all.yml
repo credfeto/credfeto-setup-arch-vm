@@ -15,14 +15,23 @@ container_runtime: docker
 # inventory_hostname is always "localhost" (hosts: localhost).
 host_is_dns_server: "{{ ansible_hostname is match('^dns-[0-9]{2}$') }}"
 
-# Base URL of the internal pacman cache (192.168.150.250). DNS hosts use it
-# as their ONLY package source; everything else tries it first and falls
-# back to public mirrors.
+# Hosts that take packages ONLY from the internal pacman cache (Server= with no
+# public mirrorlist, no reflector): every host except the Linux package caches
+# themselves, which are the cache's upstream and must reach the public mirrors.
+# A host whose egress firewall is enforcing can never allow-list rotating
+# public mirrors, and pacman fetches the repository databases from Server=/
+# Include= sources, not from CacheServer=, so a mirrorlist fallback would fail
+# there anyway.
+host_pacman_cache_only: "{{ not (ansible_hostname is match('^linux-cache-[0-9]{2}$')) }}"
+
+# Base URL of the internal pacman cache (the Linux caches, behind the reverse
+# proxies). Every host except the caches themselves uses it as its ONLY
+# package source (host_pacman_cache_only).
 pacman_cache_base: https://pacman.markridgwell.com/repo
 
 # Full per-repo server URLs derived from the base. The packages role both
 # writes these as literals and matches them back with regexps (the restore
-# and removal tasks that flip a host between the DNS and non-DNS pacman.conf
+# and removal tasks that flip a host between the cache-only and mirrorlist pacman.conf
 # shapes); deriving every occurrence from one definition keeps literal and
 # regexp byte-identical - a regexp that silently stopped matching would
 # strand hosts in the wrong shape with every task reporting ok.

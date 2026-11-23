@@ -7,17 +7,18 @@
 # See the pacman.conf(5) manpage for option and repository directives
 
 {#
-  Two mutually exclusive shapes for every repository. Non-DNS hosts try the
-  internal cache first and fall back to the public mirrorlist (Include +
-  CacheServer). DNS hosts sit behind an egress firewall that can never
-  allow-list rotating public mirrors, so the internal cache is their ONLY
-  source: Server= with no Include at all. It must be Server= rather than
+  Two mutually exclusive shapes for every repository. The Linux caches, which
+  are the internal cache's own upstream, try the cache first and fall back to
+  the public mirrorlist (Include + CacheServer). Every other host is cache-only
+  (host_pacman_cache_only): egress firewalls can never allow-list rotating
+  public mirrors, so the internal cache is their ONLY source: Server= with no
+  Include at all. It must be Server= rather than
   CacheServer= there, because CacheServer is try-first-then-fall-back and
   with a mirrorlist still included pacman would silently resume exactly the
   public traffic this exists to eliminate.
 #}
 {% macro repository_sources(cache_server, mirrorlist) %}
-{% if host_is_dns_server | bool %}
+{% if host_pacman_cache_only | bool %}
 Server = {{ cache_server }}
 {% else %}
 Include = {{ mirrorlist }}

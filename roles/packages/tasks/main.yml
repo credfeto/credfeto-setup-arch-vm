@@ -125,7 +125,7 @@
 # The URL install is bootstrap-only: [chaotic-aur] is not in pacman.conf
 # yet on a fresh host, and once installed "Update all packages" keeps it
 # current from the repo (--needed would not stop a URL reinstall from
-# downgrading it to an older URL build). DNS hosts fetch the bootstrap
+# downgrading it to an older URL build). cache-only hosts fetch the bootstrap
 # through the internal cache (the unversioned chaotic-keyring.pkg.tar.zst
 # symlink is part of the same chaotic-aur/x86_64 directory the cache
 # proxies); everything else keeps the upstream CDN. Same package either
@@ -137,7 +137,7 @@
     extra_args: "--noconfirm --needed"
   vars:
     packages_chaotic_keyring_url: >-
-      {{ host_is_dns_server | ternary(
+      {{ host_pacman_cache_only | ternary(
            pacman_cache_chaotic_server ~ '/chaotic-keyring.pkg.tar.zst',
            'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst') }}
   when:
@@ -152,11 +152,11 @@
   failed_when: false
   check_mode: false
   when:
-    - not host_is_dns_server
+    - not host_pacman_cache_only
     - packages_chaotic_key_trusted
 
 # The mirrorlist package only exists to provide /etc/pacman.d/chaotic-
-# mirrorlist for the Include below; DNS hosts use a Server=-only section
+# mirrorlist for the Include below; cache-only hosts use a Server=-only section
 # that never references it, so it is removed there rather than installed
 # (the removal itself sits AFTER the pacman.conf template below, so the
 # file never disappears while pacman.conf still Includes it). The URL
@@ -167,12 +167,12 @@
     state: present
     extra_args: "--noconfirm --needed"
   when:
-    - not host_is_dns_server
+    - not host_pacman_cache_only
     - packages_chaotic_key_trusted
     - packages_chaotic_mirrorlist_check.rc != 0
 
 # The whole file is rendered on every run, so a host that changes class (or
-# a DNS host whose hostname briefly gathers wrong) converges to the correct
+# a host whose hostname briefly gathers wrong) converges to the correct
 # shape on the next run, and no stray or duplicate section can survive.
 # Deliberately AFTER the Chaotic AUR mirrorlist install above: pacman.conf
 # must never Include /etc/pacman.d/chaotic-mirrorlist before it exists.
@@ -189,13 +189,13 @@
 # pacman.conf still carried the previous run's Include line would leave a
 # window (or, if the play aborted inside it, a whole hour until the next
 # pull) where every pacman invocation fails to parse its own config.
-- name: Remove Chaotic AUR mirrorlist package on DNS hosts
+- name: Remove Chaotic AUR mirrorlist package on cache-only hosts
   community.general.pacman:
     name: chaotic-mirrorlist
     state: absent
-  when: host_is_dns_server
+  when: host_pacman_cache_only
 
-# Removal path for DNS hosts (#224), deliberately placed BEFORE "Update
+# Removal path for cache-only hosts (#224), deliberately placed BEFORE "Update
 # all packages": the whole point is eliminating non-allow-listable egress,
 # so reflector must go even on a run where the update task later fails
 # (e.g. the cache being temporarily unreachable would otherwise leave
@@ -209,42 +209,42 @@
   ansible.builtin.stat:
     path: /usr/lib/systemd/system/reflector.timer
   register: packages_reflector_timer
-  when: host_is_dns_server
+  when: host_pacman_cache_only
 
-- name: Stop and disable reflector timer on DNS hosts
+- name: Stop and disable reflector timer on cache-only hosts
   ansible.builtin.systemd:
     name: reflector.timer
     enabled: false
     state: stopped
   when:
-    - host_is_dns_server
+    - host_pacman_cache_only
     - packages_reflector_timer.stat.exists | default(false)
 
 # The stat gate (default(false): the stat task above is itself gated, so
-# the register has no .stat on non-DNS hosts, and the guard must not rely
+# the register has no .stat on mirrorlist hosts (the Linux caches), and the guard must not rely
 # on list order for safety) makes this a skipped no-op in steady state
 # instead of a full pacman run every hour; the package owns the timer
 # unit file, so a reinstall brings the file back and the removal fires
 # again.
-- name: Remove reflector on DNS hosts
+- name: Remove reflector on cache-only hosts
   community.general.pacman:
     name: reflector
     state: absent
   when:
-    - host_is_dns_server
+    - host_pacman_cache_only
     - packages_reflector_timer.stat.exists | default(false)
 
 # Both paths: pacman renames a modified config to .pacsave during the
 # package removal above, so the original name and the .pacsave variant
 # each need covering to leave nothing behind.
-- name: Remove reflector configuration on DNS hosts
+- name: Remove reflector configuration on cache-only hosts
   ansible.builtin.file:
     path: "{{ item }}"
     state: absent
   loop:
     - /etc/xdg/reflector/reflector.conf
     - /etc/xdg/reflector/reflector.conf.pacsave
-  when: host_is_dns_server
+  when: host_pacman_cache_only
 
 # A package published minutes ago can be listed in the repo database before
 # every mirror has its files: the package cache then gets 404/500 for the
@@ -280,17 +280,17 @@
     state: present
     extra_args: "--noconfirm --needed"
 
-# reflector maintains /etc/pacman.d/mirrorlist, which DNS hosts no longer
+# reflector maintains /etc/pacman.d/mirrorlist, which cache-only hosts no longer
 # reference (Server=-only pacman.conf above), and its mirror-status fetch
-# from archlinux.org is itself egress the DNS firewall can never
-# allow-list - so it is installed everywhere except DNS hosts, where it
+# from archlinux.org is itself egress a locked-down host can never
+# allow-list - so it is installed everywhere except cache-only hosts, where it
 # is removed outright (#224).
 - name: Install reflector
   community.general.pacman:
     name: reflector
     state: present
     extra_args: "--noconfirm --needed"
-  when: not host_is_dns_server
+  when: not host_pacman_cache_only
 
 - name: Install Docker and companions
   community.general.pacman:
@@ -359,7 +359,7 @@
     owner: root
     group: root
     mode: "0644"
-  when: not host_is_dns_server
+  when: not host_pacman_cache_only
 
 - name: Enable and start reflector timer
   ansible.builtin.systemd:
@@ -367,4 +367,4 @@
     enabled: true
     state: started
     daemon_reload: true
-  when: not host_is_dns_server
+  when: not host_pacman_cache_only

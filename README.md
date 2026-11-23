@@ -14,7 +14,7 @@ Sets up an Arch Linux VM with Docker, Git, and supporting tooling. The `install`
 - **`/tmp` as noexec tmpfs**: prevents code execution from `/tmp`
 - **pkgstats**: weekly anonymous package statistics submission
 - **arch-audit**: vulnerable-package detection against the Arch security tracker
-- **reflector**: automatic mirror ranking (not on DNS hosts, which use only the internal pacman cache)
+- **reflector**: automatic mirror ranking, only on the Linux package caches; every other host uses only the internal pacman cache
 - **pacman cache pruning**: weekly `paccache -r` via systemd timer
 - **Telegraf**: reports host and (on Docker hosts) container metrics to `https://metrics.markridgwell.com`
 - **Journal upload**: forwards the systemd journal to VictoriaLogs on `monitoring.lan` (`systemd-journal-upload`, `journal_upload_url`; set it to `""` in host_vars to opt a host out). The first run starts from the current end of the journal rather than uploading the history
