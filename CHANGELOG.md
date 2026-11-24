@@ -84,6 +84,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Install and start qemu-guest-agent so Proxmox can connect to each VM (#267)
 - Support container_runtime: none for hosts using neither Docker nor Podman, with per-host overrides via host_vars/ (#236)
 ### Fixed
+- systemd-resolved: serve stale cached answers for up to 1 hour (StaleRetentionSec=1h) when no upstream DNS server answers, so lookups don't fail while the current nameserver is rebooting
 - ansible-pull can no longer be wedged by local changes: ansible-pull.service runs the new `ansible-pull-reset-checkout` (ExecStartPre) first, which logs and then discards any local commits, edited or stray files, or a different checked-out branch in every checkout under ~/.ansible/pull, resetting it to origin/main. Previously one local commit made every later run fail with "Unable to advance to origin/main because local commits will be lost"
 - telegraf disk metrics no longer carry the `mode` tag: telegraf runs sandboxed (DynamicUser implies ProtectSystem=strict), so it reported every mount as "ro" except for a few minutes after boot, and each flip started new series that set off false disk-fill alerts
 - ansible-pull: raise the connection/become timeout from the 10 s default to 30 s (new ansible.cfg), so runs on busy hosts no longer fail with "Timed out waiting for become success" when sudo is slow to start

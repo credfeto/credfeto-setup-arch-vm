@@ -25,3 +25,10 @@ LLMNR=no
 MulticastDNS=no
 
 Cache=yes
+
+# resolved queries one current server per scope and only fails over after it
+# times out, so a client with a short timeout (Docker's embedded DNS forwarder,
+# ssh) can see a lookup fail while that server is rebooting. If no upstream
+# answers, serve the expired cached answer for up to an hour instead of
+# failing; fresh answers are still used whenever an upstream responds.
+StaleRetentionSec=1h
