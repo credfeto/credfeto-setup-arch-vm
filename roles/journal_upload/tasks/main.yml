@@ -56,6 +56,41 @@
     handler_retry_pending: [Restart systemd-journal-upload]
   when: journal_upload_config is changed  # noqa: no-handler - marker must precede the handler
 
+# The stock unit only restarts on-failure and keeps systemd's default start
+# limit, so when the log server is unreachable for a while (VictoriaLogs
+# down, a firewall block) the upload hits start-limit-hit and stays failed
+# until someone runs reset-failed. Keep retrying for ever instead.
+- name: Create systemd-journal-upload service drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/systemd-journal-upload.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: journal_upload_url | length > 0
+
+- name: Keep retrying systemd-journal-upload while the log server is unreachable
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/systemd-journal-upload.service.d/10-retry.conf
+    content: |
+      # Managed by credfeto-setup-arch-vm (roles/journal_upload)
+      [Unit]
+      StartLimitIntervalSec=0
+
+      [Service]
+      Restart=always
+      RestartSec=30s
+    owner: root
+    group: root
+    mode: "0644"
+  register: journal_upload_retry
+  when: journal_upload_url | length > 0
+
+- name: Reload systemd for the systemd-journal-upload drop-in
+  ansible.builtin.systemd:
+    daemon_reload: true
+  when: journal_upload_retry is changed  # noqa: no-handler - must apply before the start below
+
 - name: Enable and start systemd-journal-upload
   ansible.builtin.systemd:
     name: systemd-journal-upload.service
@@ -74,5 +109,11 @@
 - name: Remove journal-upload destination
   ansible.builtin.file:
     path: /etc/systemd/journal-upload.conf.d/10-central.conf
+    state: absent
+  when: journal_upload_url | length == 0
+
+- name: Remove systemd-journal-upload retry drop-in
+  ansible.builtin.file:
+    path: /etc/systemd/system/systemd-journal-upload.service.d/10-retry.conf
     state: absent
   when: journal_upload_url | length == 0
