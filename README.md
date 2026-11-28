@@ -16,6 +16,7 @@ Sets up an Arch Linux VM with Docker, Git, and supporting tooling. The `install`
 - **arch-audit**: vulnerable-package detection against the Arch security tracker
 - **reflector**: automatic mirror ranking, only on the Linux package caches; every other host uses only the internal pacman cache
 - **pacman cache pruning**: weekly `paccache -r` via systemd timer
+- **pacman drop-ins**: `/etc/pacman.conf.d/options` and `/etc/pacman.conf.d/repos` for per-host options and repositories (see [pacman drop-ins](#pacman-drop-ins))
 - **Telegraf**: reports host and (on Docker hosts) container metrics to `https://metrics.markridgwell.com`
 - **Journal upload**: forwards the systemd journal to VictoriaLogs on `monitoring.lan` (`systemd-journal-upload`, `journal_upload_url`; set it to `""` in host_vars to opt a host out). The first run starts from the current end of the journal rather than uploading the history
 
@@ -37,6 +38,41 @@ Gateway=192.168.xxx.1
 DNS=192.168.xxx.1
 
 IPv6PrivacyExtensions=yes
+```
+
+## pacman drop-ins
+
+`/etc/pacman.conf` is rendered whole from `roles/packages/templates/pacman.conf.j2` on every run, so edits on a host do not survive. Host-specific or temporary settings go in two drop-in directories that it includes:
+
+- `/etc/pacman.conf.d/options/*.conf` is read inside `[options]`. Files hold bare option lines such as `IgnorePkg = python-astroid`. List options (`IgnorePkg`, `IgnoreGroup`, `HoldPkg`, `NoUpgrade`, `NoExtract`) add to the template's values.
+- `/etc/pacman.conf.d/repos/*.conf` is read at the end of the file. Each file starts with its own `[repo]` header. Files load in file-name order after every repository in the template, so a numeric prefix (`10-`, `20-`) sets their priority among themselves.
+
+Both directories are `root:root 0755` and hold a comment-only `README.conf`, so each `Include` glob always matches a file; pacman fails to parse its config when an `Include` glob matches nothing.
+
+Declare drop-ins in `host_vars/<host>.yml` (the defaults in `group_vars/all.yml` are empty lists; a host value replaces the whole list). Each entry is a `name` (letters, digits, `.`, `_`, `-`) and a `content`, written to `<name>.conf`:
+
+```yaml
+pacman_options_dropins:
+  - name: 50-hold-python-astroid
+    content: IgnorePkg = python-astroid
+
+pacman_repo_dropins:
+  - name: 50-custom
+    content: |
+      [custom]
+      SigLevel = Optional TrustAll
+      Server = file:///home/custompkgs
+```
+
+The role writes these files with a `# Managed by Ansible (roles/packages)` first line and deletes them once their entry is removed from the list. Files added by hand without that line are left alone.
+
+A syntax error in any drop-in stops every pacman command, so check the merged result after a change:
+
+```sh
+pacman-conf                     # whole effective configuration
+pacman-conf IgnorePkg           # one option
+pacman-conf --repo-list         # repositories in priority order
+pacman-conf --repo custom       # one repository's settings
 ```
 
 ## Proxmox QEMU Guest Agent

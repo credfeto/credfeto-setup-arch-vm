@@ -58,6 +58,17 @@
       | reject('search', 'No such file or directory')
       | list | length > 0)
 
+# Before the first pacman/pacman-key call below: see the header of
+# pacman_dropins.yml.
+- name: Manage pacman.conf.d drop-ins
+  ansible.builtin.import_tasks: pacman_dropins.yml
+  vars:
+    packages_pacman_dropin_marker: "# Managed by Ansible (roles/packages)"
+    packages_pacman_dropin_keys: >-
+      {{ packages_pacman_dropins | map(attribute='kind')
+         | zip(packages_pacman_dropins | map(attribute='name', default=''))
+         | map('join', '/') | list }}
+
 - name: Check if Chaotic AUR signing key is already trusted
   ansible.builtin.command:
     cmd: pacman-key --list-keys 3056513887B78AEB

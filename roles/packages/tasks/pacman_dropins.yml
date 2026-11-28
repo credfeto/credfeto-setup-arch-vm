@@ -1,0 +1,122 @@
+---
+# /etc/pacman.conf (templates/pacman.conf.j2) Includes
+# <pacman_conf_dropin_dir>/options/*.conf inside [options] and
+# <pacman_conf_dropin_dir>/repos/*.conf at the end of the file. These tasks
+# run before the first pacman or pacman-key call in the role (pacman-key reads
+# pacman.conf too, through pacman-conf): a stale or broken drop-in this role
+# wrote on an earlier run would otherwise make those calls fail to parse their
+# config before the role could fix or remove it.
+- name: Collect pacman drop-in definitions
+  ansible.builtin.set_fact:
+    packages_pacman_dropins: >-
+      {{ (pacman_options_dropins
+          | map('combine', {'kind': 'options', 'var': 'pacman_options_dropins'}) | list)
+         + (pacman_repo_dropins
+          | map('combine', {'kind': 'repos', 'var': 'pacman_repo_dropins'}) | list) }}
+
+# The name becomes the file name (<name>.conf), so it must not be able to
+# leave its directory or replace the placeholder.
+- name: Validate pacman drop-in definitions
+  ansible.builtin.assert:
+    that:
+      - item.name is defined
+      - item.content is defined
+      - item.name is match('^[A-Za-z0-9][A-Za-z0-9_.-]*$')
+      - item.name | lower != 'readme'
+    fail_msg: >-
+      Each {{ item.var }} entry needs a name (letters, digits,
+      '.', '_' or '-', not README) and a content.
+    quiet: true
+  loop: "{{ packages_pacman_dropins }}"
+  loop_control:
+    label: "{{ item.kind }}/{{ item.name | default('?') }}"
+
+# Two entries with the same name would both write one file and fight on every
+# run.
+- name: Validate pacman drop-in names are unique
+  ansible.builtin.assert:
+    that: packages_pacman_dropin_keys | unique | length == packages_pacman_dropin_keys | length
+    fail_msg: "Duplicate pacman drop-in names: {{ packages_pacman_dropin_keys | sort | join(', ') }}"
+    quiet: true
+
+- name: Create pacman drop-in directories
+  ansible.builtin.file:
+    path: "{{ pacman_conf_dropin_dir }}{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - ""
+    - /options
+    - /repos
+
+# A comment-only file in each directory keeps the Include glob matching at
+# least one file whatever the variables hold; pacman ignores its contents.
+- name: Install pacman drop-in placeholders
+  ansible.builtin.copy:
+    dest: "{{ pacman_conf_dropin_dir }}/{{ item.kind }}/README.conf"
+    content: |
+      # Placeholder, managed by Ansible (roles/packages). It keeps the
+      # Include = {{ pacman_conf_dropin_dir }}/{{ item.kind }}/*.conf glob in
+      # /etc/pacman.conf matching a file. Comments only: pacman ignores it.
+      #
+      {% for line in item.help %}
+      # {{ line }}
+      {% endfor %}
+      #
+      # The playbook writes files here from {{ item.var }} and
+      # deletes them again when they leave that list. Files added by hand are
+      # left alone. Check the merged configuration with pacman-conf
+      # (pacman-conf --repo-list lists the repositories in priority order).
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - kind: options
+      var: pacman_options_dropins
+      help:
+        - "Files here are read inside [options]: bare option lines only,"
+        - "for example IgnorePkg = python-astroid."
+    - kind: repos
+      var: pacman_repo_dropins
+      help:
+        - "Files here are read at the end of pacman.conf, in file-name order,"
+        - "after every repository the template defines. Each file starts with"
+        - "its own [repo] header; a numeric prefix (10-, 20-) sets the order."
+  loop_control:
+    label: "{{ item.kind }}/README.conf"
+
+- name: Install pacman drop-ins
+  ansible.builtin.copy:
+    dest: "{{ pacman_conf_dropin_dir }}/{{ item.kind }}/{{ item.name }}.conf"
+    content: |
+      {{ packages_pacman_dropin_marker }}: {{ item.var }}
+      {{ item.content | trim }}
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ packages_pacman_dropins }}"
+  loop_control:
+    label: "{{ item.kind }}/{{ item.name }}.conf"
+
+# Only files carrying the marker line are this role's; anything else in the
+# directories was put there by hand and is left alone.
+- name: Find pacman drop-ins written by this role
+  ansible.builtin.find:
+    paths:
+      - "{{ pacman_conf_dropin_dir }}/options"
+      - "{{ pacman_conf_dropin_dir }}/repos"
+    patterns: "*.conf"
+    excludes: README.conf
+    contains: "^{{ packages_pacman_dropin_marker | regex_escape }}"
+  register: packages_pacman_dropin_files
+
+- name: Remove pacman drop-ins no longer listed
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: "{{ packages_pacman_dropin_files.files | map(attribute='path') | sort }}"
+  when: >-
+    (item | dirname | basename) ~ '/' ~ (item | basename | regex_replace('\.conf$', ''))
+    not in packages_pacman_dropin_keys

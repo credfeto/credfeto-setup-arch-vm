@@ -10,52 +10,52 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 
 ## [Unreleased]
 ### Security
-- Audit: limit execve logging to login sessions (auid >= 1000 or auid 0); daemon, service, timer and container execs are no longer logged, which was saturating the audit backlog and stalling exec-heavy hosts
-- Remove leftover 9*-*RootLogin.conf sshd drop-ins (e.g. 999-/9999-RootLogin.conf) that set PermitRootLogin yes behind 10-permitrootlogin.conf
-- Pin actions/checkout references to commit SHA instead of mutable tag in ansible-lint and security-review workflows, hardening against tag repointing
+- Audit: log execve only for login sessions (auid >= 1000 or 0), not daemons or containers
+- Remove leftover 9*-*RootLogin.conf sshd drop-ins that set PermitRootLogin yes
+- Pin actions/checkout to a commit SHA in the ansible-lint and security-review workflows
 - Install sshd AppArmor profile from Arch's extra-profiles using Arch paths and enforce it
-- Restore DefaultLimitCORE=0 systemd drop-in (system.conf.d/no-core-dumps.conf) so systemd services cannot write core dumps
-- Docker: default container core-dump limit of 0 (daemon.json default-ulimits). docker.service sets LimitCORE=infinity itself, so DefaultLimitCORE=0 never reached containers and crashing container processes (e.g. chromium) filled /var/lib/systemd/coredump
-- Confine fail2ban-server with a custom AppArmor profile to limit the damage a compromised fail2ban can do; the profile is installed in complain mode by default (log violations, do not block) and apparmor_fail2ban_enforce switches it to enforce; the apparmor role gains the tasks, handler and README docs for this, and the audit role's yamllint/ansible-lint findings are fixed (#252)
+- Restore DefaultLimitCORE=0 systemd drop-in so services cannot write core dumps
+- Docker: default container core-dump limit of 0 via daemon.json default-ulimits
+- Confine fail2ban-server with a custom AppArmor profile, complain mode by default (#252)
 ### Added
-- Central logging (#234): new `journal_upload` role enables `systemd-journal-upload` and points it at the VictoriaLogs journald endpoint on monitoring (`http://monitoring.lan:9428/insert/journald`, override with `journal_upload_url`, `""` disables). On first enable it seeds the upload position with the newest journal entry, so hosts do not push their whole journal history
-- Docker: enable IPv6 (default bridge fd00:d0c::/64 and IPv6 on every new bridge network via default-network-opts), so build and default-network containers can use the IPv6-first DNS servers and reach IPv6 hosts; the firewall role already trusts fd00::/8 in the docker zone
-- Git workflow instructions: never-squash-commits rule to preserve the full commit history however messy the path
-- AI instructions: mandatory git identity and GPG signing check before any commit — abort if identity is `andy@nanoclaw.ai` or GPG signing is disabled
+- Central logging: journal_upload role forwards the journal to VictoriaLogs on monitoring (#234)
+- Docker: enable IPv6 on the default bridge and on new bridge networks
+- Git workflow instructions: never squash commits
+- AI instructions: check git identity and GPG signing before any commit
 - SSH hardening with strong crypto, key-only auth, and no root login
-- Additional sysctl hardening: ASLR, sysrq disable, source route blocking, RA disable, ICMP broadcast, filesystem protections, core dump prevention
+- Additional sysctl hardening: ASLR, sysrq, source routing, RA, ICMP broadcast, filesystem
 - Core dump disabling via systemd DefaultLimitCORE=0
 - Kernel module blacklist for unused network protocols and filesystems
 - Hardened /tmp as noexec nosuid nodev tmpfs
 - Diagnostic check that only linux-hardened kernel is installed and currently running
 - logrotate installed and configured with daily rotation and 14-day retention
-- Install and configure fail2ban with 1h ban time, firewalld rich-rules backend, and aggressive SSH jail
+- Install fail2ban with 1h ban time, firewalld rich-rules backend and aggressive SSH jail
 - Show reboot required warning if running kernel no longer matches installed kernel
 - Write /etc/sudoers.d/01_markr with NOPASSWD when yay installed, password-required otherwise
 - Log martian (impossible source) packets via net.ipv4.conf.all/default.log_martians
 - Explicitly enforce kernel.perf_event_paranoid=3 to restrict perf_event_open to CAP_SYS_ADMIN
-- Blacklist n_hdlc (CVE-2017-2636), ax25, netrom, x25, can, vivid, usb_storage, bluetooth, btusb modules on Proxmox VM where hardware is absent
+- Blacklist n_hdlc, ax25, netrom, x25, can, vivid, usb_storage and bluetooth modules on VMs
 - install script creates a security script in the current working directory
-- Install ansible and configure ansible-pull systemd timer to automatically apply latest system configuration every 6 hours, replacing the manual security script
+- Install ansible and an ansible-pull timer applying the latest configuration every 6 hours
 - Add site.yml Ansible playbook entry point for ansible-pull
 - Harden default umask to 027 via /etc/profile.d/umask.sh
 - Install audit package alongside AppArmor for kernel-level audit logging
 - Enable auditd service for AppArmor audit event logging
 - Remove orphaned packages inline after package install step rather than via a systemd timer
-- Enforce signed kernel modules via module.sig_enforce=1 GRUB parameter to prevent loading of unsigned modules
+- Enforce signed kernel modules via module.sig_enforce=1
 - Improve ASLR entropy via vm.mmap_rnd_bits=32 and vm.mmap_rnd_compat_bits=16
-- Persist net.ipv6.conf.all.forwarding=1 and net.ipv6.conf.default.forwarding=1 for routed Docker/VM traffic
-- Block newly connected USB devices after boot via kernel.deny_new_usb=1 to prevent BadUSB attacks on a headless server VM
-- Add mitigations=auto to GRUB to explicitly enable all applicable CPU vulnerability mitigations (Spectre, Meltdown, MDS, etc.)
+- Persist IPv6 forwarding (all and default) for routed Docker/VM traffic
+- Block new USB devices after boot via kernel.deny_new_usb=1
+- Add mitigations=auto to GRUB to enable all applicable CPU vulnerability mitigations
 - Add mce=0 to GRUB to panic immediately on uncorrectable hardware memory errors
-- Disable TCP SACK (net.ipv4.tcp_sack=0) to reduce remote kernel exploit surface (CVE-2019-11477, CVE-2019-11478, CVE-2019-11479)
-- Enable IOMMU in GRUB (intel_iommu=on, amd_iommu=on, iommu=force) to provide DMA protection against malicious devices
-- Add oops=panic to GRUB to cause an immediate kernel panic on any kernel oops, preventing post-oops exploitation
-- Ansible playbook with 11 roles (packages, users, docker, sysctl, grub, ssh, firewall, network, apparmor, services, ansible_pull) replacing the monolithic install script with native Ansible tasks using ansible.posix and community.general collections
+- Disable TCP SACK to reduce remote kernel exploit surface (CVE-2019-11477/11478/11479)
+- Enable IOMMU in GRUB (intel_iommu=on, amd_iommu=on, iommu=force) for DMA protection
+- Add oops=panic to GRUB to panic on any kernel oops
+- Ansible playbook with 11 roles replacing the monolithic install script
 - ansible-lint job added to pull-request.yml CI workflow
 - requirements.yml listing ansible.posix and community.general collections
 - Mount /proc with hidepid=2 and gid=proc to prevent cross-user process visibility
-- Blacklist kernel modules esp4, esp6, and rxrpc affected by Dirty Frag (CVE-2026-43284, CVE-2026-43500) to prevent local privilege escalation
+- Blacklist esp4, esp6 and rxrpc modules (Dirty Frag, CVE-2026-43284, CVE-2026-43500)
 - Schedule reboot 60 s after Ansible run when kernel image or GRUB config changed since last boot
 - Ensure user 'markr' exists with sudo NOPASSWD, SSH-only login, and authorized SSH keys from GitHub
 - Configure sshd AuthorizedKeysCommand to look up SSH public keys from keys.markridgwell.com
@@ -63,172 +63,173 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Podman registries mirror configuration via /etc/containers/registries.conf
 - podman-cleanup.timer to prune unused Podman images weekly
 - Enable kernel.unprivileged_userns_clone=1 when Podman is installed for rootless container support
-- Blacklist unused kernel modules to reduce LPE attack surface (DCCP, SCTP, RDS, TIPC, legacy protocols, unused filesystems)
-- Daily Podman container security audit: shellcheck-clean POSIX sh script checks each running container for privileged mode, root user, writable rootfs, CAP_SYS_ADMIN, host network, and missing memory/PID limits; wired to a systemd timer via Ansible
+- Blacklist unused kernel modules (DCCP, SCTP, RDS, TIPC, legacy protocols, filesystems)
+- Daily Podman container security audit via a systemd timer
 - Configure auditd with kernel syscall auditing rules for security monitoring
-- Pin IPv6AcceptRA=no on the primary interface so systemd-networkd doesn't override the sysctl role's RA-acceptance hardening for that link
-- Set Domains=~. in the systemd-resolved global config so unqualified lookups are never suffixed with a search domain, matching the static resolv.conf's search .
-- Fail the run with a clear error if network_nameservers_ipv4 and network_nameservers_ipv6 are ever configured with different lengths, instead of silently dropping the extra entries from dns-?? hosts' resolv.conf
+- Pin IPv6AcceptRA=no on the primary interface so networkd keeps the sysctl RA hardening
+- Set Domains=~. in systemd-resolved so unqualified lookups get no search domain
+- Fail the run if the IPv4 and IPv6 nameserver lists differ in length
 - Enable Dependabot github-actions ecosystem to keep SHA-pinned action versions up to date
 - Add dns-06 to the fleet nameserver list
 - Add scripts/reset-clone-identity to regenerate machine-id and SSH host keys after cloning a VM
-- Enable IPv6 privacy extensions on the primary interface, so outgoing connections prefer a rotating temporary address while pinned static addresses remain reachable for anything that needs a fixed one
-- Install and configure Telegraf to report host and container metrics to https://metrics.markridgwell.com
-- Enable and start serial-getty@ttyS0.service via the services role, giving VMs a browser-copy/paste-capable serial console that keeps working when guest networking is down
+- Enable IPv6 privacy extensions on the primary interface
+- Install Telegraf to report host and container metrics to https://metrics.markridgwell.com
+- Enable serial-getty@ttyS0.service for a serial console that works without networking
 - Configure a system-wide coloured Starship prompt for all users
 - Enable ILoveCandy, CheckSpace and VerbosePkgLists options in pacman.conf
-- lynis-driven hardening: /boot locked to root via vfat mount masks, sshd_config restricted to root, core dumps disabled via security limits, login.defs yescrypt cost factor raised and umask tightened to 027, TTY line-discipline autoloading disabled, FireWire storage modules blacklisted, legal consent banner installed, and arch-audit installed for vulnerable-package detection
-- LYNIS.md security-audit baseline (hardening index 75) with an accepted-findings register, maintained by a mandatory lynis audit and Docker smoke test on every test-VM session
+- lynis-driven hardening: /boot masks, sshd_config perms, umask 027, banner, arch-audit
+- LYNIS.md security-audit baseline with an accepted-findings register
 - Install and enable AppArmor service with the sshd profile from Arch's extra-profiles enforced
 - Warn when Docker or rootful/rootless Podman containers run unconfined or privileged
 - Install and start qemu-guest-agent so Proxmox can connect to each VM (#267)
-- Support container_runtime: none for hosts using neither Docker nor Podman, with per-host overrides via host_vars/ (#236)
+- Support container_runtime: none, with per-host overrides via host_vars/ (#236)
+- pacman.conf.d drop-in directories for options and repositories, set via host_vars
 ### Fixed
-- systemd-journal-upload retries for ever (Restart=always, RestartSec=30s, no start limit) instead of ending in start-limit-hit and staying failed after the log server was unreachable for a few seconds
-- systemd-resolved: serve stale cached answers for up to 1 hour (StaleRetentionSec=1h) when no upstream DNS server answers, so lookups don't fail while the current nameserver is rebooting
-- ansible-pull can no longer be wedged by local changes: ansible-pull.service runs the new `ansible-pull-reset-checkout` (ExecStartPre) first, which logs and then discards any local commits, edited or stray files, or a different checked-out branch in every checkout under ~/.ansible/pull, resetting it to origin/main. Previously one local commit made every later run fail with "Unable to advance to origin/main because local commits will be lost"
-- telegraf disk metrics no longer carry the `mode` tag: telegraf runs sandboxed (DynamicUser implies ProtectSystem=strict), so it reported every mount as "ro" except for a few minutes after boot, and each flip started new series that set off false disk-fill alerts
-- ansible-pull: raise the connection/become timeout from the 10 s default to 30 s (new ansible.cfg), so runs on busy hosts no longer fail with "Timed out waiting for become success" when sudo is slow to start
-- journald: cap the persistent journal at 500M (journald.conf.d/10-size.conf) so identical VMs use the same disk space, and remove journal directories left behind by other machine-ids (cloned VMs keep the source's journal, which journald never vacuums)
-- packages: retry "Update all packages" twice, 5 minutes apart, so a package whose files have not reached every mirror yet no longer fails the whole ansible-pull run
-- ansible-pull now clones with --full (service unit and install): with the default depth-1 checkout, a burst of several upstream commits made the git module report "Unable to advance to origin/main because local commits will be lost" on every run, because it could not see that the old HEAD was an ancestor of the new main; seen on 19 hosts on 2026-11-03 until the checkouts were unshallowed by hand
-- fail2ban: run systemd-analyze verify with --man=no so the unit's Documentation=man:fail2ban(1) does not fail the check on hosts without man installed (was failing every ansible-pull run)
-- sshd AppArmor profile is enforced again instead of installed in complain mode, now that the unix-chkpwd attachment fix lets sshd transition to unix_chkpwd after a fresh boot
-- Fix sshd's transition to unix_chkpwd for real: rewrite the unix-chkpwd profile attachment to /usr/{bin,sbin}/unix_chkpwd, because the shipped /{,usr/}{,s}bin/unix_chkpwd glob never matches with apparmor 4.1.8 on linux-hardened (consecutive brace groups with an empty alternative); reload it before sshd is enforced
-- Match leftover root-login sshd drop-ins case-insensitively (9999-permitrootlogin.conf, 9999_permitrootlogin.conf were missed)
-- Temporarily load the sshd AppArmor profile in complain mode: since apparmor 4.1.8 a freshly booted host denies sshd's transition to unix_chkpwd and every SSH login fails at PAM account
-- Fix the complain-mode rewrite writing a literal \1 into the sshd AppArmor profile (parse error at line 21), and validate the rendered profile with apparmor_parser before installing it
-- SSH lockout after reboot: strip attach_disconnected.path from the packaged unix-chkpwd AppArmor profile so it attaches on linux-hardened and sshd's Px transition for pam_unix's helper works
+- systemd-journal-upload retries for ever instead of staying failed after start-limit-hit
+- systemd-resolved serves stale cached answers for up to 1 hour when no upstream answers
+- ansible-pull resets its checkout to origin/main before each run, so local changes can't wedge it
+- telegraf disk metrics no longer carry the mode tag that flipped and caused false alerts
+- ansible-pull: raise the connection/become timeout to 30 s so busy hosts don't time out
+- journald: cap the journal at 500M and remove journal directories of other machine-ids
+- packages: retry Update all packages twice, 5 minutes apart, while mirrors catch up
+- ansible-pull clones with --full so bursts of upstream commits no longer break the update
+- fail2ban: run systemd-analyze verify with --man=no so hosts without man pass the check
+- sshd AppArmor profile is enforced again now that the unix-chkpwd transition works
+- Fix sshd's transition to unix_chkpwd by rewriting the unix-chkpwd profile attachment
+- Match leftover root-login sshd drop-ins case-insensitively
+- Temporarily load the sshd AppArmor profile in complain mode so SSH logins work after boot
+- Fix the complain-mode rewrite of the sshd AppArmor profile and validate it before install
+- Fix SSH lockout after reboot: strip attach_disconnected.path from the unix-chkpwd profile
 - Add --needed flag to chaotic-aur package installs to skip reinstalling already-up-to-date packages
-- Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs to avoid re-installing on every script run
-- Enable pkgstats.timer via symlink for static unit as it has no [Install] section and cannot be enabled with systemctl enable
+- Add --needed to pacman -U for Chaotic AUR keyring and mirrorlist installs
+- Enable pkgstats.timer via symlink, as the static unit has no [Install] section
 - Remove --permanent flag from firewall-cmd --set-default-zone (incompatible options)
 - Fix SSH cipher names: aes256-gcm and aes128-gcm (no hyphen after aes)
 - Use systemctl restart tmp.mount instead of mount -o remount for systemd-managed /tmp
-- sysctl_set no longer aborts when a key is absent from /proc/sys (e.g. kernel.kexec_load_disabled on linux-hardened with CONFIG_KEXEC=n) — persistent config is still written, live apply is skipped with a clear message
-- Detect physical network interface on VMs by matching common prefixes (eth, enp, ens) instead of using 'type ether' filter
+- sysctl_set no longer aborts when a key is absent from /proc/sys
+- Detect the physical network interface on VMs by name prefix (eth, enp, ens)
 - Restrict autoupdate sudoers to /usr/bin/pacman only instead of unrestricted root access
-- Corrected typo in sshd config filename logingraceime to loginGraceTime and clean up old misnamed file
+- Fix the misnamed logingraceime sshd config file and clean up the old one
 - Correct RFC 1918 firewalld CIDR for 172.16.0.0 range from /20 to /12 and remove any legacy /20 rules
-- Consolidate Docker restarts to avoid restarting twice when both daemon.json and legacy drop-in change
-- Enable post-quantum key exchange algorithms (mlkem768x25519-sha256, sntrup761x25519-sha512) in SSH server to prevent store-now-decrypt-later attacks
+- Restart Docker once when both daemon.json and the legacy drop-in change
+- Enable post-quantum key exchange (mlkem768x25519-sha256, sntrup761x25519-sha512) in sshd
 - Ensure sshd host keys are generated before SSH configuration on fresh installs
 - Add idempotency checks to paccache-cleanup service and timer configuration
 - Skip manual reflector.service start when reflector.timer is already active
 - Add idempotency check for reflector.conf configuration
 - Disable TCP timestamps (net.ipv4.tcp_timestamps=0) to prevent uptime leakage and OS fingerprinting
-- set net.bridge.bridge-nf-call-iptables=0 via sysctl; enable firewalld masquerade with --add-masquerade
-- change rp_filter from strict (1) to loose (2) to allow Docker container routing; persist net.ipv4.ip_forward=1 so container traffic survives sysctl reloads
-- net.bridge.bridge-nf-call-iptables corrected to 1 (was incorrectly set to 0 in #111) — value 1 enables iptables filtering on bridged traffic, required for Docker networking rules to apply to container traffic
-- Docker daemon.json: set firewall-backend to nftables so Docker uses nftables for its NAT/filtering rules, consistent with the system firewall (firewalld running in nftables mode)
-- Clarify TCP timestamps comment: document PAWS-bypass mitigation and relationship with net.ipv4.tcp_rfc1337=1
+- Set net.bridge.bridge-nf-call-iptables=0; enable firewalld masquerade
+- Loose rp_filter (2) for Docker container routing; persist net.ipv4.ip_forward=1
+- net.bridge.bridge-nf-call-iptables corrected to 1, required for Docker networking rules
+- Docker daemon.json: use the nftables firewall backend, matching firewalld
+- Clarify the TCP timestamps comment (PAWS-bypass mitigation, tcp_rfc1337)
 - Pass -H flag to sudo when running ansible-pull as autoupdate user so HOME is set correctly
 - Run sysctl role before docker role so ip_forward and bridge sysctls are set before Docker starts
-- Load br_netfilter module before applying net.bridge.bridge-nf-call-iptables sysctl so the setting succeeds on first provision
-- Replace unsupported ignore_errors task keyword with module's own ignoreerrors: true parameter for kernel.kexec_load_disabled and kernel.deny_new_usb sysctl tasks
+- Load br_netfilter before setting bridge-nf-call-iptables so it applies on first provision
+- Use the sysctl module's ignoreerrors for kexec_load_disabled and deny_new_usb
 - Ensure docker firewalld zone exists on fresh VM before assigning Docker bridge subnet
 - Run mkinitcpio -P after GRUB config changes to ensure initramfs stays in sync
-- Static /etc/resolv.conf on dns-?? hosts interleaves IPv6/IPv4 nameservers (offset so adjacent lines are never the same physical host) instead of listing all IPv6 first, so glibc's 3-line limit still gives 3 different hosts instead of only IPv6 ones
-- Exclude temporary and deprecated-flagged addresses from IPv4/IPv6 detection on the primary interface, so a rotating privacy-extension or expiring address never gets pinned into a static Address= line in eth0.network
-- AI instructions: pull-request-template.instructions.md no longer describes the deleted maintain-pr-description.yml automation as live; documents the actual hand-written PR description process instead
-- Disable DNSSEC validation in systemd-resolved fleet-wide (was allow-downgrade): upstream nameservers advertise DNSSEC support but return validation-breaking responses, causing fleet-wide DNS resolution failures
-- Stop, disable, and mask systemd-resolved on DNS server hosts to prevent it racing the real resolver for port 53 on boot
-- Fix reset-clone-identity crashing on host key types ssh-keygen -t doesn't accept directly (e.g. mldsa44-ed25519)
-- Fix AuthorizedKeysCommand using non-existent %H sshd token, which broke SSH access fleet-wide on the next sshd reload
-- Always accept IPv6 Router Advertisement and never freeze a static IPv6 gateway, instead of snapshotting a live route that could permanently disappear on some segments
-- Make Chaotic AUR key fetch idempotent and non-fatal so a keyserver outage can no longer block the network/DNS role from applying
-- telegraf.service crash-looping on start because the deployed config used removed inputs.docker fields (container_names, perdevice, total) not recognised by the installed Telegraf version
-- IPv6 traffic from Docker containers was rejected by the host firewall (docker zone only matched IPv4 sources), breaking any outbound IPv6 connection a container makes - e.g. Traefik's IPv6-routed backends
-- IPv6 default route silently expiring fleet-wide: set net.ipv6.conf.{all,default}.accept_ra to 2 instead of 0, so Router Advertisements are still accepted despite IPv6 forwarding being enabled for container networking
-- Restore pacman package cache directory to owner root, group root, mode 0755 and purge stale partial-download directories, fixing every ansible-pull run failing at the first pacman task because the DownloadUser=alpm sandbox could not traverse a permission-drifted cache directory
-- Always enable and start sshd, instead of relying on it already being active for config changes to take effect
-- Telegraf role InfluxDB output pointed at metrics.markridgwell.com, a hostname with no DNS record, causing metrics pushes to silently fail on every DNS-VLAN host; corrected to monitoring.markridgwell.com
-- IPv4 gateway detection no longer emits a garbage token into Gateway=/NTP= on hosts with an on-link (via-less) default route
-- Remove stale docker-cleanup/podman-cleanup systemd units when container_runtime no longer matches, so switching container runtimes stops leaving the old runtime's cleanup timer running forever
-- Chaotic AUR keyring and mirrorlist are now installed from their URLs only when not already installed, so hosts no longer downgrade chaotic-mirrorlist to the older CDN build and re-upgrade it on every run
-- fail2ban is configured and running again on every host (1h bans, aggressive SSH jail) after the Ansible migration had left it installed but disabled
-- fail2ban bans now use nftables, so they apply to every source address and survive firewalld reloads and restarts
-- A firewalld restart, including a manual restart, no longer stops or touches fail2ban, so existing bans stay in place
+- dns-?? resolv.conf interleaves IPv6/IPv4 nameservers so its 3 lines are 3 different hosts
+- Exclude temporary and deprecated addresses when pinning eth0.network Address= lines
+- AI instructions: document the hand-written PR description process
+- Disable DNSSEC validation in systemd-resolved fleet-wide
+- Stop, disable and mask systemd-resolved on DNS server hosts
+- Fix reset-clone-identity crashing on host key types ssh-keygen -t doesn't accept
+- Fix AuthorizedKeysCommand using the non-existent %H sshd token
+- Always accept IPv6 Router Advertisements and never pin a static IPv6 gateway
+- Make the Chaotic AUR key fetch idempotent and non-fatal
+- Fix telegraf crash-looping on removed inputs.docker fields
+- Allow IPv6 traffic from Docker containers through the host firewall
+- Set accept_ra to 2 so IPv6 default routes no longer expire with forwarding enabled
+- Restore pacman cache directory ownership and mode, and purge stale partial downloads
+- Always enable and start sshd
+- Telegraf InfluxDB output corrected to monitoring.markridgwell.com
+- IPv4 gateway detection handles on-link default routes without a garbage Gateway=/NTP=
+- Remove stale docker-cleanup/podman-cleanup units when container_runtime no longer matches
+- Install Chaotic AUR keyring and mirrorlist from URLs only when not installed
+- fail2ban is configured and running again on every host
+- fail2ban bans use nftables, covering every source and surviving firewalld reloads
+- A firewalld restart no longer stops or touches fail2ban
 - A firewalld that fails to come back after a restart now fails the run instead of going unnoticed
-- A broken fail2ban jail configuration now fails the run before fail2ban is touched, so the running fail2ban keeps protecting the host
-- The sshd AppArmor profile no longer blocks curl, the SSH AuthorizedKeysCommand, so key-based SSH logins work again on hosts enforcing it
-- Block the ieee802154_socket kernel module (not the non-existent af_802154) and tighten lsmod matching when unloading legacy protocol modules
+- A broken fail2ban jail configuration fails the run before fail2ban is touched
+- The sshd AppArmor profile no longer blocks curl in the AuthorizedKeysCommand
+- Block ieee802154_socket (not af_802154) and tighten lsmod matching on unload
 - Changed audit rules now flag a reboot instead of a refused auditd restart (#258)
-- Validate service configuration before reloading or restarting the service (ssh, docker, telegraf, audit, network, systemd units)
-- Docker: restart docker after removing the legacy docker.service.d/security.conf drop-in so the running dockerd drops the old settings (#259)
-- Restart handlers (auditd, docker, telegraf, systemd-resolved, systemd-logind, fail2ban, ansible-pull timer, fstrim timer) now verify the service is really running after restart and fail the run if not
+- Validate service configuration before reloading or restarting the service
+- Docker: restart after removing the legacy docker.service.d/security.conf drop-in (#259)
+- Restart handlers verify the service is running afterwards and fail the run if not
 - Retry handlers that failed on an earlier run so services stay in step with their config (#255)
 - Made sysctl kexec_load_disabled and networkctl reload tasks idempotent (#243)
-- SSH: keep key-based logins working while firewalld reloads by wrapping the AuthorizedKeysCommand with retries, timeouts and a last-good key cache (#254)
-- Restored daily logrotate configuration (14 rotations) and enabled logrotate.timer via the services role
+- SSH: AuthorizedKeysCommand retries and caches the last good keys during reloads (#254)
+- Restore daily logrotate configuration (14 rotations) and enable logrotate.timer
 ### Changed
-- Every host except the Linux package caches now takes packages only from the internal pacman cache (Server= with no public mirrorlist, reflector removed), as the DNS hosts already did; pacman fetches repository databases from the mirrors rather than CacheServer=, so hosts with an enforcing egress firewall could not refresh
-- Audit records are also written to the systemd journal (systemd-journald-audit.socket, enabled and started by the audit role; journald is stopped and started together with the socket once, as systemd refuses to start the socket while journald runs), so journal_upload forwards them to VictoriaLogs. auditd still writes /var/log/audit/audit.log. Previously only hosts where the socket had been enabled by hand forwarded them
-- Docker container logs go to the systemd journal: `daemon.json` (now a template) uses the journald log driver with `tag={{.Name}}` (`docker_log_driver`, default `journald`), so container output reaches VictoriaLogs through `journal_upload` with CONTAINER_NAME / IMAGE_NAME fields. familiar.lan stays on json-file (host_vars) because a dockerd restart there restarts the agent. Containers switch when they are next recreated
+- Every host except the Linux package caches takes packages only from the internal cache
+- Audit records also go to the systemd journal, so journal_upload forwards them
+- Docker container logs go to the systemd journal (docker_log_driver, default journald)
 - SSH hardening config split to one setting per file in sshd_config.d/, mirroring sysctl pattern
 - linux-hardened kernel is now a prerequisite verified by diagnostic, not installed by the script
-- PasswordAuthentication only disabled over SSH if at least one user has authorized_keys configured, preventing lockout
-- Disable KbdInteractiveAuthentication and ChallengeResponseAuthentication alongside PasswordAuthentication when authorized_keys are present
-- sshd only reloaded if already running; config is written regardless but service is not started if not already active
-- Docker daemon.json hardened: icc=false, no-new-privileges=true, userland-proxy=false, log rotation; idempotency now checks file content
+- Disable SSH PasswordAuthentication only when a user has authorized_keys
+- Disable KbdInteractive and ChallengeResponse authentication alongside passwords
+- Reload sshd only if it is already running
+- Harden Docker daemon.json (icc, no-new-privileges, userland-proxy, log rotation)
 - firewalld default zone set to drop; SSH added to public zone; docker0 added to trusted zone
-- Harden /tmp via systemd tmp.mount drop-in (noexec) instead of fstab entry, which is the correct approach for Arch Linux
-- Blacklist each kernel module in its own /etc/modprobe.d/blacklist.<module>.conf file with a detailed comment explaining why it is blacklisted, using a new blacklist_module function
+- Harden /tmp via a systemd tmp.mount drop-in (noexec) instead of fstab
+- Blacklist each kernel module in its own commented modprobe.d file
 - Apply Copilot security analysis improvements to install script
 - Generate descriptive commit title and PR title from actual diff in security review workflow
-- Restrict systemd drop-ins to services the script configures; require cited source for any package-manager service exception
-- Remove systemd security drop-ins for docker, firewalld, and sshd; clean up any previously installed files
-- Refactor firewalld rules into firewalld_allow_private function with idempotency and ok/skip/die output
-- Add IPv6 private range rules (ULA fc00::/7, link-local fe80::/10) to firewalld_allow_private function
+- Restrict systemd drop-ins to services the script configures
+- Remove systemd security drop-ins for docker, firewalld and sshd
+- Refactor firewalld rules into an idempotent firewalld_allow_private function
+- Add IPv6 private ranges (ULA fc00::/7, link-local fe80::/10) to firewalld_allow_private
 - Apply sysctl changes live with sysctl -w in addition to writing persistent /etc/sysctl.d file
 - Add rule that all configuration changes must be applied live and persistently in the same step
 - Use yay -Syyu in auto-update service when yay is installed, falling back to pacman
 - Run auto-update service as markr user when yay is installed; set NOPASSWD sudoers accordingly
-- Replace markr sudoers management with dedicated autoupdate system user (nologin, no home) for yay auto-update
+- Replace markr sudoers with a dedicated autoupdate system user for yay auto-update
 - autoupdate user always created regardless of whether yay is installed
-- auto-update service always runs as autoupdate user; wrapper uses sudo pacman as fallback when yay is absent
+- auto-update runs as the autoupdate user, falling back to sudo pacman without yay
 - Add integrity LSM to GRUB lsm= kernel parameter for IMA support alongside AppArmor
 - Consolidated all unconditional pacman package installs into a single sorted call
-- install script reduced to a thin bootstrap: installs ansible+git, creates autoupdate system user with NOPASSWD:ALL sudoers, writes and enables the hourly ansible-pull service+timer, then runs ansible-pull once immediately
+- install script reduced to a thin bootstrap that sets up and runs ansible-pull
 - ansible-pull timer changed from 6-hourly to hourly (OnUnitActiveSec=1h)
-- autoupdate sudoers broadened from NOPASSWD:/usr/bin/pacman to NOPASSWD:ALL so ansible-pull can become root for all configuration tasks
+- autoupdate sudoers broadened to NOPASSWD:ALL so ansible-pull can become root
 - security: add checks to prevent overwriting existing config files
-- Simplify install script to bootstrap only: install ansible+git, install Galaxy collections, run ansible-pull once — all further configuration (user, sudoers, service, timer) is now managed exclusively by the playbook
-- security-review: rewrite workflow to analyse Ansible role YAML files (`roles/**/tasks/main.yml`, `site.yml`) instead of the install shell script; security findings are now reported as GitHub issues labelled `AI-Work` rather than opening pull requests with direct code changes; added `AI-Work` label definition to `.github/labels.yml`
+- install script only bootstraps ansible, git and collections, then runs ansible-pull
+- security-review analyses the Ansible roles and reports findings as AI-Work issues
 - Randomise systemd timer offsets to prevent simultaneous runs across VMs
-- Docker packages (docker-buildx, docker-compose) only installed when container_runtime is set to docker
+- Install docker-buildx and docker-compose only when container_runtime is docker
 - Docker firewalld zone only created when container_runtime is set to docker
-- Explicitly set insecure = false on the Podman registry mirror to enforce HTTPS, matching the docker registry-mirrors configuration
-- Route DNS via systemd-resolved (fleet-wide DNS=, DNSSEC=allow-downgrade, LLMNR/MulticastDNS disabled) instead of a static /etc/resolv.conf, except on dns-?? hosts which keep the static file so a systemd-resolved restart/crash can't cut them off from their own upstream nameservers
-- Renumber fleet nameservers from 192.168.42.251-254 / 2a02:8010:61d5:42::251-254 (4 servers) to 192.168.42.101-105 / 2a02:8010:61d5:42::101-105 (5 servers)
-- eth0.network now writes an Address= line for every address detected on the primary interface per IPv4/IPv6 family, instead of only the first, so hosts with a manually added secondary address are handled without being skipped
-- Remove the redundant per-link DNS= from eth0.network; the fleet nameservers are now configured in exactly one place (the global systemd-resolved drop-in) instead of twice for every non-dns-?? host
-- Derive the fleet nameserver IPv4/IPv6 address lists from a single list of host suffixes plus fixed prefixes, instead of two independently hand-maintained lists, so they can no longer drift out of sync in length or content
-- Order systemd-resolved's global DNS= as IPv6 nameservers before IPv4, matching the static resolv.conf's ordering
-- Bumped aws-actions/configure-aws-credentials from 6.2.2 to 6.2.3 (bug fixes: PackedPolicyTooLarge detection in STS tags, git credentials attached before Tag Major Version push)
+- Set insecure = false on the Podman registry mirror to enforce HTTPS
+- Route DNS via systemd-resolved, except dns-?? hosts which keep a static resolv.conf
+- Renumber fleet nameservers to 192.168.42.101-105 / 2a02:8010:61d5:42::101-105
+- eth0.network writes an Address= line for every detected address per family
+- Remove the redundant per-link DNS= from eth0.network
+- Derive the fleet nameserver IPv4/IPv6 lists from one list of host suffixes
+- Order systemd-resolved's global DNS= with IPv6 nameservers first
+- Bumped aws-actions/configure-aws-credentials from 6.2.2 to 6.2.3
 - Default container_runtime to docker instead of podman for new and existing VMs
-- Only pin manually-assigned (non-dynamic) IPv6 addresses into eth0.network's static Address= list; SLAAC-assigned addresses, stable and temporary alike, are left entirely to the kernel/router advertisements
-- Hosts now sync time from their own IPv4 gateway via networkd NTP= instead of the public arch.pool.ntp.org fallback
-- DNS hosts (dns-NN) point pacman only at the internal cache server for the main Arch and Chaotic AUR repos, with no public mirror fallback
-- ansible-pull now runs at a stable per-host random time within 30 minutes each side of the hour, so a kernel update no longer reboots the whole fleet at once
-- notified Ansible handlers now always run even if a later task in the run fails, so restarts for already-written config changes are never silently dropped
-- Run fstrim.timer daily instead of weekly and enable it explicitly, so thin-provisioned ZFS/Ceph host storage reclaims blocks freed in the guest promptly
-- Fail2ban, docker, auditd, the ansible-pull and fstrim timers, telegraf, systemd-resolved and firewalld are each started or restarted at most once per run, instead of possibly several times
-- The run now fails if the upstream sshd AppArmor profile no longer has the paths or the local include the Arch adjustments rely on
+- Pin only manually assigned IPv6 addresses in eth0.network, leaving SLAAC to the kernel
+- Sync time from the IPv4 gateway via networkd NTP= instead of arch.pool.ntp.org
+- DNS hosts point pacman only at the internal cache for Arch and Chaotic AUR repos
+- ansible-pull runs at a stable per-host random time so kernel updates don't reboot all at once
+- Notified handlers always run even if a later task fails
+- Run fstrim.timer daily instead of weekly and enable it explicitly
+- Each service and timer is started or restarted at most once per run
+- Fail the run if the upstream sshd AppArmor profile lacks the paths the Arch fixes need
 - Reduced per-run CPU cost of verify-before-restart checks and pending-handler retry (#277)
 - LYNIS.md: record TIME-3185 (timesyncd recent-sync warning) as an expected false positive (#248)
-- Own /etc/pacman.conf as a Jinja template in the packages role (roles/packages/templates/pacman.conf.j2), replacing eight separate line-editing tasks so the file is rendered in one place; remove the duplicated chaotic-aur fix from remediate; the [core] repository now also uses the internal cache server on hosts that are not DNS hosts (#227)
+- Own /etc/pacman.conf as a Jinja template in the packages role (#227)
 ### Deprecated
 ### Removed
-- users: stop adding markr's authorized keys from https://github.com/credfeto.keys; sshd already looks keys up from keys.markridgwell.com via AuthorizedKeysCommand, and a GitHub .keys outage (HTTP 504) was failing every ansible-pull run
+- users: stop adding markr's authorized keys from https://github.com/credfeto.keys
 - Remove criu and pigz packages — neither is used or configured by the script
 - Remove curl-based security script in favour of ansible-pull timer
-- auto-update bash script, service, and timer — superseded by the packages role running pacman -Syyu on every hourly ansible-pull run
-- reflector and the chaotic-mirrorlist package from DNS hosts (dns-NN), along with reflector's timer and /etc/xdg/reflector configuration; all other hosts keep both
+- auto-update script, service and timer, superseded by the hourly ansible-pull
+- reflector, its timer and config, and chaotic-mirrorlist from DNS hosts (dns-NN)
 - Remove dead apparmor-profiles task
 ### Deployment Changes
-- Already-provisioned hosts have /etc/resolv.conf replaced (static file on dns-?? hosts, symlink to systemd-resolved's stub on every other host) and systemd-resolved restarted on their next ansible-pull run
-- Existing hosts must re-run ansible-pull (or restart systemd-resolved) to pick up the DNSSEC=no change
+- Existing hosts get /etc/resolv.conf replaced and systemd-resolved restarted on next run
+- Existing hosts must re-run ansible-pull to pick up DNSSEC=no
 
 <!--
 Releases that have at least been deployed to staging, BUT NOT necessarily released to live.  Changes should be moved from [Unreleased] into here as they are merged into the appropriate release branch
