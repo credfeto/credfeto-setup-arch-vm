@@ -37,3 +37,28 @@ pacman_cache_base: https://pacman.markridgwell.com/repo
 # strand hosts in the wrong shape with every task reporting ok.
 pacman_cache_main_server: "{{ pacman_cache_base }}/archlinux/$repo/os/$arch"
 pacman_cache_chaotic_server: "{{ pacman_cache_base }}/chaotic-aur/x86_64"
+
+# pacman.conf drop-ins. /etc/pacman.conf Includes
+# <pacman_conf_dropin_dir>/options/*.conf inside [options] and
+# <pacman_conf_dropin_dir>/repos/*.conf at the end of the file. Each list entry
+# is {name, content} and becomes <name>.conf in that directory; the packages
+# role deletes the files it wrote once their entry is gone, and leaves files
+# added by hand alone. Set the lists per host in host_vars/<host>.yml (a host
+# value replaces the whole list), for example to hold a package back:
+#
+#   pacman_options_dropins:
+#     - name: 50-hold-python-astroid
+#       content: IgnorePkg = python-astroid
+#
+# Repository files need their own [repo] header and load in name order after
+# every repository in the template, so they have the lowest priority:
+#
+#   pacman_repo_dropins:
+#     - name: 50-custom
+#       content: |
+#         [custom]
+#         SigLevel = Optional TrustAll
+#         Server = file:///home/custompkgs
+pacman_conf_dropin_dir: /etc/pacman.conf.d
+pacman_options_dropins: []
+pacman_repo_dropins: []

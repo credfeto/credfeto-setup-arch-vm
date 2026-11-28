@@ -15,11 +15,12 @@
 - name: Start journal upload from the current end of the journal
   ansible.builtin.shell:
     cmd: |
-      set -eu
+      set -euo pipefail
       cursor="$(journalctl --quiet -n 1 -o export | sed -n 's/^__CURSOR=//p')"
       [ -n "${cursor}" ]
       install -d -m 0755 /var/lib/systemd/journal-upload
       printf '# This is private data. Do not parse.\nLAST_CURSOR=%s\n' "${cursor}" > /var/lib/systemd/journal-upload/state
+    executable: /bin/bash
   changed_when: true
   when:
     - journal_upload_url | length > 0

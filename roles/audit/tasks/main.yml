@@ -142,7 +142,7 @@
 # start both together: its other sockets stay open (held by systemd), so log
 # writes are buffered for the second or two this takes and nothing is lost.
 - name: Start the journald audit socket
-  ansible.builtin.shell:
+  ansible.builtin.shell:  # noqa: command-instead-of-module - stop and start together, see above
     cmd: systemctl stop systemd-journald.service; systemctl start systemd-journald-audit.socket systemd-journald.service
   changed_when: true
   when: audit_journald_socket_active.rc != 0

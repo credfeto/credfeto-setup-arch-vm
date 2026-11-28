@@ -71,6 +71,10 @@ LocalFileSigLevel = Optional
 # keyring can then be populated with the keys of all official Arch Linux
 # packagers with `pacman-key --populate archlinux`.
 
+# Drop-in options (pacman_options_dropins in group_vars/all.yml): bare option
+# lines such as IgnorePkg, read here as part of [options] in file-name order.
+Include = {{ pacman_conf_dropin_dir }}/options/*.conf
+
 #
 # REPOSITORIES
 #   - can be defined here or included from another file
@@ -127,3 +131,8 @@ LocalFileSigLevel = Optional
 [chaotic-aur]
 {{ repository_sources(pacman_cache_chaotic_server, '/etc/pacman.d/chaotic-mirrorlist') -}}
 {% endif %}
+
+# Drop-in repositories (pacman_repo_dropins in group_vars/all.yml): each file
+# has its own [repo] header. They load in file-name order after every
+# repository above, so they have the lowest priority.
+Include = {{ pacman_conf_dropin_dir }}/repos/*.conf
